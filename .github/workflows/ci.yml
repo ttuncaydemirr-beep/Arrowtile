@@ -1,5 +1,8 @@
 name: CI
 
+permissions:
+  contents: write
+
 on:
   push:
     branches: [main]
@@ -22,7 +25,7 @@ jobs:
       - run: node tools/flutter/check-arb.js
 
   flutter:
-    name: Flutter analiz, test ve debug APK
+    name: Flutter analiz, test ve deneme APK
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -42,9 +45,25 @@ jobs:
       - run: flutter gen-l10n
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter test
-      - run: flutter build apk --debug
+      # Deneme APK: yayın modunda derlenir (R8 dahil), imza anahtarı yoksa debug anahtarıyla imzalanır.
+      # Play Store'a YÜKLENEMEZ; yalnızca telefonda denemek içindir.
+      - run: flutter build apk --release
+      - run: cp build/app/outputs/flutter-apk/app-release.apk Arrowtile-deneme.apk
       - uses: actions/upload-artifact@v5
         with:
-          name: arrowtile-debug-apk
-          path: flutter/arrowtile/build/app/outputs/flutter-apk/app-debug.apk
+          name: arrowtile-deneme-apk
+          path: flutter/arrowtile/Arrowtile-deneme.apk
           retention-days: 14
+      # main'e her gönderimde "Deneme APK" sürümü güncellenir: telefondan Releases sayfasından doğrudan indirilir.
+      - name: Deneme APK sürümünü güncelle
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Telefonda denemek için otomatik derlenen APK (commit ${GITHUB_SHA::7}). Play Store'a yüklenmez; reklamlar test reklamıdır, satın alma çalışmaz."
+          if gh release view deneme-apk >/dev/null 2>&1; then
+            gh release upload deneme-apk Arrowtile-deneme.apk --clobber
+            gh release edit deneme-apk --notes "$NOTES" --prerelease
+          else
+            gh release create deneme-apk Arrowtile-deneme.apk --title "Deneme APK" --notes "$NOTES" --prerelease --target main
+          fi
