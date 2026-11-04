@@ -96,6 +96,32 @@ void main() {
     expect(s.freeHints, m['freeHints']);
   });
 
+  test('reklamdan jeton (+50, günde 10): altın dizi, saat geri, ertesi gün, sıfırlama hakkı yenilemez', () {
+    expect(kAdCoins, kHintPrice);
+    expect(kMaxCoinAdsPerDay, 10);
+    final SaveData s = SaveData.defaults('en');
+    for (final dynamic x in (g['coinAds'] as List<dynamic>)) {
+      final Map<String, dynamic> m = x as Map<String, dynamic>;
+      final String d = m['d'] as String;
+      expect(coinAdsLeft(s, d), m['left'], reason: d);
+      expect(grantAdCoins(s, d), m['r'], reason: d);
+      expect(s.coins, m['coins'], reason: d);
+      expect(plain(s)['ads'], equals(m['ads']), reason: d);
+    }
+    final Map<String, dynamic> rs = g['coinAdsReset'] as Map<String, dynamic>;
+    final SaveData r = resetProgress(s);
+    expect(plain(r)['ads'], equals(rs['ads']));
+    expect(r.coins, rs['coins']);
+  });
+
+  test('importCode reklam-jeton sayacını korur', () {
+    final SaveData cur = SaveData.defaults('de');
+    grantAdCoins(cur, '2026-11-04');
+    final SaveData? imp = importCode(cur, exportCode(SaveData.defaults('en')));
+    expect(imp!.ads.coinDate, '2026-11-04');
+    expect(imp.ads.coinCount, 1);
+  });
+
   group('sanitize (bozuk veri onarımı + v1.2 freeUndos göçü)', () {
     final List<dynamic> cases = g['sanitize'] as List<dynamic>;
     for (int i = 0; i < cases.length; i++) {

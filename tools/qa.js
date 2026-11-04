@@ -288,7 +288,8 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
     // yetersiz jeton
     await page.evaluate(() => { window.__ok.debugPatch({ coins: 49 }); __qa.toasts = []; });
     await page.tap('#btn-hint'); await wait(200); s = await sstate(page); let toasts = await page.evaluate(() => __qa.toasts);
-    check('yetersiz jetonda ipucu verilmez, jeton düşmez, uyarı', s.coins === 49 && toasts.some(t => t === I18N.tr['game.not_enough_coins']));
+    check('yetersiz jetonda ipucu verilmez, jeton düşmez, "Jetonun yetmiyor" penceresi', s.coins === 49 && (await page.isVisible('#lowcoins-sheet')));
+    await page.tap('#lowcoins-close'); await wait(150);
     // öğretici seviye 2: muaf çarpışma can götürmez
     await page.evaluate(() => window.__ok.debugPatch({ tutorialDone: [1], coins: 100 }));
     ly = await startLevel(page, 2);

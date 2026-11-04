@@ -92,12 +92,16 @@ jobs:
             adb install -r Arrowtile-deneme.apk
             adb logcat -c
             adb shell monkey -p com.arrowtile.puzzle -c android.intent.category.LAUNCHER 1
-            sleep 25
+            sleep 40
             adb shell pidof com.arrowtile.puzzle > pid.txt || true
-            adb logcat -d -v brief AndroidRuntime:E flutter:V DEBUG:V libc:F ActivityManager:W '*:S' > logcat.txt || true
+            adb logcat -d -v brief AndroidRuntime:E flutter:V Ads:V DEBUG:V libc:F ActivityManager:W '*:S' > logcat.txt || true
+            grep -iE "Ad failed to load|onAdFailedToLoad|rewarded|interstitial" logcat.txt > ads-logcat.txt || true
             adb exec-out screencap -p > screen.png || true
             echo "=== PID: $(cat pid.txt) ==="
             cat logcat.txt | tail -200
+            echo "=== REKLAM SATIRLARI (Ad failed to load / onAdFailedToLoad / rewarded / interstitial) ==="
+            if [ -s ads-logcat.txt ]; then cat ads-logcat.txt; else echo "(reklam satırı yok)"; fi
+            echo "=== REKLAM SATIRLARI SONU (yükleme hatası işi başarısız yapmaz) ==="
             if grep -q "FATAL EXCEPTION" logcat.txt && grep -q "Process: com.arrowtile.puzzle" logcat.txt; then echo "UYGULAMA ÇÖKTÜ"; exit 1; fi
             test -s pid.txt
       - uses: actions/upload-artifact@v5
@@ -106,4 +110,5 @@ jobs:
           name: emulator-logcat
           path: |
             logcat.txt
+            ads-logcat.txt
             screen.png

@@ -19,6 +19,7 @@
  *  isOnline(): boolean            (isteğe bağlı)
  *  isRewardedReady(): boolean     (isteğe bağlı)
  *  showInterstitial(id: number): boolean     — true = gösterim başladı; bitince native → onNative({id, event:'closed'})
+ *  loadRewarded(id: number): boolean         (isteğe bağlı) — dokunuşta yükleme; sonuç {id, event:'loaded'} ya da {id, event:'failed', code}
  *  showRewarded(id: number, placement: string): boolean
  *                                             — ödül hak edilince {id, event:'rewarded'}, kapanınca {id, event:'closed'}
  *  purchaseRemoveAds(id: number): boolean    — sonuç {id, event:'purchased'|'pending'|'cancelled'|'failed'}
@@ -31,7 +32,7 @@
 (function (root) {
   'use strict';
 
-  var RULES = { freeUntilLevel: 12, everyLevels: 3, minGapMs: 3 * 60 * 1000, nativeTimeoutMs: 90 * 1000 };
+  var RULES = { freeUntilLevel: 12, everyLevels: 3, minGapMs: 3 * 60 * 1000, nativeTimeoutMs: 90 * 1000, testRewardMs: 600 };
   var PRODUCT_ID = 'remove_ads';
 
   function defaultEnv() {
@@ -132,10 +133,37 @@
       var r = call('isRewardedReady');
       return r === undefined ? typeof bridge().showRewarded === 'function' : !!r;
     }
-    /** onReward() ödül hak edilirse bir kez; onDone(rewarded) her durumda bir kez. */
+    /** Ödüllü reklam düğmeleri GÖRÜNSÜN mü? Önceden yüklenmiş olmaya bağlı değildir (yükleme dokunuşta yapılır).
+     *  Köprü yoksa (web önizleme) test modunda taklit edilir; köprü varsa showRewarded yöntemi yeterli. */
+    function rewardedOffered() {
+      var b = bridge();
+      return b ? typeof b.showRewarded === 'function' : true;
+    }
+    /** Dokunuşta: reklam hazır değilse yüklemeyi başlatır; cb({ok, code?, test?}) her durumda TAM BİR KEZ çağrılır.
+     *  Köprü 'loadRewarded' desteklemezse ve hazır değilse {ok:false, code:'unavailable'} döner. */
+    function ensureRewardedLoaded(cb) {
+      var called = false;
+      function out(r) { if (called) return; called = true; try { cb && cb(r); } catch (e) {} }
+      if (!bridge()) { out({ ok: true, test: true }); return; }
+      if (rewardedAvailable()) { out({ ok: true }); return; }
+      var ok = request('loadRewarded', [], function (m) {
+        out(m.event === 'loaded' ? { ok: true } : { ok: false, code: m.code === undefined ? 'failed' : String(m.code) });
+        return true;
+      }, function () { out({ ok: false, code: 'timeout' }); });
+      if (!ok) out({ ok: false, code: online() ? 'unavailable' : 'offline' });
+    }
+    /** onReward() ödül hak edilirse bir kez; onDone(rewarded) her durumda bir kez.
+     *  Köprü yoksa (web önizleme test modu) kısa gecikmeyle ödül taklit edilir. */
     function showRewarded(placement, onReward, onDone) {
       var rewarded = false, closed = false;
       function done() { if (closed) return; closed = true; try { onDone && onDone(rewarded); } catch (e) {} }
+      if (!bridge()) {
+        env.setTimeout(function () {
+          if (!rewarded) { rewarded = true; try { onReward && onReward(); } catch (e) {} }
+          done();
+        }, RULES.testRewardMs);
+        return true;
+      }
       if (!rewardedAvailable()) { done(); return false; }
       var ok = request('showRewarded', [String(placement || '')], function (m) {
         if (m.event === 'rewarded' && !rewarded) { rewarded = true; try { onReward && onReward(); } catch (e) {} return false; }
@@ -200,6 +228,8 @@
       interstitialDue: interstitialDue,
       continueAfterLevel: continueAfterLevel,
       rewardedAvailable: rewardedAvailable,
+      rewardedOffered: rewardedOffered,
+      ensureRewardedLoaded: ensureRewardedLoaded,
       showRewarded: showRewarded,
       purchaseRemoveAds: purchaseRemoveAds,
       restorePurchases: restorePurchases,

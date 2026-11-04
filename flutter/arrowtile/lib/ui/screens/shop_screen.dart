@@ -9,6 +9,7 @@ import '../../l10n/l10n_lookup.dart';
 import '../../state/app_controller.dart';
 import '../../state/app_scope.dart';
 import '../board_painter.dart';
+import '../rewarded_flow.dart';
 import '../tokens.dart';
 import '../widgets.dart';
 
@@ -158,11 +159,26 @@ class _ShopScreenState extends State<ShopScreen> {
           const SizedBox(width: 4),
           Flexible(child: _priceText(pal, loc.shopPrice(eco.kHintPrice) + (free > 0 ? ' · ${loc.gameFreeLeft(free)}' : ''))),
         ]),
-        action: app.mon.rewardedAvailable()
+        action: app.mon.rewardedOffered()
             ? AppButton(loc.adsWatchHint, fontSize: 16, onTap: () => unawaited(watchForHint(context))) // ödüllü +1 ipucu
             : null,
       ),
+      _coinAdItem(context, app, loc, pal),
     ];
+  }
+
+  /// "Reklam izle: +50 jeton" — kalan günlük hakla (kural: economy.dart grantAdCoins).
+  Widget _coinAdItem(BuildContext context, AppController app, AppLocalizations loc, Palette pal) {
+    final int left = eco.coinAdsLeft(app.save, app.today());
+    return _ItemCard(
+      leading: Icon(Icons.monetization_on, size: 48, color: pal.coinC),
+      title: loc.adsWatchCoins(eco.kAdCoins),
+      desc: loc.adsCoinsDesc(eco.kMaxCoinAdsPerDay),
+      priceWidget: _priceText(pal, left > 0 ? loc.adsCoinsLeft(left, eco.kMaxCoinAdsPerDay) : loc.adsCoinsLimit),
+      action: (left > 0 && app.mon.rewardedOffered())
+          ? AppButton(loc.adsWatchCoins(eco.kAdCoins), fontSize: 16, onTap: () => unawaited(watchForCoins(context)))
+          : null,
+    );
   }
 }
 
@@ -170,15 +186,13 @@ class _ShopScreenState extends State<ShopScreen> {
 Future<void> watchForHint(BuildContext context) async {
   final AppController app = AppScope.read(context);
   final AppLocalizations loc = AppLocalizations.of(context);
-  final bool rewarded = await app.mon.showRewarded('hint', onReward: () {
+  final bool rewarded = await playRewarded(context, 'hint', onReward: () {
     app.save.freeHints++;
     app.persist();
   });
   if (rewarded) {
     app.sfx.coin();
     app.toast(loc.adsRewardHint);
-  } else {
-    app.toast(loc.adsNoReward);
   }
   app.commit();
 }

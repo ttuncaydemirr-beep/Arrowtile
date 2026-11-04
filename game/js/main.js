@@ -333,11 +333,12 @@
           (r[4] > 0 ? '<span class="tool-sub free"> · ' + esc(t('game.free_left', { n: r[4] })) + '</span>' : '');
         main.appendChild(pr);
         it.appendChild(main);
-        if (r[0] === 'hint' && M.rewardedAvailable()) {
+        if (r[0] === 'hint' && M.rewardedOffered()) {
           it.appendChild(btn(t('ads.watch_hint'), 'secondary', function () { watchForHint(); }, 'shop-watch-hint'));
         }
         list.appendChild(it);
       });
+      list.appendChild(buildCoinAdItem());
     }
     var ra = $('shop-ads'); ra.innerHTML = ''; buildAdsCard(ra, 'shop');
     updateCoins();
@@ -384,10 +385,70 @@
       refreshAfterPurchase();
     });
   }
+  function refreshAfterReward() {
+    updateCoins();
+    if (current === 'game') updateHUD(); else if (renderers[current]) { renderers[current](); fitAll($('scr-' + current)); }
+  }
   function watchForHint() {
-    M.showRewarded('hint', function () { S.freeHints++; Store.save(); }, function (rewarded) {
-      if (rewarded) { SFX.coin(); toast(t('ads.reward_hint')); } else toast(t('ads.no_reward'));
-      if (current === 'game') updateHUD(); else if (renderers[current]) { renderers[current](); fitAll($('scr-' + current)); }
+    playRewarded('hint', function () { S.freeHints++; Store.save(); }, function (rewarded) {
+      if (rewarded) { SFX.coin(); toast(t('ads.reward_hint')); }
+      refreshAfterReward();
+    });
+  }
+  // Ödüllü reklamdan jeton (+50, günde en çok 10; kural: Store.grantAdCoins)
+  function watchForCoins(after) {
+    if (Store.coinAdsLeft() <= 0) { SFX.error(); toast(t('ads.coins_limit')); if (after) after(false); return; }
+    playRewarded('coins', function () { Store.grantAdCoins(); }, function (rewarded) {
+      if (rewarded) { SFX.coin(); toast(t('ads.reward_coins', { n: Store.AD_COINS })); }
+      refreshAfterReward();
+      if (after) after(rewarded);
+    });
+  }
+  function buildCoinAdItem() {
+    var left = Store.coinAdsLeft();
+    var it = el('div', 'item'); it.id = 'shop-coin-ad';
+    it.innerHTML = icon('coin', 'big');
+    var main = el('div', 'item-main');
+    main.appendChild(el('div', 'item-name')).textContent = t('ads.watch_coins', { n: Store.AD_COINS });
+    main.appendChild(el('div', 'item-desc')).textContent = t('ads.coins_desc', { max: Store.MAX_COIN_ADS });
+    main.appendChild(el('div', 'item-price')).textContent = left > 0 ? t('ads.coins_left', { n: left, max: Store.MAX_COIN_ADS }) : t('ads.coins_limit');
+    it.appendChild(main);
+    if (left > 0 && M.rewardedOffered()) it.appendChild(btn(t('ads.watch_coins', { n: Store.AD_COINS }), 'secondary', function () { watchForCoins(); }, 'shop-watch-coins'));
+    return it;
+  }
+  // Ödüllü reklamı DOKUNUŞTA yükleyip gösterir (önceden yüklenmiş olmasına bağlı değil).
+  // onReward(): ödül hak edilince en çok bir kez; onDone(rewarded): her durumda bir kez. Reklam yoksa yerelleştirilmiş toast.
+  var rewardBusy = false;
+  function showAdLoading(on) {
+    var n = $('ad-loading');
+    if (!on) { if (n) n.remove(); return; }
+    if (n) return;
+    n = el('div', 'ad-loading'); n.id = 'ad-loading'; n.setAttribute('role', 'status');
+    var box = el('div', 'ad-loading-box');
+    box.appendChild(el('div', 'ad-spinner'));
+    box.appendChild(el('div', 'ad-loading-text')).textContent = t('ads.loading');
+    n.appendChild(box);
+    document.body.appendChild(n);
+  }
+  function playRewarded(placement, onReward, onDone) {
+    if (rewardBusy) return;
+    rewardBusy = true;
+    var finished = false;
+    function finish(rewarded) { if (finished) return; finished = true; rewardBusy = false; showAdLoading(false); try { onDone && onDone(rewarded); } catch (e) {} }
+    function unavailable(code) {
+      SFX.error();
+      toast(t('ads.unavailable') + (Store.DEBUG && code ? ' (' + code + ')' : ''));
+      finish(false);
+    }
+    var ready = !M.hasBridge() || M.rewardedAvailable();
+    if (!ready) showAdLoading(true);
+    M.ensureRewardedLoaded(function (r) {
+      showAdLoading(false);
+      if (!r.ok) { unavailable(r.code); return; }
+      M.showRewarded(placement, onReward, function (rewarded) {
+        if (!rewarded) toast(t('ads.no_reward'));
+        finish(rewarded);
+      });
     });
   }
 
@@ -1153,13 +1214,12 @@
       sh.appendChild(el('p')).textContent = t('game.out_of_lives_text');
       var a = el('div', 'actions');
       a.appendChild(btn(t('game.retry'), 'primary', function () { closeModal(); restartLevel(); }, 'dead-retry'));
-      if (M.rewardedAvailable() && G && revivedFor !== levelKey()) { // ödüllü +1 can: seviye başına en fazla 1 kez
+      if (M.rewardedOffered() && G && revivedFor !== levelKey()) { // ödüllü +1 can: seviye başına en fazla 1 kez
         var my = session;
         a.appendChild(btn(t('ads.watch_life') + ' <small class="opt">· ' + esc(t('ads.optional')) + '</small>', 'secondary', function () {
-          M.showRewarded('life', function () { if (my === session && G && G.revive()) revivedFor = levelKey(); }, function (rewarded) {
+          playRewarded('life', function () { if (my === session && G && G.revive()) revivedFor = levelKey(); }, function (rewarded) {
             if (my !== session) return;
             if (rewarded && G && !G.isDead()) { closeModal(); busy = false; updateHUD(); toast(t('ads.reward_life')); kick(); }
-            else toast(t('ads.no_reward'));
           });
         }, 'dead-revive'));
       }
@@ -1189,11 +1249,33 @@
     });
   });
 
+  // İpucu için jeton yetmiyor: reklam izle (+50 jeton) / Mağaza / Kapat
+  function openLowCoins() {
+    openModal(function (sh) {
+      sh.id = 'lowcoins-sheet';
+      sh.appendChild(el('h2')).textContent = t('game.low_coins_title');
+      sh.appendChild(el('p')).textContent = t('game.low_coins_text', { n: Store.PRICES.hint });
+      var a = el('div', 'actions');
+      if (Store.coinAdsLeft() > 0) {
+        if (M.rewardedOffered()) {
+          a.appendChild(btn(t('ads.watch_coins', { n: Store.AD_COINS }) + ' <small class="opt">· ' + esc(t('ads.coins_left', { n: Store.coinAdsLeft(), max: Store.MAX_COIN_ADS })) + '</small>', 'primary', function () {
+            watchForCoins(function (rewarded) { if (rewarded) closeModal(); });
+          }, 'lowcoins-watch'));
+        }
+      } else {
+        a.appendChild(el('p', 'hint-note')).textContent = t('ads.coins_limit');
+      }
+      a.appendChild(btn(t('menu.shop'), 'secondary', function () { closeModal(); show('shop'); }, 'lowcoins-shop'));
+      a.appendChild(btn(t('common.close'), 'ghost', closeModal, 'lowcoins-close'));
+      sh.appendChild(a);
+    });
+  }
   function useHint() {
     if (!G || busy || G.isWon()) return;
     var i = G.hint();
     if (i < 0) return;
     var free = S.freeHints > 0;
+    if (!free && S.coins < Store.PRICES.hint) { SFX.error(); buzz('error'); openLowCoins(); return; }
     if (!Store.spendBooster('hint')) { SFX.error(); buzz('error'); toast(t('game.not_enough_coins')); return; }
     SFX.hint(); buzz('button');
     hintIdx = i; hintUntil = performance.now() + 2000;

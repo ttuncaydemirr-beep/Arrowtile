@@ -249,9 +249,10 @@ async function overflowReport(page) {
     await P.page.tap('#btn-hint'); await wait(150);
     check('ipucu 50 jeton', (await ss(P.page)).coins === 70);
     await P.page.tap('#btn-hint'); await wait(150); await P.page.tap('#btn-hint'); await wait(150);
-    check('yetersiz jetonda (20) ipucu verilmez', (await ss(P.page)).coins === 20 && (await P.page.textContent('#toast')) === I18N.tr['game.not_enough_coins']);
+    check('yetersiz jetonda (20) ipucu verilmez; "Jetonun yetmiyor" penceresi (reklam / mağaza / kapat) açılır', (await ss(P.page)).coins === 20 && (await P.page.isVisible('#lowcoins-sheet')) && (await P.page.isVisible('#lowcoins-shop')) && (await P.page.isVisible('#lowcoins-close')));
+    await P.page.tap('#lowcoins-close'); await wait(150);
     await P.page.evaluate(() => window.__ok.show('shop')); await wait(250); await P.page.tap('#tab-boosters'); await wait(150);
-    check('mağaza yardımcılarında yalnızca ipucu (50) var', (await P.page.$$('#shop-list .item')).length === 1 && /50/.test(await P.page.textContent('#shop-list .item')));
+    check('mağaza yardımcılarında ipucu (50) + reklam izle jeton kartı var', (await P.page.$$('#shop-list .item')).length === 2 && (await P.page.isVisible('#shop-watch-coins')) && /50/.test(await P.page.textContent('#shop-list .item')));
     check('ekonomi: konsol hatası yok', errors.length === 0 && P.errors.length === 0, errors.concat(P.errors).join(' | '));
     await P.ctx.close();
   }
@@ -394,7 +395,7 @@ async function overflowReport(page) {
     const b5 = blockedOf(LEVELS[4]);
     for (let k = 0; k < 3; k++) { await tapArrowTouch(page, b5); await wait(80); await idle(page); }
     await page.waitForSelector('#dead-sheet', { timeout: 8000 });
-    check('köprü yok: "can bitti" penceresinde ödüllü reklam seçeneği yok', !(await page.isVisible('#dead-revive')));
+    check('köprü yok (test modu): "can bitti" penceresinde ödüllü reklam seçeneği görünür (taklit)', await page.isVisible('#dead-revive'));
     check('ilerlemeyi sıfırla satın almayı silmez', await (async () => { await page.evaluate(() => window.__ok.show('settings')); await wait(200); await page.tap('#btn-reset'); await wait(200); await page.tap('#confirm-yes'); await wait(200); return (await ss(page)).ads.adFree === true; })());
     check('köprü yok: konsol hatası yok', errors.length === 0, errors.join(' | '));
     await ctx.close();

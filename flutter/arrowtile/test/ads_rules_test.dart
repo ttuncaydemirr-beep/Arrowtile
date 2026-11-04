@@ -16,6 +16,12 @@ class FakePlatform implements AdsPlatform {
   bool rewardedOk = true;
   bool rewardGiven = true; // false: ödül hak edilmeden kapanır
   bool hangInterstitial = false;
+  bool hangRewardedShow = false;
+  bool hangLoad = false; // ensureRewardedLoaded hiç tamamlanmaz (platform da takılırsa Monetization takılmamalı)
+  bool loadOk = true; // ensureRewardedLoaded sonucu
+  bool throwOnLoad = false;
+  bool expireAfterLoad = false; // yükleme başarılı ama gösterimden önce süresi doldu
+  String? errCode;
   bool hangPurchase = false;
   PurchaseOutcome purchaseOutcome = PurchaseOutcome.purchased;
   bool? restoreOwned = false;
@@ -34,6 +40,24 @@ class FakePlatform implements AdsPlatform {
   bool get rewardedReady => rewardedOk;
 
   @override
+  Future<bool> ensureRewardedLoaded({Duration timeout = kRewardedLoadTimeout}) async {
+    calls.add('ensure');
+    if (throwOnLoad) throw StateError('boom');
+    if (hangLoad) return Completer<bool>().future;
+    if (loadOk) {
+      rewardedOk = !expireAfterLoad;
+      return true;
+    }
+    errCode = '3';
+    return false;
+  }
+
+  @override
+  String? get lastRewardedErrorCode => errCode;
+  @override
+  String? get lastRewardedErrorMessage => errCode == null ? null : 'Ad failed to load';
+
+  @override
   Future<bool> showInterstitial() {
     calls.add('interstitial');
     if (hangInterstitial) return Completer<bool>().future;
@@ -43,6 +67,7 @@ class FakePlatform implements AdsPlatform {
   @override
   Future<void> showRewarded(String placement, void Function() onReward) async {
     calls.add('rewarded:$placement');
+    if (hangRewardedShow) return Completer<void>().future;
     if (rewardGiven) onReward();
   }
 
@@ -259,5 +284,114 @@ void main() {
     expect(r.m.privacyOptionsRequired, isTrue);
     expect(await r.m.showPrivacyOptions(), isTrue);
     expect(r.p.calls, <String>['privacy']);
+  });
+
+  group('ödüllü reklam: dokunuşta yükleme (deterministik akış)', () {
+    const Duration lt = Duration(milliseconds: 30);
+
+    test('düğme görünürlüğü önceden yüklenmeye ve DNS ölçümüne bağlı değil; platform yoksa gizli', () {
+      final Rig r = Rig()
+        ..p.rewardedOk = false
+        ..p.isOnline = false;
+      expect(r.m.rewardedOffered(), isTrue);
+      expect(r.m.rewardedAvailable(), isFalse); // hazır değil
+      r.p.rewardedOk = true;
+      expect(r.m.rewardedAvailable(), isTrue); // çevrimdışı ipucu engellemez; karar SDK'nın
+      final Rig n = Rig()..p.isAvailable = false;
+      expect(n.m.rewardedOffered(), isFalse);
+    });
+
+    test('hazırsa yükleme çağrılmaz, yükleme penceresi açılmaz, ödül bir kez', () async {
+      final Rig r = Rig();
+      int rew = 0, loading = 0;
+      final RewardedResult res = await r.m.watchRewarded('life', onReward: () => rew++, onLoading: () => loading++, loadTimeout: lt);
+      expect(res.outcome, RewardedOutcome.rewarded);
+      expect(rew, 1);
+      expect(loading, 0);
+      expect(r.p.calls, <String>['rewarded:life']);
+    });
+
+    test('hazır değil: yükleme penceresi aç → yükle → kapat → göster', () async {
+      final Rig r = Rig()..p.rewardedOk = false;
+      final List<String> order = <String>[];
+      final RewardedResult res = await r.m.watchRewarded('coins',
+          onReward: () => order.add('reward'),
+          onLoading: () => order.add('loading'),
+          onLoadingDone: () => order.add('loadingDone'),
+          loadTimeout: lt);
+      expect(res.rewarded, isTrue);
+      expect(order, <String>['loading', 'loadingDone', 'reward']);
+      expect(r.p.calls, <String>['ensure', 'rewarded:coins']);
+    });
+
+    test('yükleme başarısız: hiçbir şey gösterilmez, AdMob hata kodu döner, pencere kapanır', () async {
+      final Rig r = Rig()
+        ..p.rewardedOk = false
+        ..p.loadOk = false;
+      int done = 0;
+      final RewardedResult res = await r.m.watchRewarded('life', onLoading: () {}, onLoadingDone: () => done++, loadTimeout: lt);
+      expect(res.outcome, RewardedOutcome.unavailable);
+      expect(res.errorCode, '3');
+      expect(done, 1);
+      expect(r.p.calls, <String>['ensure']);
+    });
+
+    test('platform yükleme tamamlamazsa zaman aşımıyla biter (takılmaz), pencere kapanır', () async {
+      final Rig r = Rig()
+        ..p.rewardedOk = false
+        ..p.hangLoad = true;
+      int done = 0;
+      final RewardedResult res = await r.m.watchRewarded('life', onLoading: () {}, onLoadingDone: () => done++, loadTimeout: lt);
+      expect(res.unavailable, isTrue);
+      expect(res.errorCode, 'unknown');
+      expect(done, 1);
+      expect(r.p.calls, <String>['ensure']);
+    });
+
+    test('yükleme istisna fırlatırsa unavailable (istisna sızmaz)', () async {
+      final Rig r = Rig()
+        ..p.rewardedOk = false
+        ..p.throwOnLoad = true;
+      final RewardedResult res = await r.m.watchRewarded('hint', onLoading: () {}, onLoadingDone: () {}, loadTimeout: lt);
+      expect(res.unavailable, isTrue);
+    });
+
+    test('yüklendi ama gösterimden önce süresi doldu: gösterilmez, unavailable', () async {
+      final Rig r = Rig()
+        ..p.rewardedOk = false
+        ..p.expireAfterLoad = true;
+      final RewardedResult res = await r.m.watchRewarded('life', loadTimeout: lt);
+      expect(res.unavailable, isTrue);
+      expect(r.p.calls.where((String c) => c.startsWith('rewarded:')), isEmpty);
+    });
+
+    test('ödül hak edilmeden kapatılırsa closed (unavailable değil)', () async {
+      final Rig r = Rig()..p.rewardGiven = false;
+      int rew = 0;
+      final RewardedResult res = await r.m.watchRewarded('life', onReward: () => rew++, loadTimeout: lt);
+      expect(res.outcome, RewardedOutcome.closed);
+      expect(rew, 0);
+    });
+
+    test('reklam gösterimi hiç bitmezse nativeTimeout ile biter', () async {
+      final Rig r = Rig()..p.hangRewardedShow = true;
+      final RewardedResult res = await r.m.watchRewarded('life', loadTimeout: lt);
+      expect(res.outcome, RewardedOutcome.closed);
+    });
+
+    test('platform yok: no_platform', () async {
+      final Rig r = Rig()..p.isAvailable = false;
+      final RewardedResult res = await r.m.watchRewarded('life', loadTimeout: lt);
+      expect(res.unavailable, isTrue);
+      expect(res.errorCode, 'no_platform');
+    });
+
+    test('ensureRewarded: hazırsa true; başarısızsa false', () async {
+      expect(await (Rig()).m.ensureRewarded(loadTimeout: lt), isTrue);
+      final Rig r = Rig()
+        ..p.rewardedOk = false
+        ..p.loadOk = false;
+      expect(await r.m.ensureRewarded(loadTimeout: lt), isFalse);
+    });
   });
 }

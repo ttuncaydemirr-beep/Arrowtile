@@ -116,6 +116,14 @@ function loadStore(initial) {
     days.forEach(d => { const st = S.dailyStatus(d), r = S.claimDaily(d); steps.push({ d, st, r, daily: snap(S).daily, coins: S.get().coins, freeHints: S.get().freeHints }); });
     out.daily = steps;
   }
+  { // v1.4: reklam izleyerek jeton (+50, günde en çok 10; saat geri alınırsa hak yenilenmez; sıfırlama hakkı yenilemez)
+    const S = loadStore(); S.load(); const steps = [];
+    const days = [...Array(11).fill('2026-11-04'), '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-05', '2026-12-31', '2027-01-01'];
+    days.forEach(d => { const left = S.coinAdsLeft(d), r = S.grantAdCoins(d); steps.push({ d, left, r, coins: S.get().coins, ads: snap(S).ads }); });
+    out.coinAds = steps;
+    const before = S.get().ads.coinCount; S.resetProgress();
+    out.coinAdsReset = { before, ads: snap(S).ads, coins: S.get().coins };
+  }
   { // yardımcı harcama
     const S = loadStore(); S.load(); const steps = [];
     for (let i = 0; i < 6; i++) { const ok = S.spendBooster('hint'); steps.push({ ok, coins: S.get().coins, freeHints: S.get().freeHints }); }
@@ -136,6 +144,7 @@ function loadStore(initial) {
       { daily: { lastDate: '2026-11-02', streakDay: 9 } }, { daily: { lastDate: '02.11.2026', streakDay: 3 } },
       { tutorialDone: true }, { tutorialDone: [1, '2', 4, 0, 3, 3] }, { chapterBonus: [1, 0, 5, 9000, '7'] },
       { ads: { since: 2000, lastAt: 1e17, adFree: 'true', test: true } }, { ads: { since: 4, lastAt: 1700000000000, adFree: true, test: false } },
+      { ads: { since: 1, coinDate: '2026-11-04', coinCount: 7 } }, { ads: { coinDate: '4.11.2026', coinCount: -3 } }, { ads: { coinDate: 20261104, coinCount: 5000 } }, { ads: { coinCount: '4.9' } },
       { appearance: 'dark', relaxed: true, aim: true }, { appearance: 'blue', relaxed: 'y', aim: 1 },
       { dp: { done: { '2026-11-01': 3, '2026-11-02': 7, 'bad': 1, '2026-11-03': 0 }, streak: 5, best: 9, trophies: 12, last: '2026-11-02' } },
       { dp: { done: [1, 2], streak: -3, best: 'z', trophies: 1e9, last: 'x' } },

@@ -346,3 +346,9 @@ body.doc-page { user-select: text; -webkit-user-select: text; }
 
 /* Dar ekranda harita başlığı tek satırda kalsın: haritada jeton gerekmez */
 @media (max-width: 400px) { #scr-map .bar .coin-pill { display: none; } }
+
+/* Ödüllü reklam yükleniyor kaplaması (ads.loading) */
+.ad-loading { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; background: rgba(10,19,28,.55); }
+.ad-loading-box { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 22px 28px; border-radius: 22px; background: var(--board, #fff); color: var(--ink, #222); font-weight: 800; }
+.ad-spinner { width: 36px; height: 36px; border-radius: 50%; border: 4px solid rgba(128,128,128,.35); border-top-color: currentColor; animation: ad-spin 800ms linear infinite; }
+@keyframes ad-spin { to { transform: rotate(360deg); } }

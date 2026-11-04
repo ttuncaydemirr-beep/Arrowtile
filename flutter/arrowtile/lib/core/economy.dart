@@ -8,6 +8,8 @@ import 'save_data.dart';
 
 const List<int> kDailyRewards = <int>[20, 30, 40, 50, 60, 80, 150];
 const int kHintPrice = 50; // v1.2: geri alma kaldırıldı, ipucu pahalandı
+const int kAdCoins = kHintPrice; // v1.4: ödüllü reklam başına jeton (= bir ipucu fiyatı)
+const int kMaxCoinAdsPerDay = 10; // v1.4: takvim günü başına en çok reklam-jeton hakkı
 const Map<String, int> kTierBonus = <String, int>{'easy': 50, 'medium': 75, 'hard': 100, 'extreme': 200};
 const Map<String, double> kTierMult = <String, double>{'easy': 1, 'medium': 1.5, 'hard': 2, 'extreme': 3};
 const List<int> kStarBase = <int>[0, 10, 15, 20];
@@ -149,11 +151,41 @@ void refundHint(SaveData s, bool wasFree) {
   }
 }
 
-/// İlerlemeyi sıfırla: dil ve satın alma durumu (ads.adFree/test) korunur.
+/// Bugün kalan reklam-jeton hakkı (0..[kMaxCoinAdsPerDay]). Saat geri alınırsa (kayıtlı gün bugünden sonra) sayaç sıfırlanmaz.
+int coinAdsLeft(SaveData s, String today) {
+  final AdsState a = s.ads;
+  final String? d = a.coinDate;
+  if (d != null && dayDiff(d, today) <= 0) {
+    final int left = kMaxCoinAdsPerDay - a.coinCount;
+    return left < 0 ? 0 : left;
+  }
+  return kMaxCoinAdsPerDay;
+}
+
+/// Ödüllü reklam izlendi: hak varsa [kAdCoins] jeton ekler ve sayacı işler; eklenen jetonu döndürür (hak yoksa 0).
+/// Kaydetme çağıranın işidir.
+int grantAdCoins(SaveData s, String today) {
+  if (coinAdsLeft(s, today) <= 0) return 0;
+  final AdsState a = s.ads;
+  final String? d = a.coinDate;
+  if (d != null && dayDiff(d, today) <= 0) {
+    a.coinCount += 1;
+  } else {
+    a.coinDate = today;
+    a.coinCount = 1;
+  }
+  final int c = s.coins + kAdCoins;
+  s.coins = c > 1000000000 ? 1000000000 : c;
+  return kAdCoins;
+}
+
+/// İlerlemeyi sıfırla: dil, satın alma durumu (ads.adFree/test) ve günlük reklam-jeton hakkı korunur.
 SaveData resetProgress(SaveData old) {
   final SaveData n = SaveData.defaults(old.lang);
   n.ads.adFree = old.ads.adFree;
   n.ads.test = old.ads.test;
+  n.ads.coinDate = old.ads.coinDate; // günlük reklam-jeton hakkı sıfırlamayla yenilenmez
+  n.ads.coinCount = old.ads.coinCount;
   return n;
 }
 
@@ -192,6 +224,11 @@ SaveData? importCode(SaveData current, String code) {
   if (o == null) return null;
   o.lang = current.lang;
   o.ads = AdsState(
-      since: current.ads.since, lastAt: current.ads.lastAt, adFree: current.ads.adFree, test: current.ads.test);
+      since: current.ads.since,
+      lastAt: current.ads.lastAt,
+      adFree: current.ads.adFree,
+      test: current.ads.test,
+      coinDate: current.ads.coinDate,
+      coinCount: current.ads.coinCount);
   return o;
 }

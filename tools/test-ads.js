@@ -173,5 +173,62 @@ const MIN = 60 * 1000;
   check('gizlilik seçenekleri: form açılır, kapanınca cb bir kez', ok === true && closed === 1 && h.calls.some(c => c[0] === 'privacy'));
 }
 
+// 16) v1.4 — ödüllü reklam dokunuşta yüklenir: düğme görünürlüğü önceden yüklenmeye bağlı değil
+{
+  const h = harness({ rewardedReady: false });
+  check('ödüllü düğmeler görünür (rewardedOffered) — hazır olmasa da', h.M.rewardedAvailable() === false && h.M.rewardedOffered() === true);
+  let r = null; h.M.ensureRewardedLoaded(x => { r = x; });
+  check('hazır değil + köprü yüklemeyi desteklemiyor: ok=false, code=unavailable, cb bir kez', r && r.ok === false && r.code === 'unavailable');
+  const h2 = harness({ rewardedReady: false }); h2.bridge.loadRewarded = id => { h2.calls.push(['load', id]); h2.queue.push({ id, event: 'loaded' }); return true; };
+  let r2 = null; h2.M.ensureRewardedLoaded(x => { r2 = x; }); h2.flush();
+  check('köprü loadRewarded: "loaded" → ok=true', r2 && r2.ok === true && h2.calls.some(c => c[0] === 'load'));
+  const h3 = harness({ rewardedReady: false }); h3.bridge.loadRewarded = id => { h3.queue.push({ id, event: 'failed', code: 3 }); return true; };
+  let r3 = null; h3.M.ensureRewardedLoaded(x => { r3 = x; }); h3.flush();
+  check('köprü loadRewarded: "failed" kodu iletilir', r3 && r3.ok === false && r3.code === '3');
+  const h4 = harness({ rewardedReady: false }); h4.bridge.loadRewarded = id => true; // yanıt gelmez
+  let n4 = 0, r4 = null; h4.M.ensureRewardedLoaded(x => { n4++; r4 = x; }); h4.advance(RULES.nativeTimeoutMs + 1);
+  check('yükleme yanıtı gelmezse zaman aşımı (code=timeout), cb tam bir kez, bekleyen yok', n4 === 1 && r4.code === 'timeout' && h4.M._pending() === 0);
+  const h5 = harness({ rewardedReady: true }); let r5 = null; h5.M.ensureRewardedLoaded(x => { r5 = x; });
+  check('hazırsa hemen ok', r5 && r5.ok === true && h5.calls.length === 0);
+  const h6 = harness({ rewardedReady: false, online: false }); let r6 = null; h6.M.ensureRewardedLoaded(x => { r6 = x; });
+  check('çevrimdışı + yükleme desteği yok: code=offline', r6 && r6.ok === false && r6.code === 'offline');
+}
+// 17) v1.4 — köprü yok (web önizleme test modu): ödüllü reklam taklit edilir, ödül bir kez, onDone bir kez
+{
+  const h = harness({ noBridge: true });
+  check('test modunda düğmeler görünür', h.M.rewardedOffered() === true);
+  let e = null; h.M.ensureRewardedLoaded(x => { e = x; });
+  check('test modunda ensureRewardedLoaded hemen ok (test)', e && e.ok && e.test);
+  let rew = 0, done = [], started = h.M.showRewarded('coins', () => rew++, x => done.push(x));
+  check('taklit: gecikme dolmadan ödül yok', started === true && rew === 0 && done.length === 0);
+  h.advance(RULES.testRewardMs + 1);
+  check('taklit: gecikme sonrası ödül tam bir kez, onDone(true) tam bir kez', rew === 1 && done.length === 1 && done[0] === true);
+}
+// 18) v1.4 — jeton kuralı (storage.js): +50, günde 10, yerel gün, saat geri, sıfırlama hakkı yenilemez, kayıt onarımı
+{
+  const fs = require('fs'), vm = require('vm');
+  const mem = {};
+  const ls = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
+  const ctx = { window: { LEVELS: [] }, localStorage: ls, location: { search: '' }, navigator: { languages: ['en-US'], language: 'en-US' }, console, JSON, Math, Date, Object, Array, Number, String, isFinite, TextEncoder, TextDecoder, btoa: x => Buffer.from(x, 'binary').toString('base64'), atob: x => Buffer.from(x, 'base64').toString('binary'), unescape, escape, encodeURIComponent, decodeURIComponent, parseInt, RegExp, Uint8Array };
+  ctx.window.window = ctx.window; vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'game', 'js', 'storage.js'), 'utf8'), ctx);
+  const S = ctx.window.Store; S.load();
+  check('sabitler: +50 jeton (= ipucu fiyatı), günde 10', S.AD_COINS === 50 && S.AD_COINS === S.PRICES.hint && S.MAX_COIN_ADS === 10);
+  check('yeni kayıt: hak 10', S.coinAdsLeft('2026-11-04') === 10 && S.get().ads.coinDate === null && S.get().ads.coinCount === 0);
+  let total = 0; for (let i = 0; i < 10; i++) total += S.grantAdCoins('2026-11-04');
+  check('10 izleme = +500 jeton, hak 0', total === 500 && S.get().coins === 550 && S.coinAdsLeft('2026-11-04') === 0);
+  check('11. izleme jeton vermez', S.grantAdCoins('2026-11-04') === 0 && S.get().coins === 550);
+  check('saat geri alınırsa hak yenilenmez', S.coinAdsLeft('2026-11-03') === 0 && S.grantAdCoins('2026-11-03') === 0);
+  check('ertesi gün hak yenilenir (10), sayaç 1', S.coinAdsLeft('2026-11-05') === 10 && S.grantAdCoins('2026-11-05') === 50 && S.get().ads.coinDate === '2026-11-05' && S.get().ads.coinCount === 1 && S.coinAdsLeft('2026-11-05') === 9);
+  S.resetProgress();
+  check('ilerlemeyi sıfırlamak hakkı yenilemez (jeton 50\'ye döner)', S.get().coins === 50 && S.get().ads.coinDate === '2026-11-05' && S.get().ads.coinCount === 1);
+  const sn = S.sanitize({ ads: { coinDate: '4.11.2026', coinCount: -3 } });
+  check('sanitize: bozuk coinDate → null, negatif sayaç → 0', sn.ads.coinDate === null && sn.ads.coinCount === 0);
+  const sn2 = S.sanitize({ ads: { coinDate: '2026-11-04', coinCount: 5000 } });
+  check('sanitize: sayaç üst sınırı 1000, hak 0', sn2.ads.coinCount === 1000 && sn2.ads.coinDate === '2026-11-04');
+  const sn3 = S.sanitize({ ads: { since: 1 } });
+  check('sanitize: eski kayıt (alan yok) → coinDate null, coinCount 0', sn3.ads.coinDate === null && sn3.ads.coinCount === 0);
+}
+
 console.log(`\n${fail ? fail + ' KALDI, ' : ''}${pass} GEÇTİ (reklam/satın alma birim testi)`);
 process.exit(fail ? 1 : 0);

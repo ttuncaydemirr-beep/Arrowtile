@@ -550,6 +550,70 @@
   "@adsOptional": {
     "description": "ads.optional"
   },
+  "adsLoading": "Reklam yükleniyor…",
+  "@adsLoading": {
+    "description": "ads.loading"
+  },
+  "adsUnavailable": "Şu an reklam yok, biraz sonra tekrar dene.",
+  "@adsUnavailable": {
+    "description": "ads.unavailable"
+  },
+  "adsWatchCoins": "Reklam izle: +{n} jeton",
+  "@adsWatchCoins": {
+    "description": "ads.watch_coins",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "adsRewardCoins": "+{n} jeton",
+  "@adsRewardCoins": {
+    "description": "ads.reward_coins",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "adsCoinsLeft": "Bugün kalan hak: {n}/{max}",
+  "@adsCoinsLeft": {
+    "description": "ads.coins_left",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "adsCoinsDesc": "Kısa bir reklam izle, jeton kazan. Günde en çok {max} kez.",
+  "@adsCoinsDesc": {
+    "description": "ads.coins_desc",
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "adsCoinsLimit": "Bugünkü reklam hakkın bitti. Yarın tekrar dene.",
+  "@adsCoinsLimit": {
+    "description": "ads.coins_limit"
+  },
+  "gameLowCoinsTitle": "Jetonun yetmiyor",
+  "@gameLowCoinsTitle": {
+    "description": "game.low_coins_title"
+  },
+  "gameLowCoinsText": "İpucu için {n} jeton gerekiyor. Reklam izleyerek jeton kazanabilirsin.",
+  "@gameLowCoinsText": {
+    "description": "game.low_coins_text",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "adsPrivacyOptions": "Gizlilik seçenekleri",
   "@adsPrivacyOptions": {
     "description": "ads.privacy_options"

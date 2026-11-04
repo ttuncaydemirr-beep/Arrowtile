@@ -22,6 +22,7 @@ import '../../state/app_controller.dart';
 import '../../state/app_scope.dart';
 import '../board_painter.dart';
 import '../flow.dart';
+import '../rewarded_flow.dart';
 import '../tokens.dart';
 import '../widgets.dart';
 import 'daily_dialogs.dart';
@@ -599,7 +600,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     if (!mounted) return;
     final AppLocalizations loc = AppLocalizations.of(context);
     await showSheet<void>(context, dismissible: false, builder: (BuildContext ctx) {
-      final bool canRevive = app.mon.rewardedAvailable() && app.revivedFor != levelKey;
+      final bool canRevive = app.mon.rewardedOffered() && app.revivedFor != levelKey; // ödüllü +1 can: seviye başına en fazla 1 kez
       return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
         sheetTitle(ctx, loc.gameOutOfLivesTitle),
         sheetText(ctx, loc.gameOutOfLivesText),
@@ -610,7 +611,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
           }),
           if (canRevive)
             AppButton('${loc.adsWatchLife} · ${loc.adsOptional}', onTap: () async {
-              final bool rewarded = await app.mon.showRewarded('life', onReward: () {
+              final bool rewarded = await playRewarded(context, 'life', onReward: () {
                 if (my == session && g.revive()) app.revivedFor = levelKey;
               });
               if (my != session || !mounted) return;
@@ -620,7 +621,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                 _hud();
                 app.toast(loc.adsRewardLife);
                 _kick();
-              } else {
+              } else if (rewarded) {
                 app.toast(loc.adsNoReward);
               }
             }),
@@ -675,6 +676,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     final AppLocalizations loc = AppLocalizations.of(context);
     final int i = g.hint();
     if (i < 0) return;
+    if (app.save.freeHints <= 0 && app.save.coins < eco.kHintPrice) {
+      // ücretsiz hak da jeton da yok: "Jetonun yetmiyor" (reklam izle +50 jeton / Mağaza / Kapat)
+      app.sfx.error();
+      app.buzz('error');
+      unawaited(openLowCoinsSheet(context, onCoins: _hud));
+      return;
+    }
     if (!eco.spendHint(app.save)) {
       app.sfx.error();
       app.buzz('error');

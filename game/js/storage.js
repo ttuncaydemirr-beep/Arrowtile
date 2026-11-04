@@ -20,6 +20,8 @@
   var THEME_IDS = ['emaye', 'lokum', 'cini', 'bakir', 'gece'];
   var DAILY = [20, 30, 40, 50, 60, 80, 150];
   var PRICES = { hint: 50 };       // v1.2 (docs/08): geri alma kaldırıldı, ipucu pahalandı
+  var AD_COINS = 50;               // v1.4: ödüllü reklam başına jeton (= bir ipucu fiyatı)
+  var MAX_COIN_ADS = 10;           // v1.4: takvim günü başına en çok reklam-jeton hakkı
   var UNDO_REFUND = 20;            // eski ücretsiz geri alma hakkı başına jeton (kayıt göçü)
   // v1.3 (docs/09): ödüller bölüm kademesine göre. Seviye jetonu taban 10/15/20 (1/2/3 yıldız) × kademe çarpanı;
   // bölüm bonusu kademeye göre. Döngü levelgen.js ile aynı (K-K-K-O-O-O-Z-Z-A).
@@ -49,7 +51,7 @@
       stars: {}, unlocked: 1, themesOwned: ['emaye'], theme: 'emaye',
       daily: { lastDate: null, streakDay: 0 },
       tutorialDone: [], chapterBonus: [],
-      ads: { since: 0, lastAt: 0, adFree: false, test: false }, // reklam sayacı + "reklamları kaldır" (ads.js)
+      ads: { since: 0, lastAt: 0, adFree: false, test: false, coinDate: null, coinCount: 0 }, // reklam sayacı + "reklamları kaldır" (ads.js) + günlük reklam-jeton hakkı
       appearance: 'auto',   // G7: auto | light | dark
       relaxed: false,       // G3: rahat mod
       aim: false,           // G1: önce seç, sonra fırlat
@@ -102,6 +104,9 @@
       s.ads.lastAt = int(raw.ads.lastAt, 0, 0, 8.64e15);
       s.ads.adFree = raw.ads.adFree === true;
       s.ads.test = raw.ads.test === true;
+      // v1.4: reklam izleyerek jeton — son kullanım günü (yerel yyyy-aa-gg) ve o günkü sayı
+      s.ads.coinDate = /^\d{4}-\d{2}-\d{2}$/.test(raw.ads.coinDate) ? raw.ads.coinDate : null;
+      s.ads.coinCount = int(raw.ads.coinCount, 0, 0, 1000);
     }
     if (['auto', 'light', 'dark'].indexOf(raw.appearance) >= 0) s.appearance = raw.appearance;
     if (typeof raw.relaxed === 'boolean') s.relaxed = raw.relaxed;
@@ -160,10 +165,11 @@
   }
   function resetProgress() {
     var lang = state ? state.lang : detectLang();
-    var keepAds = state && state.ads ? { adFree: !!state.ads.adFree, test: !!state.ads.test } : null;
+    var keepAds = state && state.ads ? { adFree: !!state.ads.adFree, test: !!state.ads.test, coinDate: state.ads.coinDate || null, coinCount: state.ads.coinCount | 0 } : null;
     try { localStorage.removeItem(KEY); } catch (e) {}
     state = defaults(lang);
-    if (keepAds) { state.ads.adFree = keepAds.adFree; state.ads.test = keepAds.test; } // satın alma ilerlemeye bağlı değildir
+    // satın alma ve günlük reklam-jeton hakkı ilerlemeye bağlı değildir (sıfırlamayla hak yenilenmez)
+    if (keepAds) { state.ads.adFree = keepAds.adFree; state.ads.test = keepAds.test; state.ads.coinDate = keepAds.coinDate; state.ads.coinCount = keepAds.coinCount; }
     save();
     return state;
   }
@@ -177,6 +183,25 @@
   function dayDiff(a, b) { // b - a gün
     var pa = a.split('-').map(Number), pb = b.split('-').map(Number);
     return Math.round((Date.UTC(pb[0], pb[1] - 1, pb[2]) - Date.UTC(pa[0], pa[1] - 1, pa[2])) / 864e5);
+  }
+
+  /** Bugün kalan reklam-jeton hakkı (0..MAX_COIN_ADS). Saat geri alınırsa (kayıtlı gün bugünden sonra) sayaç sıfırlanmaz. */
+  function coinAdsLeft(today) {
+    today = today || ymd();
+    var a = (state || load()).ads;
+    if (a.coinDate && dayDiff(a.coinDate, today) <= 0) return Math.max(0, MAX_COIN_ADS - (a.coinCount | 0));
+    return MAX_COIN_ADS;
+  }
+  /** Ödüllü reklam izlendi: hak varsa +AD_COINS jeton ekler, sayacı işler, kaydeder; eklenen jetonu döndürür (hak yoksa 0). */
+  function grantAdCoins(today) {
+    today = today || ymd();
+    if (coinAdsLeft(today) <= 0) return 0;
+    var a = state.ads;
+    if (a.coinDate && dayDiff(a.coinDate, today) <= 0) a.coinCount = (a.coinCount | 0) + 1;
+    else { a.coinDate = today; a.coinCount = 1; }
+    state.coins = Math.min(1000000000, state.coins + AD_COINS);
+    save();
+    return AD_COINS;
   }
 
   /** Günlük ödül durumu: { canClaim, day (1..7), claimedToday, streakLost, clockBack } */
@@ -278,6 +303,7 @@
     tierOfChapter: tierOfChapter, tierOfLevel: tierOfLevel, chapterBonusFor: chapterBonusFor, levelReward: levelReward,
     load: load, save: save, adopt: adopt, resetProgress: resetProgress, sanitize: sanitize, defaults: defaults,
     get: function () { return state || load(); },
+    AD_COINS: AD_COINS, MAX_COIN_ADS: MAX_COIN_ADS, coinAdsLeft: coinAdsLeft, grantAdCoins: grantAdCoins,
     ymd: ymd, dailyStatus: dailyStatus, claimDaily: claimDaily,
     completeLevel: completeLevel, exportCode: exportCode, parseCode: parseCode, importCode: importCode, totalStars: totalStars, spendBooster: spendBooster, refundBooster: refundBooster
   };

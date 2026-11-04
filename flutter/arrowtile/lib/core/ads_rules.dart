@@ -21,6 +21,7 @@ const int kFreeUntilLevel = 12;
 const int kEveryLevels = 3;
 const int kMinGapMs = 3 * 60 * 1000;
 const Duration kNativeTimeout = Duration(seconds: 90);
+const Duration kRewardedLoadTimeout = Duration(seconds: 10); // dokunuşta ödüllü reklam yükleme bekleme sınırı
 const String kProductRemoveAds = 'remove_ads';
 
 enum PurchaseOutcome { purchased, pending, cancelled, failed, unavailable }
@@ -39,6 +40,14 @@ abstract class AdsPlatform {
   bool get interstitialReady;
   bool get rewardedReady;
 
+  /// Dokunuşta: ödüllü reklam hazır değilse yüklemeyi BAŞLATIR (başarısız yükleme sonrası bekleme süresi yok sayılır) ve
+  /// yüklenince true, başarısız olunca ya da [timeout] dolunca false ile tamamlanır. Her durumda tamamlanır.
+  Future<bool> ensureRewardedLoaded({Duration timeout = kRewardedLoadTimeout});
+
+  /// Son ödüllü reklam hatası: AdMob hata kodu ("3" = no fill …) ya da 'timeout' | 'sdk_not_ready' | 'not_ready' | 'busy' …
+  String? get lastRewardedErrorCode;
+  String? get lastRewardedErrorMessage;
+
   /// Geçiş reklamını gösterir; reklam kapanınca true, gösterilemezse/başarısızsa false döner.
   Future<bool> showInterstitial();
 
@@ -53,6 +62,26 @@ abstract class AdsPlatform {
   /// UMP: Ayarlar'da "Gizlilik seçenekleri" gösterilmeli mi.
   bool get privacyOptionsRequired;
   Future<void> showPrivacyOptions();
+}
+
+/// [Monetization.watchRewarded] sonucu.
+enum RewardedOutcome {
+  /// Reklam gösterildi ve ödül hak edildi.
+  rewarded,
+
+  /// Reklam gösterildi ama ödül hak edilmeden kapandı (ya da gösterim başarısız oldu).
+  closed,
+
+  /// Reklam yüklenemedi / hazır değil: hiçbir şey gösterilmedi. [RewardedResult.errorCode] nedeni söyler.
+  unavailable,
+}
+
+class RewardedResult {
+  final RewardedOutcome outcome;
+  final String? errorCode; // yalnızca unavailable için
+  const RewardedResult(this.outcome, {this.errorCode});
+  bool get rewarded => outcome == RewardedOutcome.rewarded;
+  bool get unavailable => outcome == RewardedOutcome.unavailable;
 }
 
 class PurchaseResult {
@@ -140,12 +169,58 @@ class Monetization {
   }
 
   // ---- ödüllü reklam (isteğe bağlı; reklamsız sürümde de kullanılabilir) ----
+  /// Ödüllü reklam düğmeleri GÖRÜNSÜN mü? Önceden yüklenmiş olmaya ve DNS ölçümüne ([AdsPlatform.online]) bağlı DEĞİL:
+  /// reklam SDK'sı varsa düğme görünür, yükleme dokunuşta [watchRewarded] içinde yapılır; karar SDK'ya aittir.
+  bool rewardedOffered() => _bridge;
+
+  /// Şu an gösterime hazır ödüllü reklam var mı (çevrimiçi durumu yalnızca ipucudur, engellemez).
   bool rewardedAvailable() {
-    if (!_bridge || !_online) return false;
+    if (!_bridge) return false;
     return platform.rewardedReady;
   }
 
-  /// [onReward] ödül hak edilirse en çok bir kez çağrılır. Dönen değer: ödül verildi mi.
+  /// Hazır değilse yüklemeyi başlatır ([loadTimeout] sınırıyla); sonunda reklam hazır mı. İstisna fırlatmaz.
+  Future<bool> ensureRewarded({Duration loadTimeout = kRewardedLoadTimeout}) async {
+    if (!_bridge) return false;
+    if (platform.rewardedReady) return true;
+    try {
+      // dış bekçi: platform kendi süresini aşsa bile asla takılmaz
+      final bool ok = await platform
+          .ensureRewardedLoaded(timeout: loadTimeout)
+          .timeout(loadTimeout + const Duration(milliseconds: 500), onTimeout: () => false);
+      return ok && platform.rewardedReady;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Dokunuşta tam akış: hazır değilse [onLoading] → yükle → [onLoadingDone] → göster. [onReward] ödül hak edilirse en çok bir kez.
+  /// Reklam yüklenemezse hiçbir şey gösterilmez ve [RewardedOutcome.unavailable] döner (neden: [RewardedResult.errorCode]).
+  Future<RewardedResult> watchRewarded(
+    String placement, {
+    void Function()? onReward,
+    void Function()? onLoading,
+    void Function()? onLoadingDone,
+    Duration loadTimeout = kRewardedLoadTimeout,
+  }) async {
+    if (!_bridge) return const RewardedResult(RewardedOutcome.unavailable, errorCode: 'no_platform');
+    if (!platform.rewardedReady) {
+      onLoading?.call();
+      final bool ok = await ensureRewarded(loadTimeout: loadTimeout); // istisna fırlatmaz
+      onLoadingDone?.call();
+      if (!ok) return RewardedResult(RewardedOutcome.unavailable, errorCode: platform.lastRewardedErrorCode ?? 'unknown');
+    }
+    if (!platform.rewardedReady) {
+      // yükleme ile gösterim arasında süresi doldu / tüketildi
+      return RewardedResult(RewardedOutcome.unavailable, errorCode: platform.lastRewardedErrorCode ?? 'expired');
+    }
+    final bool rewarded = await showRewarded(placement, onReward: onReward);
+    if (rewarded) return const RewardedResult(RewardedOutcome.rewarded);
+    return const RewardedResult(RewardedOutcome.closed);
+  }
+
+  /// [onReward] ödül hak edilirse en çok bir kez çağrılır. Dönen değer: ödül verildi mi. Hazır ödüllü reklam gerekir
+  /// (yüklemeyi de yapan tam akış için [watchRewarded]).
   Future<bool> showRewarded(String placement, {void Function()? onReward}) async {
     if (!rewardedAvailable()) return false;
     bool rewarded = false;

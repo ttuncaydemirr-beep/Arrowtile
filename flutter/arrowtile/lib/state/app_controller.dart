@@ -287,4 +287,7 @@ class AppController extends ChangeNotifier {
 
   /// Ödüllü +1 can kullanılan seviye (baştan başlayınca sıfırlanmaz; main.js revivedFor). Kalıcı değildir.
   String? revivedFor;
+
+  /// Bir ödüllü reklam akışı (yükleme + gösterim) sürerken true: çift dokunuş ikinci akışı başlatmaz. Her yolda sıfırlanır.
+  bool rewardBusy = false;
 }
