@@ -30,8 +30,8 @@ class PrivacyScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
             children: <Widget>[
-              // tarih RTL'de de soldan sağa (⁦ … ⁩ yalıtım)
-              Text(loc.privacyUpdated('⁦${AppInfo.privacyUpdated}⁩'), style: TextStyle(color: pal.inkSoftC, fontSize: 14)),
+              // tarih RTL'de de soldan sağa (LRI … PDI yalıtım: \u2066 … \u2069)
+              Text(loc.privacyUpdated('\u2066${AppInfo.privacyUpdated}\u2069'), style: TextStyle(color: pal.inkSoftC, fontSize: 14)),
               for (final List<String> s in sections) ...<Widget>[
                 Padding(
                   padding: const EdgeInsets.only(top: 18, bottom: 6),

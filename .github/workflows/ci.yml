@@ -43,7 +43,7 @@ jobs:
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter test
       - run: flutter build apk --debug
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: arrowtile-debug-apk
           path: flutter/arrowtile/build/app/outputs/flutter-apk/app-debug.apk
