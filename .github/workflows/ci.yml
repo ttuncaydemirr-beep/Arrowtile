@@ -98,6 +98,7 @@ jobs:
             adb exec-out screencap -p > screen.png || true
             echo "=== PID: $(cat pid.txt) ==="
             cat logcat.txt | tail -200
+            if grep -q "FATAL EXCEPTION" logcat.txt && grep -q "Process: com.arrowtile.puzzle" logcat.txt; then echo "UYGULAMA ÇÖKTÜ"; exit 1; fi
             test -s pid.txt
       - uses: actions/upload-artifact@v5
         if: always()
