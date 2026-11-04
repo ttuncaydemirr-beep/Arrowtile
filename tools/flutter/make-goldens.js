@@ -156,7 +156,7 @@ function loadStore(initial) {
     const S = loadStore(); S.load();
     [[1, 3], [2, 2], [3, 1], [4, 3], [15, 2]].forEach(([id, st]) => S.completeLevel(id, st, false));
     S.get().theme = 'emaye'; S.get().themesOwned = ['emaye', 'lokum']; S.get().dp = { done: { '2026-11-01': 3, '2026-11-02': 2 }, streak: 2, best: 4, last: '2026-11-02', trophies: 6 };
-    S.get().tips = ['zoom_tip']; S.get().relaxed = true; S.get().tutorialDone = [1, 2, 3]; S.get().ads = { since: 2, lastAt: 5, adFree: true, test: false };
+    S.get().tips = ['zoom_tip']; S.get().relaxed = true; S.get().tutorialDone = [1, 2, 3]; S.get().ads = { since: 2, lastAt: 5, adFree: true, test: false, coinDate: null, coinCount: 0 };
     const code = S.exportCode();
     const parsed = S.parseCode(code);
     const bad = [code + 'x', code.replace('ARROWTILE1', 'ARROWTILE2'), ' ' + code.slice(0, 20) + '\n ' + code.slice(20) + ' ', '', null, 'ARROWTILE1-e30=-' + 'zzzzzzzz', 'ARROWTILE1-W10=-' + (function () { return ('0000000' + (function (str) { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(16); })('W10=')).slice(-8); })()];

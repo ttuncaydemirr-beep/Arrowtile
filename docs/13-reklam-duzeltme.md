@@ -11,4 +11,4 @@ Neden: ödüllü düğmeler yalnızca reklam ÖNCEDEN yüklenmişse ve DNS ölç
 - CI emülatör testi logcat'te `Ads:V` + `flutter:V` toplar, "Ad failed to load / onAdFailedToLoad / rewarded / interstitial" satırlarını yazdırır (başarısızlık işi düşürmez).
 
 ## İlerleme günlüğü
-- Kod yazıldı (web + Flutter + testler + CI), yerel Node denetimleri geçti; ilk push bekleniyor.
+- Push 1 (a2f95e0): kod + testler + CI. Sonuç: web yeşil, analyze 0 sorun, flutter test 147 geçti / 1 kaldı (yedek kodu altın verisinde ads alanları eksikti); düzeltiliyor.
