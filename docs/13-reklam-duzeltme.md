@@ -12,3 +12,4 @@ Neden: ödüllü düğmeler yalnızca reklam ÖNCEDEN yüklenmişse ve DNS ölç
 
 ## İlerleme günlüğü
 - Push 1 (a2f95e0): kod + testler + CI. Sonuç: web yeşil, analyze 0 sorun, flutter test 147 geçti / 1 kaldı (yedek kodu altın verisinde ads alanları eksikti); düzeltiliyor.
+- Push 2 (476cf82): altın veri düzeltildi. CI yeşil: web, flutter (analyze 0 sorun, 148 test geçti), emülatör (çökme yok; logcat: MobileAds initialized, interstitial loaded, rewarded loaded).
