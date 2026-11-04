@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  web-preview:
+    name: Web önizleme doğrulamaları
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node tools/validate-levels.js
+      - run: node tools/validate-i18n.js
+      - run: node tools/test-ads.js
+      - run: node tools/test-daily.js
+      - run: node tools/flutter/check-arb.js
+
+  flutter:
+    name: Flutter analiz, test ve debug APK
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter/arrowtile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter --version
+      - run: flutter pub get
+      - run: flutter gen-l10n
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter test
+      - run: flutter build apk --debug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arrowtile-debug-apk
+          path: flutter/arrowtile/build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 14

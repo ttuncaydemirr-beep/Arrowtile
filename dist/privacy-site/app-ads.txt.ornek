@@ -1,0 +1,3 @@
+# AdMob > Uygulamalar > Tüm uygulamaları göster > app-ads.txt bölümündeki satırı buraya yapıştırın ve
+# dosyanın adını app-ads.txt yapın. Satır şu biçimdedir (pub-... sizin yayıncı kimliğiniz):
+google.com, pub-0000000000000000, DIRECT, f08c47fec0942fa0

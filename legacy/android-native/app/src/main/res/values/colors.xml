@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Oyunun açık tema arka planı (index.html theme-color) -->
+    <color name="app_bg">#E3E9EE</color>
+    <color name="app_bg_light">#E3E9EE</color>
+    <color name="app_bg_dark">#0F1B27</color>
+    <color name="ic_launcher_background">#2456A6</color>
+</resources>

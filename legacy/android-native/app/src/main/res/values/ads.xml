@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+    ╔══════════════════════════════════════════════════════════════════════════╗
+    ║  YAYINDAN ÖNCE DEĞİŞTİR!                                                  ║
+    ║  Aşağıdakiler Google'ın resmi TEST kimlikleridir (gerçek gelir getirmez).  ║
+    ║  AdMob hesabınızda uygulamayı ve 2 reklam birimini oluşturup               ║
+    ║  kendi kimliklerinizi buraya yazın (docs/10-play-store-yukleme.md §2).     ║
+    ║  Debug derlemesi bu dosyayı DEĞİL src/debug/res/values/ads.xml'i kullanır  ║
+    ║  (orada her zaman test kimlikleri vardır).                                 ║
+    ╚══════════════════════════════════════════════════════════════════════════╝
+    Kaynak: https://developers.google.com/admob/android/test-ads (demo reklam birimleri)
+    -->
+    <!-- AdMob uygulama kimliği (~ işaretli). Test: ca-app-pub-3940256099942544~3347511713 -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <!-- Geçiş reklamı (Interstitial). Test: ca-app-pub-3940256099942544/1033173712 -->
+    <string name="admob_interstitial_id" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
+    <!-- Ödüllü reklam (Rewarded). Test: ca-app-pub-3940256099942544/5224354917 -->
+    <string name="admob_rewarded_id" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
+
+    <!-- UMP onay formunu AEA dışında test etmek için (yalnızca debug'da kullanılır, bkz. src/debug) -->
+    <string name="ump_test_device_hashed_id" translatable="false"></string>
+    <bool name="ump_debug_geography_eea">false</bool>
+
+    <!-- Herkese açık gizlilik politikası adresi (Play Console'a girilen adresle aynı). Uygulama içinden yalnızca bu
+         adres ve mailto: bağlantıları sistem uygulamasında açılır; başka hiçbir dış adres açılmaz. -->
+    <string name="privacy_policy_url" translatable="false">https://KULLANICI.github.io/arrowtile/privacy.html</string>
+</resources>

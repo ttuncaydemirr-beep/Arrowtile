@@ -1,0 +1,12 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - lib/l10n/app_localizations*.dart # gen-l10n çıktısı
+linter:
+  rules:
+    # levelgen.dart / engine.dart JS ile satır satır eşleşsin diye JS'teki adlar (L, P, Q, N, A4 …) korunmuştur
+    non_constant_identifier_names: false
+    constant_identifier_names: false
+    prefer_final_locals: false
+    avoid_print: false

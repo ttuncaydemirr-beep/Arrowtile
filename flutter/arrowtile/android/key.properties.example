@@ -1,0 +1,7 @@
+# Bu dosyayı "key.properties" adıyla kopyalayın ve kendi değerlerinizi yazın.
+# key.properties ve .jks dosyası .gitignore'dadır: ASLA paylaşmayın, depoya koymayın, yedeğini güvenli yerde saklayın.
+# storeFile yolu android/ klasörüne göredir (ör. ../../anahtarlar/arrowtile-upload.jks) ya da tam yol olabilir.
+storeFile=/TAM/YOL/arrowtile-upload.jks
+storePassword=DEPO_SIFRESI
+keyAlias=upload
+keyPassword=ANAHTAR_SIFRESI

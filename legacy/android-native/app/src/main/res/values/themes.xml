@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Açık tema (WebView prefers-color-scheme: light). Koyu karşılığı values-night/themes.xml -->
+    <style name="Base.Theme.Arrowtile" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/app_bg</item>
+        <item name="android:colorBackground">@color/app_bg</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+    <style name="Theme.Arrowtile" parent="Base.Theme.Arrowtile" />
+</resources>

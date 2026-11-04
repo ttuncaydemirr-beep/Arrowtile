@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+    ╔══════════════════════════════════════════════════════════════════════════╗
+    ║  YAYINDAN ÖNCE DEĞİŞTİR!                                                  ║
+    ║  Aşağıdaki, Google'ın resmi TEST uygulama kimliğidir (gerçek gelir yok).   ║
+    ║  AdMob hesabınızda uygulamayı oluşturup kendi kimliğinizi buraya yazın     ║
+    ║  (docs/10-play-store-yukleme.md §2). Reklam BİRİMİ kimlikleri ise          ║
+    ║  Dart tarafında lib/config/ads_config.dart içindedir.                      ║
+    ║  Debug derlemesi bu dosyayı DEĞİL src/debug/res/values/ads.xml'i kullanır. ║
+    ╚══════════════════════════════════════════════════════════════════════════╝
+    Kaynak: https://developers.google.com/admob/flutter/quick-start (test uygulama kimliği)
+    -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+</resources>

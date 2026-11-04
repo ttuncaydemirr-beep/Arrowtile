@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tema Önizleme</title>
+<script src="../game/js/theme.js"></script>
+<style>
+  :root { --bg:#E3E9EE; --ink:#1D2C3B; --soft:#5B6B7B; --accent:#2456A6; --font: system-ui, sans-serif; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--font); }
+  .wrap { width:390px; margin:0 auto; padding:16px; box-sizing:border-box; }
+  h2 { font-size:17px; margin:18px 0 8px; font-weight:700; }
+  canvas { display:block; }
+  .dark { background:#0F1B27; color:#E9EFF4; border-radius:16px; padding:8px; }
+  .btns { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .lang { padding:8px; border:1px dashed #9fb0c0; border-radius:10px; }
+  .lang small { color:var(--soft); display:block; margin-bottom:6px; }
+  .btn {
+    min-height:52px; width:100%; box-sizing:border-box; padding:8px 18px; border:0;
+    border-radius:14px; background:var(--accent); color:#fff; font:800 18px/1.3 var(--f, var(--font));
+    box-shadow:0 4px 0 #173D7A; white-space:normal; overflow-wrap:anywhere; hyphens:auto;
+    display:flex; align-items:center; justify-content:center; text-align:center; margin-bottom:8px;
+  }
+  .btn.sec { background:#F6F8FA; color:var(--ink); box-shadow:0 4px 0 #C9D3DC; }
+  .row { display:flex; align-items:center; gap:8px; }
+  .back { width:44px; height:44px; border-radius:12px; background:#F6F8FA; display:grid; place-items:center; font-weight:800; }
+  [dir=rtl] .back span { display:inline-block; transform:scaleX(-1); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h2>Emaye — 4 yön × uzunluk 1-3 (açık)</h2>
+  <canvas id="c1"></canvas>
+  <h2>Tüm temalar (koyu)</h2>
+  <div class="dark"><canvas id="c2"></canvas></div>
+  <h2>Örnek tahta + ipucu</h2>
+  <canvas id="c3"></canvas>
+  <h2>Butonlar — 4 dil (390 px, 2 sütun)</h2>
+  <div class="btns" id="btns"></div>
+</div>
+<script>
+(function(){
+  var T = window.THEME, DPR = window.devicePixelRatio || 1;
+  function mk(id, w, h){ var c=document.getElementById(id); c.width=w*DPR; c.height=h*DPR; c.style.width=w+'px'; c.style.height=h+'px'; var x=c.getContext('2d'); x.scale(DPR,DPR); return x; }
+
+  // 1) 4 yön x 3 uzunluk, 5x5 ızgaralarda
+  var cell = 23, ctx = mk('c1', 358, 3 * (cell*3.8));
+  var dirs = ['R','L','D','U'];
+  for (var L=1; L<=3; L++){
+    dirs.forEach(function(d, i){
+      var ox = 4 + i*88, oy = (L-1)*(cell*3.8) + 4;
+      drawBoard(ctx, ox+8, oy+8, 3, 3, cell, 'light');
+      var x = ox+8, y = oy+8;
+      // kuyruk konumunu uzunluğa göre ayarla, ok kutuya sığsın
+      if (d==='L') x += (L-1)*cell; if (d==='U') y += (L-1)*cell;
+      drawArrow(ctx, {x:x, y:y, cell:cell, dir:d, len:L, color:T.arrowColor(0, i+L)});
+    });
+  }
+
+  // 2) temalar
+  var c2 = mk('c2', 342, T.arrowThemes.length*46+4);
+  c2.font = '600 13px ' + T.font.stacks.latin;
+  T.arrowThemes.forEach(function(th, r){
+    c2.fillStyle = '#E9EFF4'; c2.fillText(th.name, 4, r*46+28);
+    th.colors.forEach(function(col, k){
+      drawArrow(c2, {x:100 + k*48, y:r*46+6, cell:34, dir: ['R','U','D','L','R'][k], len:1, color:col, chevron:th.chevron});
+    });
+  });
+
+  // 3) örnek tahta 5x6
+  var cc = 52, c3 = mk('c3', 358, 6*cc+40);
+  var ox=(358-5*cc)/2+10, oy=18;
+  drawBoard(c3, ox, oy, 5, 6, cc, 'light');
+  var arrows=[{x:0,y:0,dir:'R',len:3},{x:4,y:0,dir:'D',len:2},{x:0,y:1,dir:'D',len:3},{x:1,y:2,dir:'R',len:2},{x:3,y:2,dir:'U',len:1},{x:4,y:4,dir:'L',len:3},{x:3,y:3,dir:'L',len:2},{x:4,y:5,dir:'L',len:1},{x:0,y:5,dir:'U',len:1}];
+  arrows.forEach(function(a,i){ drawArrow(c3,{x:ox+a.x*cc,y:oy+a.y*cc,cell:cc,dir:a.dir,len:a.len,color:T.arrowColor(0,i),highlight:i===4,alpha:i===7?0.45:1}); });
+
+  // 4) butonlar
+  var L = {
+    tr:{name:'Türkçe', a:'Oynamaya devam et', b:'Günlük ödülü al', back:'Geri'},
+    en:{name:'English', a:'Continue playing', b:'Claim daily reward', back:'Back'},
+    de:{name:'Deutsch', a:'Weiter spielen', b:'Tagesbelohnung abholen', back:'Zurück'},
+    ar:{name:'العربية', a:'متابعة اللعب', b:'احصل على المكافأة اليومية', back:'رجوع'}
+  };
+  var host = document.getElementById('btns');
+  Object.keys(L).forEach(function(k){
+    var d = document.createElement('div'); d.className='lang'; d.lang=k; d.dir=T.isRTL(k)?'rtl':'ltr';
+    d.style.setProperty('--f', T.fontFor(k));
+    d.innerHTML = '<small>'+L[k].name+'</small>'
+      + '<button class="btn">'+L[k].a+'</button>'
+      + '<button class="btn sec">'+L[k].b+'</button>'
+      + '<div class="row"><div class="back"><span>&#x2190;</span></div><span>'+L[k].back+'</span></div>';
+    host.appendChild(d);
+    d.querySelectorAll('.btn').forEach(T.fitButton);
+  });
+  // taşma raporu
+  var bad=[]; document.querySelectorAll('.btn').forEach(function(b){ if(b.scrollWidth>b.clientWidth+1) bad.push(b.textContent); });
+  document.title = bad.length ? 'TASMA: '+bad.join(' | ') : 'TASMA YOK';
+})();
+</script>
+</body>
+</html>

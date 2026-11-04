@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ sistem açılış ekranı: oyun arka plan rengi + uygulama ikonu -->
+    <style name="Theme.Arrowtile" parent="Base.Theme.Arrowtile">
+        <item name="android:windowSplashScreenBackground">@color/app_bg</item>
+    </style>
+</resources>

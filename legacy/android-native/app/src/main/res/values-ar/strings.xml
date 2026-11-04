@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Marka adı tüm dillerde Latin harfle aynı yazılır (docs/00) -->
+    <string name="app_name">Arrowtile</string>
+    <string name="link_open_failed">تعذّر فتح الرابط</string>
+</resources>

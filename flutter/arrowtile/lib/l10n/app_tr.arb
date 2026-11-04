@@ -1,0 +1,879 @@
+{
+  "@@locale": "tr",
+  "langName": "Türkçe",
+  "@langName": {
+    "description": "lang.name"
+  },
+  "langTr": "Türkçe",
+  "@langTr": {
+    "description": "lang.tr"
+  },
+  "langEn": "English",
+  "@langEn": {
+    "description": "lang.en"
+  },
+  "langDe": "Deutsch",
+  "@langDe": {
+    "description": "lang.de"
+  },
+  "langAr": "العربية",
+  "@langAr": {
+    "description": "lang.ar"
+  },
+  "commonOk": "Tamam",
+  "@commonOk": {
+    "description": "common.ok"
+  },
+  "commonYes": "Evet",
+  "@commonYes": {
+    "description": "common.yes"
+  },
+  "commonNo": "Hayır",
+  "@commonNo": {
+    "description": "common.no"
+  },
+  "commonCancel": "Vazgeç",
+  "@commonCancel": {
+    "description": "common.cancel"
+  },
+  "commonClose": "Kapat",
+  "@commonClose": {
+    "description": "common.close"
+  },
+  "commonBack": "Geri",
+  "@commonBack": {
+    "description": "common.back"
+  },
+  "commonCoins": "Jeton",
+  "@commonCoins": {
+    "description": "common.coins"
+  },
+  "commonLoading": "Yükleniyor…",
+  "@commonLoading": {
+    "description": "common.loading"
+  },
+  "menuPlay": "Oyna",
+  "@menuPlay": {
+    "description": "menu.play"
+  },
+  "menuContinue": "Devam: Seviye {n}",
+  "@menuContinue": {
+    "description": "menu.continue",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "menuMap": "Harita",
+  "@menuMap": {
+    "description": "menu.map"
+  },
+  "menuShop": "Mağaza",
+  "@menuShop": {
+    "description": "menu.shop"
+  },
+  "menuSettings": "Ayarlar",
+  "@menuSettings": {
+    "description": "menu.settings"
+  },
+  "menuDaily": "Günlük ödül",
+  "@menuDaily": {
+    "description": "menu.daily"
+  },
+  "menuDailyReady": "Ödülün hazır!",
+  "@menuDailyReady": {
+    "description": "menu.daily_ready"
+  },
+  "mapTitle": "Seviye Haritası",
+  "@mapTitle": {
+    "description": "map.title"
+  },
+  "mapLevel": "Seviye {n}",
+  "@mapLevel": {
+    "description": "map.level",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "mapLocked": "Kilitli",
+  "@mapLocked": {
+    "description": "map.locked"
+  },
+  "mapLockedHint": "Önceki seviyeyi bitirince açılır",
+  "@mapLockedHint": {
+    "description": "map.locked_hint"
+  },
+  "mapChapter1": "Çayır",
+  "@mapChapter1": {
+    "description": "map.chapter1"
+  },
+  "mapChapter2": "Kanyon",
+  "@mapChapter2": {
+    "description": "map.chapter2"
+  },
+  "mapChapter3": "Zirve",
+  "@mapChapter3": {
+    "description": "map.chapter3"
+  },
+  "mapStarsTotal": "{n}/{max} yıldız",
+  "@mapStarsTotal": {
+    "description": "map.stars_total",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "mapChapterBonus": "Bölüm bonusu: +{n} jeton",
+  "@mapChapterBonus": {
+    "description": "map.chapter_bonus",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "gameLevel": "Seviye {n}",
+  "@gameLevel": {
+    "description": "game.level",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "gameLives": "Can",
+  "@gameLives": {
+    "description": "game.lives"
+  },
+  "gameArrowsLeft": "Kalan ok: {n}",
+  "@gameArrowsLeft": {
+    "description": "game.arrows_left",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "gameHint": "İpucu",
+  "@gameHint": {
+    "description": "game.hint"
+  },
+  "gameRestart": "Baştan başla",
+  "@gameRestart": {
+    "description": "game.restart"
+  },
+  "gamePause": "Duraklat",
+  "@gamePause": {
+    "description": "game.pause"
+  },
+  "gamePaused": "Duraklatıldı",
+  "@gamePaused": {
+    "description": "game.paused"
+  },
+  "gameResume": "Devam et",
+  "@gameResume": {
+    "description": "game.resume"
+  },
+  "gameToMap": "Haritaya dön",
+  "@gameToMap": {
+    "description": "game.to_map"
+  },
+  "gameCrash": "Çarptı! −1 can",
+  "@gameCrash": {
+    "description": "game.crash"
+  },
+  "gameNotEnoughCoins": "Yeterli jetonun yok",
+  "@gameNotEnoughCoins": {
+    "description": "game.not_enough_coins"
+  },
+  "gameBuyHint": "İpucu al: {n} jeton",
+  "@gameBuyHint": {
+    "description": "game.buy_hint",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "gameFreeLeft": "{n} ücretsiz",
+  "@gameFreeLeft": {
+    "description": "game.free_left",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "gameOutOfLivesTitle": "Canın bitti!",
+  "@gameOutOfLivesTitle": {
+    "description": "game.out_of_lives_title"
+  },
+  "gameOutOfLivesText": "Endişelenme, bu seviyeyi yeniden dene.",
+  "@gameOutOfLivesText": {
+    "description": "game.out_of_lives_text"
+  },
+  "gameRetry": "Tekrar dene",
+  "@gameRetry": {
+    "description": "game.retry"
+  },
+  "tutTap": "Oka dokun",
+  "@tutTap": {
+    "description": "tut.tap"
+  },
+  "tutOrder": "Önce yolu açık olan ok",
+  "@tutOrder": {
+    "description": "tut.order"
+  },
+  "tutCrash": "Çarpışma 1 can götürür",
+  "@tutCrash": {
+    "description": "tut.crash"
+  },
+  "tutHint": "İpucu düğmesine dokun",
+  "@tutHint": {
+    "description": "tut.hint"
+  },
+  "tutSkip": "Atla",
+  "@tutSkip": {
+    "description": "tut.skip"
+  },
+  "endTitle": "Seviye tamam!",
+  "@endTitle": {
+    "description": "end.title"
+  },
+  "endPerfect": "Kusursuz! Hiç çarpmadın.",
+  "@endPerfect": {
+    "description": "end.perfect"
+  },
+  "endCollisions": "Çarpışma: {n}",
+  "@endCollisions": {
+    "description": "end.collisions",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "endReward": "+{n} jeton",
+  "@endReward": {
+    "description": "end.reward",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "endNewBest": "Yeni rekor!",
+  "@endNewBest": {
+    "description": "end.new_best"
+  },
+  "endNext": "Sonraki seviye",
+  "@endNext": {
+    "description": "end.next"
+  },
+  "endReplay": "Tekrar oyna",
+  "@endReplay": {
+    "description": "end.replay"
+  },
+  "endMap": "Harita",
+  "@endMap": {
+    "description": "end.map"
+  },
+  "endChapterDone": "Bölüm tamamlandı!",
+  "@endChapterDone": {
+    "description": "end.chapter_done"
+  },
+  "endAllDone": "Tüm hazır bölümleri bitirdin! Şimdi sonsuz bölümler başlıyor.",
+  "@endAllDone": {
+    "description": "end.all_done"
+  },
+  "shopTitle": "Mağaza",
+  "@shopTitle": {
+    "description": "shop.title"
+  },
+  "shopThemes": "Ok temaları",
+  "@shopThemes": {
+    "description": "shop.themes"
+  },
+  "shopBoosters": "Yardımcılar",
+  "@shopBoosters": {
+    "description": "shop.boosters"
+  },
+  "shopBalance": "Jetonun: {n}",
+  "@shopBalance": {
+    "description": "shop.balance",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "shopBuy": "Satın al",
+  "@shopBuy": {
+    "description": "shop.buy"
+  },
+  "shopOwned": "Sende var",
+  "@shopOwned": {
+    "description": "shop.owned"
+  },
+  "shopEquip": "Kullan",
+  "@shopEquip": {
+    "description": "shop.equip"
+  },
+  "shopEquipped": "Kullanılıyor",
+  "@shopEquipped": {
+    "description": "shop.equipped"
+  },
+  "shopFree": "Ücretsiz",
+  "@shopFree": {
+    "description": "shop.free"
+  },
+  "shopPrice": "{n} jeton",
+  "@shopPrice": {
+    "description": "shop.price",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "shopConfirm": "{n} jeton harcansın mı?",
+  "@shopConfirm": {
+    "description": "shop.confirm",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "shopBought": "Satın alındı!",
+  "@shopBought": {
+    "description": "shop.bought"
+  },
+  "shopEarnNote": "Jetonları seviye bitirerek ve günlük ödülle kazanırsın.",
+  "@shopEarnNote": {
+    "description": "shop.earn_note"
+  },
+  "shopHintDesc": "Çıkabilecek bir oku parlatır",
+  "@shopHintDesc": {
+    "description": "shop.hint_desc"
+  },
+  "themeEmaye": "Emaye",
+  "@themeEmaye": {
+    "description": "theme.emaye"
+  },
+  "themeLokum": "Lokum",
+  "@themeLokum": {
+    "description": "theme.lokum"
+  },
+  "themeCini": "Çini",
+  "@themeCini": {
+    "description": "theme.cini"
+  },
+  "themeBakir": "Bakır",
+  "@themeBakir": {
+    "description": "theme.bakir"
+  },
+  "themeGece": "Gece Lambası",
+  "@themeGece": {
+    "description": "theme.gece"
+  },
+  "dailyTitle": "Günlük Ödül",
+  "@dailyTitle": {
+    "description": "daily.title"
+  },
+  "dailyDay": "{n}. gün",
+  "@dailyDay": {
+    "description": "daily.day",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "dailyClaim": "Al",
+  "@dailyClaim": {
+    "description": "daily.claim"
+  },
+  "dailyClaimed": "Alındı",
+  "@dailyClaimed": {
+    "description": "daily.claimed"
+  },
+  "dailyComeBack": "Yarın yine gel!",
+  "@dailyComeBack": {
+    "description": "daily.come_back"
+  },
+  "dailyStreakLost": "Seri bozuldu, 1. günden başlıyorsun.",
+  "@dailyStreakLost": {
+    "description": "daily.streak_lost"
+  },
+  "dailyBonusHint": "+1 ipucu",
+  "@dailyBonusHint": {
+    "description": "daily.bonus_hint"
+  },
+  "settingsTitle": "Ayarlar",
+  "@settingsTitle": {
+    "description": "settings.title"
+  },
+  "settingsSound": "Ses",
+  "@settingsSound": {
+    "description": "settings.sound"
+  },
+  "settingsVibration": "Titreşim",
+  "@settingsVibration": {
+    "description": "settings.vibration"
+  },
+  "settingsLanguage": "Dil",
+  "@settingsLanguage": {
+    "description": "settings.language"
+  },
+  "settingsOn": "Açık",
+  "@settingsOn": {
+    "description": "settings.on"
+  },
+  "settingsOff": "Kapalı",
+  "@settingsOff": {
+    "description": "settings.off"
+  },
+  "settingsReset": "İlerlemeyi sıfırla",
+  "@settingsReset": {
+    "description": "settings.reset"
+  },
+  "settingsResetConfirm": "Tüm seviyeler, yıldızlar, jetonlar ve temalar silinecek. Emin misin?",
+  "@settingsResetConfirm": {
+    "description": "settings.reset_confirm"
+  },
+  "settingsResetDone": "İlerleme sıfırlandı",
+  "@settingsResetDone": {
+    "description": "settings.reset_done"
+  },
+  "settingsSupport": "Destek",
+  "@settingsSupport": {
+    "description": "settings.support"
+  },
+  "settingsSupportText": "Soru ve önerilerin için bize yaz:",
+  "@settingsSupportText": {
+    "description": "settings.support_text"
+  },
+  "settingsPrivacy": "İlerlemen yalnızca cihazında saklanır. Android sürümünde reklam gösterilir; ayrıntılar gizlilik politikasında.",
+  "@settingsPrivacy": {
+    "description": "settings.privacy"
+  },
+  "settingsVersion": "Sürüm {v}",
+  "@settingsVersion": {
+    "description": "settings.version",
+    "placeholders": {
+      "v": {
+        "type": "String"
+      }
+    }
+  },
+  "appName": "Arrowtile",
+  "@appName": {
+    "description": "app.name"
+  },
+  "adsSection": "Reklamlar",
+  "@adsSection": {
+    "description": "ads.section"
+  },
+  "adsRemoveTitle": "Reklamları kaldır",
+  "@adsRemoveTitle": {
+    "description": "ads.remove_title"
+  },
+  "adsRemoveDesc": "Seviye aralarındaki reklamlar kalıcı olarak kapanır. Tek seferlik satın alma.",
+  "@adsRemoveDesc": {
+    "description": "ads.remove_desc"
+  },
+  "adsRestore": "Satın alımları geri yükle",
+  "@adsRestore": {
+    "description": "ads.restore"
+  },
+  "adsAdFree": "Reklamsız sürüm etkin",
+  "@adsAdFree": {
+    "description": "ads.ad_free"
+  },
+  "adsPurchased": "Teşekkürler! Reklamlar kaldırıldı.",
+  "@adsPurchased": {
+    "description": "ads.purchased"
+  },
+  "adsRestoredOk": "Satın alımlar geri yüklendi",
+  "@adsRestoredOk": {
+    "description": "ads.restored_ok"
+  },
+  "adsRestoredNone": "Geri yüklenecek satın alım bulunamadı",
+  "@adsRestoredNone": {
+    "description": "ads.restored_none"
+  },
+  "adsFailed": "İşlem tamamlanamadı. Daha sonra tekrar dene.",
+  "@adsFailed": {
+    "description": "ads.failed"
+  },
+  "adsCancelled": "Satın alma iptal edildi",
+  "@adsCancelled": {
+    "description": "ads.cancelled"
+  },
+  "adsOffline": "İnternet bağlantısı yok",
+  "@adsOffline": {
+    "description": "ads.offline"
+  },
+  "adsTestMode": "Test modu: gerçek ödeme alınmaz",
+  "@adsTestMode": {
+    "description": "ads.test_mode"
+  },
+  "adsWatchLife": "Reklam izle: +1 can",
+  "@adsWatchLife": {
+    "description": "ads.watch_life"
+  },
+  "adsWatchHint": "Reklam izle: +1 ipucu",
+  "@adsWatchHint": {
+    "description": "ads.watch_hint"
+  },
+  "adsRewardLife": "+1 can! Devam et.",
+  "@adsRewardLife": {
+    "description": "ads.reward_life"
+  },
+  "adsRewardHint": "+1 ücretsiz ipucu",
+  "@adsRewardHint": {
+    "description": "ads.reward_hint"
+  },
+  "adsNoReward": "Reklam tamamlanmadı, ödül verilmedi",
+  "@adsNoReward": {
+    "description": "ads.no_reward"
+  },
+  "adsOptional": "İsteğe bağlı",
+  "@adsOptional": {
+    "description": "ads.optional"
+  },
+  "adsPrivacyOptions": "Gizlilik seçenekleri",
+  "@adsPrivacyOptions": {
+    "description": "ads.privacy_options"
+  },
+  "adsPending": "Ödemen bekleniyor. Tamamlanınca reklamlar kendiliğinden kalkar.",
+  "@adsPending": {
+    "description": "ads.pending"
+  },
+  "privacyTitle": "Gizlilik politikası",
+  "@privacyTitle": {
+    "description": "privacy.title"
+  },
+  "privacyUpdated": "Son güncelleme: {v}",
+  "@privacyUpdated": {
+    "description": "privacy.updated",
+    "placeholders": {
+      "v": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyHData": "Oyun verilerin",
+  "@privacyHData": {
+    "description": "privacy.h_data"
+  },
+  "privacyPData": "Arrowtile hesap istemez. İlerlemen (seviyeler, yıldızlar, jetonlar ve ayarlar) yalnızca cihazında saklanır; bize gönderilmez. Oyun, reklam ve satın alma dışında internete bağlanmaz.",
+  "@privacyPData": {
+    "description": "privacy.p_data"
+  },
+  "privacyHAds": "Reklamlar",
+  "@privacyHAds": {
+    "description": "privacy.h_ads"
+  },
+  "privacyPAds": "Android sürümünde reklamlar Google AdMob ile gösterilir. AdMob; reklam kimliği, IP adresi, cihaz ve uygulama bilgileri ile reklam etkileşimleri gibi verileri reklam göstermek, ölçmek ve kötüye kullanımı önlemek için toplayabilir. Avrupa Ekonomik Alanı, Birleşik Krallık ve İsviçre’de kişiselleştirilmiş reklamdan önce onayın istenir ve onayını istediğin zaman değiştirebilirsin. Reklam kimliğini cihaz ayarlarından sıfırlayabilir veya silebilirsin.",
+  "@privacyPAds": {
+    "description": "privacy.p_ads"
+  },
+  "privacyHBuy": "Satın alımlar",
+  "@privacyHBuy": {
+    "description": "privacy.h_buy"
+  },
+  "privacyPBuy": "“Reklamları kaldır” satın alımı Google Play üzerinden yapılır. Ödeme bilgilerin bize ulaşmaz; oyun yalnızca satın alımın geçerli olup olmadığını öğrenir.",
+  "@privacyPBuy": {
+    "description": "privacy.p_buy"
+  },
+  "privacyHDelete": "Verilerini silme",
+  "@privacyHDelete": {
+    "description": "privacy.h_delete"
+  },
+  "privacyPDelete": "İlerlemeni Ayarlar > İlerlemeyi sıfırla ile ya da uygulamayı kaldırarak silebilirsin.",
+  "@privacyPDelete": {
+    "description": "privacy.p_delete"
+  },
+  "privacyHContact": "İletişim",
+  "@privacyHContact": {
+    "description": "privacy.h_contact"
+  },
+  "privacyPContact": "Gizlilikle ilgili soruların için bize yaz:",
+  "@privacyPContact": {
+    "description": "privacy.p_contact"
+  },
+  "settingsAim": "Önce seç, sonra fırlat",
+  "@settingsAim": {
+    "description": "settings.aim"
+  },
+  "settingsAimDesc": "İlk dokunuş oku ve yolunu gösterir, ikinci dokunuş fırlatır.",
+  "@settingsAimDesc": {
+    "description": "settings.aim_desc"
+  },
+  "gameTapAgain": "Fırlatmak için tekrar dokun",
+  "@gameTapAgain": {
+    "description": "game.tap_again"
+  },
+  "gameAmbiguous": "İki okun arası: tam oka dokun",
+  "@gameAmbiguous": {
+    "description": "game.ambiguous"
+  },
+  "gameAimSuggest": "Hücreler küçük. İki parmakla yakınlaştırabilirsin. “Önce seç, sonra fırlat” da açılsın mı?",
+  "@gameAimSuggest": {
+    "description": "game.aim_suggest"
+  },
+  "gameFit": "Sığdır",
+  "@gameFit": {
+    "description": "game.fit"
+  },
+  "gameZoomTip": "İki parmakla yakınlaştır, tek parmakla kaydır",
+  "@gameZoomTip": {
+    "description": "game.zoom_tip"
+  },
+  "settingsRelaxed": "Rahat mod",
+  "@settingsRelaxed": {
+    "description": "settings.relaxed"
+  },
+  "settingsRelaxedDesc": "Can yok. En fazla 2 yıldız ve yarı jeton.",
+  "@settingsRelaxedDesc": {
+    "description": "settings.relaxed_desc"
+  },
+  "gameRelaxedBadge": "Rahat",
+  "@gameRelaxedBadge": {
+    "description": "game.relaxed_badge"
+  },
+  "endRelaxedNote": "Rahat mod: en fazla 2 yıldız",
+  "@endRelaxedNote": {
+    "description": "end.relaxed_note"
+  },
+  "settingsAppearance": "Görünüm",
+  "@settingsAppearance": {
+    "description": "settings.appearance"
+  },
+  "settingsAppAuto": "Otomatik",
+  "@settingsAppAuto": {
+    "description": "settings.app_auto"
+  },
+  "settingsAppLight": "Açık",
+  "@settingsAppLight": {
+    "description": "settings.app_light"
+  },
+  "settingsAppDark": "Koyu",
+  "@settingsAppDark": {
+    "description": "settings.app_dark"
+  },
+  "settingsGameplay": "Oynanış",
+  "@settingsGameplay": {
+    "description": "settings.gameplay"
+  },
+  "settingsBackup": "Yedekleme",
+  "@settingsBackup": {
+    "description": "settings.backup"
+  },
+  "settingsExport": "Dışa aktar",
+  "@settingsExport": {
+    "description": "settings.export"
+  },
+  "settingsImport": "İçe aktar",
+  "@settingsImport": {
+    "description": "settings.import"
+  },
+  "backupExportText": "Bu kodu kopyalayıp güvenli bir yere kaydet. Yeni cihazda “İçe aktar” ile geri yükleyebilirsin.",
+  "@backupExportText": {
+    "description": "backup.export_text"
+  },
+  "backupCopy": "Kopyala",
+  "@backupCopy": {
+    "description": "backup.copy"
+  },
+  "backupCopied": "Kopyalandı",
+  "@backupCopied": {
+    "description": "backup.copied"
+  },
+  "backupImportText": "Yedek kodunu buraya yapıştır:",
+  "@backupImportText": {
+    "description": "backup.import_text"
+  },
+  "backupImportConfirm": "Bu cihazdaki ilerlemenin yerine geçecek. Emin misin?",
+  "@backupImportConfirm": {
+    "description": "backup.import_confirm"
+  },
+  "backupInvalid": "Kod geçersiz ya da eksik",
+  "@backupInvalid": {
+    "description": "backup.invalid"
+  },
+  "backupImported": "İlerleme geri yüklendi",
+  "@backupImported": {
+    "description": "backup.imported"
+  },
+  "mapChapter4": "Göl",
+  "@mapChapter4": {
+    "description": "map.chapter4"
+  },
+  "mapChapter5": "Orman",
+  "@mapChapter5": {
+    "description": "map.chapter5"
+  },
+  "mapChapter6": "Çöl",
+  "@mapChapter6": {
+    "description": "map.chapter6"
+  },
+  "mapChapter7": "Buzul",
+  "@mapChapter7": {
+    "description": "map.chapter7"
+  },
+  "mapChapter8": "Volkan",
+  "@mapChapter8": {
+    "description": "map.chapter8"
+  },
+  "mapChapter9": "Mercan",
+  "@mapChapter9": {
+    "description": "map.chapter9"
+  },
+  "mapChapter10": "Yıldızlar",
+  "@mapChapter10": {
+    "description": "map.chapter10"
+  },
+  "mapChapter11": "Mağara",
+  "@mapChapter11": {
+    "description": "map.chapter11"
+  },
+  "mapChapter12": "Şelale",
+  "@mapChapter12": {
+    "description": "map.chapter12"
+  },
+  "mapChapter13": "Bozkır",
+  "@mapChapter13": {
+    "description": "map.chapter13"
+  },
+  "mapChapter14": "Fırtına",
+  "@mapChapter14": {
+    "description": "map.chapter14"
+  },
+  "mapChapter15": "Ada",
+  "@mapChapter15": {
+    "description": "map.chapter15"
+  },
+  "mapChapter16": "Kale",
+  "@mapChapter16": {
+    "description": "map.chapter16"
+  },
+  "mapChapter17": "Kutup Işığı",
+  "@mapChapter17": {
+    "description": "map.chapter17"
+  },
+  "mapChapter18": "Ay",
+  "@mapChapter18": {
+    "description": "map.chapter18"
+  },
+  "mapChapterN": "Bölüm {n}",
+  "@mapChapterN": {
+    "description": "map.chapter_n",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "gamePreparing": "Seviye hazırlanıyor…",
+  "@gamePreparing": {
+    "description": "game.preparing"
+  },
+  "tutCurve": "Kıvrımlı oklar da var: ok, başının baktığı yöne gider; gövdesi tren gibi arkasından gelir.",
+  "@tutCurve": {
+    "description": "tut.curve"
+  },
+  "diffEasy": "Kolay",
+  "@diffEasy": {
+    "description": "diff.easy"
+  },
+  "diffMedium": "Orta",
+  "@diffMedium": {
+    "description": "diff.medium"
+  },
+  "diffHard": "Zor",
+  "@diffHard": {
+    "description": "diff.hard"
+  },
+  "diffExtreme": "Aşırı zor",
+  "@diffExtreme": {
+    "description": "diff.extreme"
+  },
+  "dpTitle": "Günlük Bulmaca",
+  "@dpTitle": {
+    "description": "dp.title"
+  },
+  "dpMenu": "Günlük bulmaca",
+  "@dpMenu": {
+    "description": "dp.menu"
+  },
+  "dpPlay": "Bugünün bulmacası",
+  "@dpPlay": {
+    "description": "dp.play"
+  },
+  "dpDone": "Bugünkü bulmaca tamam!",
+  "@dpDone": {
+    "description": "dp.done"
+  },
+  "dpComeBack": "Yarın yeni bir bulmaca seni bekliyor.",
+  "@dpComeBack": {
+    "description": "dp.come_back"
+  },
+  "dpStreak": "Seri: {n} gün",
+  "@dpStreak": {
+    "description": "dp.streak",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "dpBest": "En iyi: {n}",
+  "@dpBest": {
+    "description": "dp.best",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "dpTrophies": "Kupa: {n}",
+  "@dpTrophies": {
+    "description": "dp.trophies",
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "dpTrophyWon": "Günün kupası senin!",
+  "@dpTrophyWon": {
+    "description": "dp.trophy_won"
+  },
+  "dpLevel": "Günlük · {v}",
+  "@dpLevel": {
+    "description": "dp.level",
+    "placeholders": {
+      "v": {
+        "type": "String"
+      }
+    }
+  },
+  "calWeekdays": "Pzt,Sal,Çar,Per,Cum,Cmt,Paz",
+  "@calWeekdays": {
+    "description": "cal.weekdays"
+  },
+  "calMonths": "Ocak,Şubat,Mart,Nisan,Mayıs,Haziran,Temmuz,Ağustos,Eylül,Ekim,Kasım,Aralık",
+  "@calMonths": {
+    "description": "cal.months"
+  }
+}

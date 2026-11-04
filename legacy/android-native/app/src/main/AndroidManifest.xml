@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Reklam (AdMob) ve satın alma (Play Billing) için ağ; oyunun kendisi internet istemez -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Reklam kimliği (Android 13+ hedefleyen ve reklam kimliği kullanan uygulamalar için zorunlu beyan) -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+    <!-- Çarpışma / buton titreşimi (Ayarlar'dan kapatılabilir) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Dokunmatik ekran şart değil (Chromebook/TV uyumu için zorunlu değil olarak işaretli) -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Arrowtile"
+        android:usesCleartextTraffic="false"
+        android:enableOnBackInvokedCallback="true"
+        tools:targetApi="36">
+
+        <!-- AdMob uygulama kimliği: res/values/ads.xml (yayından önce kendi kimliğinizle değiştirin) -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="@string/admob_app_id" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|locale|layoutDirection|density|fontScale"
+            android:windowSoftInputMode="adjustResize"
+            tools:ignore="DiscouragedApi,LockedOrientationActivity">
+            <!-- Android 16 (API 36) büyük ekranlarda (sw ≥ 600dp) yön kilidini yok sayar; geçici muafiyet.
+                 Not: bu muafiyet API 37'yi hedefleyince geçersizdir; oyunun CSS'i yatay ekranda da çalışır. -->
+            <property
+                android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
+                android:value="true" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+    <!-- Android 11+ paket görünürlüğü: e-posta ve tarayıcı uygulamalarını açabilmek için -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+</manifest>

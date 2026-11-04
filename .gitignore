@@ -1,0 +1,34 @@
+# İmza anahtarları ve gizli ayarlar — ASLA depoya girmez
+*.jks
+*.keystore
+key.properties
+keystore.properties
+local.properties
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+flutter/arrowtile/lib/l10n/app_localizations*.dart
+flutter/arrowtile/.metadata
+
+# Android / Gradle
+.gradle/
+**/android/app/debug/
+**/android/app/release/
+captures/
+*.iml
+.idea/
+
+# Node
+node_modules/
+
+# Üretilen çıktılar
+dist/*.zip
+tools/shots/
+
+# Sistem
+.DS_Store
+Thumbs.db

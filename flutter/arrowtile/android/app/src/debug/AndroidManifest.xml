@@ -1,0 +1,4 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Flutter aracı hata ayıklama/hot reload için INTERNET izni ister (ana manifestte zaten var). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+</manifest>

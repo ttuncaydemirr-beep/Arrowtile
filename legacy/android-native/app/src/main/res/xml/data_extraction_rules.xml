@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+: oyun ilerlemesi (WebView localStorage) bulut yedeğine ve cihaz aktarımına dahil.
+     Böylece yeniden kurulumda/yeni telefonda ilerleme geri gelir (rakip yorumlarındaki "ilerleme kayboldu" şikâyeti). -->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="root" path="app_webview/Default/Local Storage/" />
+        <include domain="sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="root" path="app_webview/Default/Local Storage/" />
+        <include domain="sharedpref" path="." />
+    </device-transfer>
+</data-extraction-rules>

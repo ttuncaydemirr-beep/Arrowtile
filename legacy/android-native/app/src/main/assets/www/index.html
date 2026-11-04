@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#E3E9EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0F1B27" media="(prefers-color-scheme: dark)">
+<meta name="format-detection" content="telephone=no">
+<!-- Savunma derinliği (test raporu H7): yalnızca paket içi dosyalar; ağ bağlantısı yok -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Arrowtile</title>
+<link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- Ana menü -->
+  <section id="scr-menu" class="screen" aria-labelledby="menu-title">
+    <header class="bar">
+      <span class="bar-fill"></span>
+      <div class="pill coin-pill"><span class="ic" data-icon="coin"></span><span class="num" data-bind="coins">0</span></div>
+    </header>
+    <div class="menu-body">
+      <img class="logo" src="assets/icon.svg" alt="" width="132" height="132">
+      <h1 id="menu-title" class="title" data-i18n="app.name"></h1>
+      <button class="btn primary big fit" id="btn-play" type="button"></button>
+      <div class="grid2">
+        <button class="btn secondary fit" id="btn-map" type="button"><span class="ic" data-icon="map"></span><span data-i18n="menu.map"></span></button>
+        <button class="btn secondary fit" id="btn-shop" type="button"><span class="ic" data-icon="shop"></span><span data-i18n="menu.shop"></span></button>
+      </div>
+      <button class="btn secondary dp-btn fit" id="btn-dp" type="button">
+        <span class="ic" data-icon="calendar"></span>
+        <span class="daily-txt"><span data-i18n="dp.menu"></span><small id="dp-sub"></small></span>
+      </button>
+      <button class="btn secondary daily-btn fit" id="btn-daily" type="button">
+        <span class="ic" data-icon="gift"></span>
+        <span class="daily-txt"><span data-i18n="menu.daily"></span><small id="daily-ready" data-i18n="menu.daily_ready"></small></span>
+        <span class="badge-dot" id="daily-dot"></span>
+      </button>
+      <button class="btn ghost fit" id="btn-settings" type="button"><span class="ic" data-icon="gear"></span><span data-i18n="menu.settings"></span></button>
+    </div>
+  </section>
+
+  <!-- Seviye haritası -->
+  <section id="scr-map" class="screen" aria-labelledby="map-title">
+    <header class="bar">
+      <button class="icon-btn back" type="button" data-nav="menu" data-i18n-aria="common.back"><span class="ic flip-rtl" data-icon="back"></span></button>
+      <h2 id="map-title" class="bar-title" data-i18n="map.title"></h2>
+      <div class="pill"><span class="ic star-ic" data-icon="star"></span><span class="num" id="map-stars"></span></div>
+      <div class="pill coin-pill"><span class="ic" data-icon="coin"></span><span class="num" data-bind="coins">0</span></div>
+    </header>
+    <div class="scroll" id="map-scroll"></div>
+  </section>
+
+  <!-- Oyun -->
+  <section id="scr-game" class="screen">
+    <header class="bar">
+      <button class="icon-btn" type="button" id="btn-pause" data-i18n-aria="game.pause"><span class="ic" data-icon="pause"></span></button>
+      <div class="bar-title game-title">
+        <span id="game-level"></span>
+        <small id="game-left"></small>
+      </div>
+      <div class="hearts" id="hearts" data-i18n-aria="game.lives"></div>
+      <div class="pill coin-pill"><span class="ic" data-icon="coin"></span><span class="num" data-bind="coins">0</span></div>
+    </header>
+    <div id="board-wrap">
+      <canvas id="board"></canvas>
+      <span id="game-diff" class="diff-tag game-diff" hidden></span>
+      <button id="btn-fit" class="fit-btn" type="button" hidden><span class="ic" data-icon="fit"></span><span data-i18n="game.fit"></span></button>
+      <div id="hand" class="hand" hidden><span class="ic" data-icon="hand"></span></div>
+      <div id="bubble" class="bubble" hidden><span id="bubble-text" class="bubble-text"></span><button class="btn tiny" id="bubble-skip" type="button" data-i18n="tut.skip"></button></div>
+    </div>
+    <footer class="toolbar">
+      <button class="tool" id="btn-hint" type="button"><span class="ic" data-icon="bulb"></span><span class="tool-label" data-i18n="game.hint"></span><span class="tool-sub" id="hint-sub"></span></button>
+      <button class="tool" id="btn-restart" type="button"><span class="ic" data-icon="restart"></span><span class="tool-label" data-i18n="game.restart"></span><span class="tool-sub">&nbsp;</span></button>
+    </footer>
+  </section>
+
+  <!-- Mağaza -->
+  <section id="scr-shop" class="screen" aria-labelledby="shop-title">
+    <header class="bar">
+      <button class="icon-btn back" type="button" data-nav="menu" data-i18n-aria="common.back"><span class="ic flip-rtl" data-icon="back"></span></button>
+      <h2 id="shop-title" class="bar-title" data-i18n="shop.title"></h2>
+      <div class="pill coin-pill"><span class="ic" data-icon="coin"></span><span class="num" data-bind="coins">0</span></div>
+    </header>
+    <div class="scroll pad">
+      <p class="balance" id="shop-balance"></p>
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" type="button" id="tab-themes" data-tab="themes" data-i18n="shop.themes"></button>
+        <button class="tab" role="tab" type="button" id="tab-boosters" data-tab="boosters" data-i18n="shop.boosters"></button>
+      </div>
+      <div id="shop-list"></div>
+      <div id="shop-ads"></div>
+      <p class="note" data-i18n="shop.earn_note"></p>
+    </div>
+  </section>
+
+  <!-- Ayarlar -->
+  <section id="scr-settings" class="screen" aria-labelledby="set-title">
+    <header class="bar">
+      <button class="icon-btn back" type="button" data-nav="menu" data-i18n-aria="common.back"><span class="ic flip-rtl" data-icon="back"></span></button>
+      <h2 id="set-title" class="bar-title" data-i18n="settings.title"></h2>
+      <span class="bar-fill"></span>
+    </header>
+    <div class="scroll pad" id="settings-body"></div>
+  </section>
+
+  <!-- Gizlilik politikası -->
+  <section id="scr-privacy" class="screen" aria-labelledby="pv-title">
+    <header class="bar">
+      <button class="icon-btn back" type="button" data-nav="settings" data-i18n-aria="common.back"><span class="ic flip-rtl" data-icon="back"></span></button>
+      <h2 id="pv-title" class="bar-title" data-i18n="privacy.title"></h2>
+      <span class="bar-fill"></span>
+    </header>
+    <div class="scroll pad"><article id="privacy-body" class="privacy-body"></article></div>
+  </section>
+
+  <div id="modal" class="modal" hidden><div class="sheet" role="dialog" aria-modal="true"></div></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="rotate" role="alert"><span class="ic" data-icon="rotate"></span><span data-i18n="app.rotate"></span></div>
+</div>
+
+<!-- Sıralı klasik scriptler: file:// ve Android WebView altında da çalışır (ES module yok) -->
+<script src="js/i18n.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/levelgen.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/ads.js"></script>
+<script src="js/privacy.js"></script>
+<script src="js/daily.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

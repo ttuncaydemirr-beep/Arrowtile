@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DEBUG derlemesi: HER ZAMAN Google'ın resmi test kimlikleri. BU DOSYAYI DEĞİŞTİRMEYİN.
+         (Gerçek kimliklerle geliştirme sırasında reklama tıklamak AdMob hesabının kapatılmasına yol açabilir.)
+         Gerçek kimlikler yalnızca src/main/res/values/ads.xml içine yazılır ve yalnızca release derlemesinde kullanılır. -->
+    <string name="admob_app_id" translatable="false">ca-app-pub-3940256099942544~3347511713</string>
+    <string name="admob_interstitial_id" translatable="false">ca-app-pub-3940256099942544/1033173712</string>
+    <string name="admob_rewarded_id" translatable="false">ca-app-pub-3940256099942544/5224354917</string>
+    <!-- UMP formunu AEA'daymış gibi test etmek için: uygulamayı bir kez çalıştırın, Logcat'te
+         "Use new ConsentDebugSettings.Builder().addTestDeviceHashedId("...")" satırındaki kimliği buraya yazın
+         ve ump_debug_geography_eea değerini true yapın. -->
+    <string name="ump_test_device_hashed_id" translatable="false"></string>
+    <bool name="ump_debug_geography_eea">false</bool>
+</resources>
