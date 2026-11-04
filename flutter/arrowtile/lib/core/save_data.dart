@@ -107,8 +107,14 @@ class SaveData {
 
 // ---- JS sayı dönüşümü (Number(v)) ve int() yardımcısı ----
 
+/// JS'te eksik alan `undefined` (Number → NaN → varsayılan), `null` ise 0'dır.
+/// Dart Map'te ikisi de null döndüğü için eksik anahtarı bu nöbetçi değerle ayırırız.
+const Object _kUndefined = Object();
+dynamic _field(Map<dynamic, dynamic> m, Object key) => m.containsKey(key) ? m[key] : _kUndefined;
+
 /// JS `Number(v)`: null→0, bool→0/1, boş/boşluk dize→0, sayı dizesi→sayı, diğerleri NaN.
 double _toNumber(dynamic v) {
+  if (identical(v, _kUndefined)) return double.nan; // JS: Number(undefined) → NaN
   if (v == null) return 0;
   if (v is num) return v.toDouble();
   if (v is bool) return v ? 1 : 0;
@@ -142,11 +148,11 @@ SaveData sanitize(dynamic raw, String defaultLang) {
   if (r['lang'] is String && kLangs.contains(r['lang'])) s.lang = r['lang'] as String;
   if (r['sound'] is bool) s.sound = r['sound'] as bool;
   if (r['vibration'] is bool) s.vibration = r['vibration'] as bool;
-  s.coins = jsInt(r['coins'], d.coins, 0, 1000000000);
-  s.freeHints = jsInt(r['freeHints'], d.freeHints, 0, 999);
+  s.coins = jsInt(_field(r, 'coins'), d.coins, 0, 1000000000);
+  s.freeHints = jsInt(_field(r, 'freeHints'), d.freeHints, 0, 999);
   // v1.2 göçü: geri alma kaldırıldı; kalan ücretsiz geri alma hakları jetona çevrilir (hak başı 20).
   if (r.containsKey('freeUndos')) {
-    final int c = s.coins + jsInt(r['freeUndos'], 0, 0, 999) * kUndoRefund;
+    final int c = s.coins + jsInt(_field(r, 'freeUndos'), 0, 0, 999) * kUndoRefund;
     s.coins = c > 1000000000 ? 1000000000 : c;
   }
   final dynamic st = r['stars'];
@@ -162,7 +168,7 @@ SaveData sanitize(dynamic raw, String defaultLang) {
       if (i >= 1 && v >= 1) s.stars[i] = v;
     }
   }
-  s.unlocked = jsInt(r['unlocked'], 1, 1, kMaxLevel);
+  s.unlocked = jsInt(_field(r, 'unlocked'), 1, 1, kMaxLevel);
   if (r['themesOwned'] is List) {
     s.themesOwned = <String>[
       for (final dynamic t in (r['themesOwned'] as List<dynamic>))
@@ -175,7 +181,7 @@ SaveData sanitize(dynamic raw, String defaultLang) {
   if (_isMap(dl)) {
     final dynamic ld = (dl as Map<dynamic, dynamic>)['lastDate'];
     s.daily.lastDate = (ld is String && _ymdRe.hasMatch(ld)) ? ld : null;
-    s.daily.streakDay = jsInt(dl['streakDay'], 0, 0, 7);
+    s.daily.streakDay = jsInt(_field(dl, 'streakDay'), 0, 0, 7);
   }
   final dynamic td = r['tutorialDone'];
   if (td is List) {
@@ -197,8 +203,8 @@ SaveData sanitize(dynamic raw, String defaultLang) {
   final dynamic ad = r['ads'];
   if (_isMap(ad)) {
     final Map<dynamic, dynamic> a = ad as Map<dynamic, dynamic>;
-    s.ads.since = jsInt(a['since'], 0, 0, 1000);
-    s.ads.lastAt = jsInt(a['lastAt'], 0, 0, 8640000000000000);
+    s.ads.since = jsInt(_field(a, 'since'), 0, 0, 1000);
+    s.ads.lastAt = jsInt(_field(a, 'lastAt'), 0, 0, 8640000000000000);
     s.ads.adFree = a['adFree'] == true;
     s.ads.test = a['test'] == true;
   }
@@ -219,9 +225,9 @@ SaveData sanitize(dynamic raw, String defaultLang) {
         if (k is String && _ymdRe.hasMatch(k) && v >= 1) s.dp.done[k] = v;
       }
     }
-    s.dp.streak = jsInt(p['streak'], 0, 0, 100000);
-    s.dp.best = jsInt(p['best'], 0, 0, 100000);
-    s.dp.trophies = jsInt(p['trophies'], 0, 0, 100000);
+    s.dp.streak = jsInt(_field(p, 'streak'), 0, 0, 100000);
+    s.dp.best = jsInt(_field(p, 'best'), 0, 0, 100000);
+    s.dp.trophies = jsInt(_field(p, 'trophies'), 0, 0, 100000);
     final dynamic last = p['last'];
     s.dp.last = (last is String && _ymdRe.hasMatch(last)) ? last : null;
   }
