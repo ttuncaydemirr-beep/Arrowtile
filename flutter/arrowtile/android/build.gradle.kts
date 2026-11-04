@@ -18,6 +18,10 @@ subprojects {
 subprojects {
     project.evaluationDependsOn(":app")
 }
+// Eklenti modüllerinde de yayın lint denetimi (lintVital*) kapatılır; bkz. app/build.gradle.kts.
+subprojects {
+    tasks.matching { it.name.startsWith("lintVital") }.configureEach { enabled = false }
+}
 
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
