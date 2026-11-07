@@ -45,8 +45,36 @@ node tools/test-daily.js
 
 ## Otomatik derleme (GitHub Actions)
 
-Her `main` güncellemesinde `.github/workflows/ci.yml` çalışır: web doğrulamaları, `flutter analyze`, `flutter test` ve test amaçlı bir debug APK. APK, çalıştırmanın "Artifacts" bölümünden indirilebilir. İmzalı yayın paketi (AAB) bilerek CI'da üretilmez; imza anahtarı yalnızca geliştiricinin bilgisayarında durur.
+| Workflow | Ne zaman çalışır | Ne yapar |
+|---|---|---|
+| `ci.yml` (**CI**) | `main`'e her gönderimde ve her PR'da | Web doğrulamaları → `flutter analyze` + `flutter test` → yayın modunda deneme APK → APK'yı Android emülatöründe açıp çökme denetimi |
+| `release.yml` (**Release AAB (imzalı)**) | Yalnızca elle: Actions → Run workflow | Play Store'a yüklenecek imzalı `app-release.aab`. Anahtar ve AdMob kimlikleri GitHub secrets'tan okunur; eksikse veya test kimliği girilmişse açıklayıcı hatayla durur. Kurulum: [docs/14](docs/14-ci-imzali-derleme.md) |
+| `pages.yml` (**Gizlilik sayfası**) | `dist/privacy-site/` değişince ve elle | Gizlilik politikasını GitHub Pages'e yayınlar |
+
+### Deneme APK (telefonda denemek için)
+
+Her başarılı `main` derlemesinden sonra **Releases → Deneme APK** altında `Arrowtile-deneme.apk` güncellenir; telefondan doğrudan indirilip kurulabilir. Debug anahtarıyla imzalıdır, reklamlar test reklamıdır, satın alma çalışmaz ve **Play Store'a yüklenemez**.
+
+### Play Store paketi (imzalı AAB)
+
+1. Yükleme anahtarını oluştur ve 7 secret'ı gir: [docs/14-ci-imzali-derleme.md](docs/14-ci-imzali-derleme.md)
+2. Her yüklemeden önce `flutter/arrowtile/pubspec.yaml` içindeki `version: 1.0.0+N` değerinde `N`'i (versionCode) bir artır.
+3. **Actions → Release AAB (imzalı) → Run workflow** → bitince **Artifacts → arrowtile-release-aab**.
+4. Play Console'a yükleme adımları ve form yanıtları: [docs/10-play-store-yukleme.md](docs/10-play-store-yukleme.md)
+
+### Gizlilik politikası adresi
+
+`https://ttuncaydemirr-beep.github.io/Arrowtile/privacy.html` (uygulamadaki `AppInfo.privacyPolicyUrl` ile aynı; Play Console'a da bu girilir).
+İlk kez yayınlamak için bir kez: **Settings → Pages → Build and deployment → Source: "GitHub Actions"**, ardından **Actions → Gizlilik sayfası → Run workflow**.
+
+## Yayına kalan adımlar
+
+- [ ] Settings → Pages kaynağını "GitHub Actions" yap ve gizlilik sayfası workflow'unu çalıştır
+- [ ] AdMob'da uygulama + 2 reklam birimi (geçiş, ödüllü) oluştur
+- [ ] Yükleme anahtarını oluştur, yedekle ve 7 secret'ı gir ([docs/14](docs/14-ci-imzali-derleme.md))
+- [ ] İmzalı AAB'yi derle, Play Console'da uygulamayı oluştur, `remove_ads` ürününü tanımla
+- [ ] Kapalı test: 12 test kullanıcısı, 14 gün; ardından üretime yayın
 
 ## Güvenlik notu
 
-Bu depo herkese açıktır. İmza anahtarları (`*.jks`, `key.properties`) `.gitignore` ile dışarıda tutulur; asla eklemeyin. Depodaki AdMob kimlikleri Google'ın test kimlikleridir.
+Bu depo herkese açıktır. İmza anahtarları (`*.jks`, `key.properties`) `.gitignore` ile dışarıda tutulur; asla eklemeyin. Gerçek AdMob kimlikleri ve imza şifreleri yalnızca GitHub secrets'ta durur; depodaki kimlikler Google'ın test kimlikleridir.
