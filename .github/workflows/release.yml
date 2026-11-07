@@ -1,0 +1,122 @@
+name: Release AAB (imzalı)
+
+# Yalnızca elle çalışır. Play Store'a yüklenecek imzalı AAB üretir.
+# Gerekli GitHub secrets (Ayarlar > Secrets and variables > Actions): docs/14-ci-imzali-derleme.md
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
+#   ADMOB_APP_ID, ADMOB_INTERSTITIAL_ID, ADMOB_REWARDED_ID
+# Hiçbiri yoksa derleme bilerek durur: release'te test kimliğiyle/debug anahtarıyla paket üretilmez.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aab:
+    name: İmzalı AAB derle
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter/arrowtile
+    env:
+      KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
+      ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
+      ADMOB_REWARDED_ID: ${{ secrets.ADMOB_REWARDED_ID }}
+    steps:
+      - name: Secrets denetimi
+        working-directory: ${{ github.workspace }}
+        run: |
+          missing=""
+          for n in KS_B64:ANDROID_KEYSTORE_BASE64 KS_PASS:ANDROID_KEYSTORE_PASSWORD KEY_ALIAS:ANDROID_KEY_ALIAS KEY_PASS:ANDROID_KEY_PASSWORD \
+                   ADMOB_APP_ID:ADMOB_APP_ID ADMOB_INTERSTITIAL_ID:ADMOB_INTERSTITIAL_ID ADMOB_REWARDED_ID:ADMOB_REWARDED_ID; do
+            var="${n%%:*}"; secret="${n##*:}"
+            if [ -z "${!var}" ]; then missing="$missing $secret"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error title=Eksik secret::Şu GitHub secrets tanımlı değil:$missing. Adımlar: docs/14-ci-imzali-derleme.md. Release derlemesi test kimliği ya da debug anahtarıyla üretilmez, bu yüzden duruyor."
+            exit 1
+          fi
+          # Biçim denetimi (değerleri günlüğe yazmaz)
+          case "$ADMOB_APP_ID" in ca-app-pub-[0-9]*~[0-9]*) ;; *) echo "::error::ADMOB_APP_ID biçimi ca-app-pub-XXXX~YYYY olmalı (~ içerir)."; exit 1;; esac
+          case "$ADMOB_INTERSTITIAL_ID" in ca-app-pub-[0-9]*/[0-9]*) ;; *) echo "::error::ADMOB_INTERSTITIAL_ID biçimi ca-app-pub-XXXX/YYYY olmalı (/ içerir)."; exit 1;; esac
+          case "$ADMOB_REWARDED_ID" in ca-app-pub-[0-9]*/[0-9]*) ;; *) echo "::error::ADMOB_REWARDED_ID biçimi ca-app-pub-XXXX/YYYY olmalı (/ içerir)."; exit 1;; esac
+          for v in "$ADMOB_APP_ID" "$ADMOB_INTERSTITIAL_ID" "$ADMOB_REWARDED_ID"; do
+            case "$v" in ca-app-pub-3940256099942544*) echo "::error::Google TEST kimliği verilmiş (3940256099942544). Kendi AdMob kimliğinizi girin."; exit 1;; esac
+          done
+          case "$KEY_PASS$KS_PASS$KEY_ALIAS" in *\\*) echo "::error::Şifre/alias içinde ters eğik çizgi (\\) olmamalı (key.properties bozulur)."; exit 1;; esac
+
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter --version
+
+      - name: Anahtar deposu ve key.properties oluştur
+        working-directory: ${{ github.workspace }}
+        run: |
+          printf '%s' "$KS_B64" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks"
+          test -s "$RUNNER_TEMP/upload-keystore.jks" || { echo "::error::ANDROID_KEYSTORE_BASE64 çözülemedi veya boş."; exit 1; }
+          keytool -list -keystore "$RUNNER_TEMP/upload-keystore.jks" -storepass "$KS_PASS" -alias "$KEY_ALIAS" >/dev/null 2>&1 \
+            || { echo "::error::Anahtar deposu açılamadı: depo şifresi veya alias yanlış (ya da base64 bozuk)."; exit 1; }
+          {
+            echo "storeFile=$RUNNER_TEMP/upload-keystore.jks"
+            echo "storePassword=$KS_PASS"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASS"
+          } > flutter/arrowtile/android/key.properties
+
+      - name: AdMob kimliklerini yerleştir (yalnızca derleme çalışma kopyasında)
+        run: |
+          python3 - <<'PY'
+          import os, re
+          def sub(path, pattern, repl, label):
+              s = open(path, encoding='utf-8').read()
+              n, c = re.subn(pattern, lambda m: m.group(1) + repl + m.group(2), s)
+              if c != 1:
+                  raise SystemExit(f"::error::{label} bulunamadı ({path}); kaynak biçimi değişmiş olabilir.")
+              open(path, 'w', encoding='utf-8').write(n)
+          sub('android/app/src/main/res/values/ads.xml',
+              r'(<string name="admob_app_id" translatable="false">)[^<]*(</string>)',
+              os.environ['ADMOB_APP_ID'], 'admob_app_id')
+          sub('lib/config/ads_config.dart',
+              r"(static const String releaseInterstitialId = ')[^']*(';)",
+              os.environ['ADMOB_INTERSTITIAL_ID'], 'releaseInterstitialId')
+          sub('lib/config/ads_config.dart',
+              r"(static const String releaseRewardedId = ')[^']*(';)",
+              os.environ['ADMOB_REWARDED_ID'], 'releaseRewardedId')
+          PY
+
+      - run: flutter pub get
+      - run: flutter gen-l10n
+      - run: flutter build appbundle --release
+
+      - name: İmzayı doğrula (debug anahtarı olmamalı)
+        run: |
+          AAB=build/app/outputs/bundle/release/app-release.aab
+          test -s "$AAB"
+          OUT=$(keytool -printcert -jarfile "$AAB" 2>&1 || true)
+          echo "$OUT" | grep -E "Owner:|SHA256:|Valid from" | sed 's/^/  /'
+          if echo "$OUT" | grep -qi "Android Debug"; then echo "::error::AAB debug anahtarıyla imzalanmış."; exit 1; fi
+          echo "$OUT" | grep -q "Owner:" || { echo "::error::AAB imzası okunamadı."; exit 1; }
+
+      - name: Anahtar dosyalarını sil
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: rm -f "$RUNNER_TEMP/upload-keystore.jks" flutter/arrowtile/android/key.properties
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: arrowtile-release-aab
+          path: flutter/arrowtile/build/app/outputs/bundle/release/app-release.aab
+          retention-days: 30
+          if-no-files-found: error

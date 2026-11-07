@@ -39,6 +39,6 @@ class AppInfo {
   static const String version = '1.0.0'; // pubspec.yaml version: 1.0.0+2 ile aynı
   static const String supportEmail = 'nilkaren.tuncay.demir@gmail.com';
   static const String privacyUpdated = '2026-10-25';
-  // Herkese açık gizlilik politikası adresi (Play Console'a girilen adresle aynı). Yayından önce gerçek adresle değiştirin.
-  static const String privacyPolicyUrl = 'https://KULLANICI.github.io/arrowtile/privacy.html';
+  // Herkese açık gizlilik politikası adresi (Play Console'a girilen adresle aynı). GitHub Pages: .github/workflows/pages.yml
+  static const String privacyPolicyUrl = 'https://ttuncaydemirr-beep.github.io/Arrowtile/privacy.html';
 }
