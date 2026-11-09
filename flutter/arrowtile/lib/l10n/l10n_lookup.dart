@@ -2,9 +2,31 @@
 // Doğrudan getter'lar app_localizations.dart (flutter gen-l10n çıktısı) içindedir; burada yalnızca dinamik aramalar vardır.
 import 'app_localizations.dart';
 
-/// Bölüm adı: 1..18 hazır adlar, sonrası "Bölüm N".
+/// Roma rakamı (1..3999; bölüm sayısı bunun çok altındadır). main.js roman() ile aynı.
+String roman(int n) {
+  const List<(int, String)> m = <(int, String)>[
+    (1000, 'M'), (900, 'CM'), (500, 'D'), (400, 'CD'), (100, 'C'), (90, 'XC'), (50, 'L'), (40, 'XL'), (10, 'X'), (9, 'IX'), (5, 'V'), (4, 'IV'), (1, 'I'),
+  ];
+  final StringBuffer r = StringBuffer();
+  for (final (int v, String sym) in m) {
+    while (n >= v) {
+      r.write(sym);
+      n -= v;
+    }
+  }
+  return r.toString();
+}
+
+/// Bölüm adı: mevcut 18 ad döngüyle; tekrarlarda Roma rakamı ("Mağara II"). Rakam Arapçada da Latin harfle,
+/// soldan sağa yalıtılır (U+2066 LRI … U+2069 PDI; main.js chapterName ile aynı).
 String chapterName(AppLocalizations loc, int c) {
-  switch (c) {
+  final int cyc = (c - 1) ~/ 18 + 1;
+  final String name = _baseChapterName(loc, (c - 1) % 18 + 1);
+  return cyc > 1 ? '$name \u2066${roman(cyc)}\u2069' : name;
+}
+
+String _baseChapterName(AppLocalizations loc, int n) {
+  switch (n) {
     case 1:
       return loc.mapChapter1;
     case 2:
@@ -39,10 +61,8 @@ String chapterName(AppLocalizations loc, int c) {
       return loc.mapChapter16;
     case 17:
       return loc.mapChapter17;
-    case 18:
-      return loc.mapChapter18;
     default:
-      return loc.mapChapterN(c);
+      return loc.mapChapter18;
   }
 }
 

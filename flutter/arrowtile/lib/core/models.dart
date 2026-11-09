@@ -31,7 +31,7 @@ class Arrow {
       };
 }
 
-/// Bir seviye. Hazır seviyeler (1..216), sonsuz seviyeler ve günlük bulmaca aynı tiptir.
+/// Bir seviye. Hazır seviyeler (1..200), sonsuz seviyeler ve günlük bulmaca aynı tiptir.
 /// [daily] doluysa 'YYYY-MM-DD' (id = 0).
 class Level {
   final int id;

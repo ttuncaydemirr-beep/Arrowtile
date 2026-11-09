@@ -10,14 +10,15 @@ const List<int> kDailyRewards = <int>[20, 30, 40, 50, 60, 80, 150];
 const int kHintPrice = 50; // v1.2: geri alma kaldırıldı, ipucu pahalandı
 const int kAdCoins = kHintPrice; // v1.4: ödüllü reklam başına jeton (= bir ipucu fiyatı)
 const int kMaxCoinAdsPerDay = 10; // v1.4: takvim günü başına en çok reklam-jeton hakkı
-const Map<String, int> kTierBonus = <String, int>{'easy': 50, 'medium': 75, 'hard': 100, 'extreme': 200};
 const Map<String, double> kTierMult = <String, double>{'easy': 1, 'medium': 1.5, 'hard': 2, 'extreme': 3};
 const List<int> kStarBase = <int>[0, 10, 15, 20];
 const Map<String, int> kThemePrice = <String, int>{'emaye': 0, 'lokum': 300, 'cini': 500, 'bakir': 750, 'gece': 1000};
 
-String tierOfChapterId(int ch) => tierOf(ch);
-String tierOfLevel(int id) => tierOf((id + 11) ~/ 12); // Math.ceil(id / 12)
-int chapterBonusFor(int ch) => kTierBonus[tierOf(ch)]!;
+/// v1.5 (docs/15 §5): bölüm = 10 seviye; kademe SEVİYE bazında (1-3 Kolay, 4-6 Orta, 7-8 Zor, 9-10 Aşırı zor).
+String tierOfLevel(int id) => tierOf(id);
+
+/// Bölüm bonusu tek: bölüm tamamlanınca [kChapterBonus] (150) jeton.
+int chapterBonusFor(int ch) => kChapterBonus;
 
 /// Seviye jetonu: taban 10/15/20 (1/2/3 yıldız) × kademe çarpanı, JS Math.round (yarım yukarı).
 int levelReward(int id, int stars) {
@@ -101,12 +102,12 @@ CompleteResult completeLevel(SaveData s, int id, int stars, bool relaxed) {
   if (best) s.stars[id] = stars;
   s.coins += coins;
   if (id >= s.unlocked && id < kMaxLevel) s.unlocked = id + 1;
-  final int ch = (id + 11) ~/ 12;
+  final int ch = chapterOf(id);
   int bonus = 0;
   bool chapterDone = false;
   if (!s.chapterBonus.contains(ch)) {
     bool all = true;
-    for (int k = (ch - 1) * 12 + 1; k <= ch * 12; k++) {
+    for (int k = (ch - 1) * kPerChapter + 1; k <= ch * kPerChapter; k++) {
       if ((s.stars[k] ?? 0) == 0) {
         all = false;
         break;

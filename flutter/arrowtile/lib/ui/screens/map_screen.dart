@@ -1,16 +1,21 @@
 // Arrowtile — map_screen.dart: seviye haritası (index.html #scr-map, main.js renderers.map).
-// Aşağıdan yukarıya ilerlenir; en üstte son bölüm. Hazır 18 bölüm her zaman, sonsuzda oyuncunun bölümü + bir sonraki (kilitli).
+// Aşağıdan yukarıya ilerilir; en üstte son bölüm. v1.1 (docs/15 §5): 500 bölüm (sonrası oyuncuyla birlikte uzar; bölüm = 10 seviye).
+// TEMBEL LİSTE: ListView.builder + sabit itemExtent → yalnızca görünen bölümler (± önbellek) oluşturulur, bölüm sayısı ne olursa olsun
+// çizim maliyeti sabittir. Açılışta oyuncunun bölümüne kaydırılır. Zorluk seviye bazında döner: düğümün köşe noktası kademesini gösterir
+// (Aşırı zor: koyu kırmızı halka). Altta banner (docs/15 §3).
 import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../core/ads_rules.dart' show AdScreen;
 import '../../core/economy.dart' as eco;
-import '../../core/levelgen.dart' show kPerChapter, kPrebuilt, tierOf;
+import '../../core/levelgen.dart' show chapterOf, kChapters, kPerChapter, tierOf;
 import '../../l10n/app_localizations.dart';
 import '../../l10n/l10n_lookup.dart';
 import '../../state/app_controller.dart';
 import '../../state/app_scope.dart';
+import '../ad_banner.dart';
 import '../flow.dart';
 import '../tokens.dart';
 import '../widgets.dart';
@@ -19,6 +24,26 @@ const double _step = 96, _padB = 48, _padT = 40; // yıldızlar için düğümle
 const double _pathH = _padB + _padT + (kPerChapter - 1) * _step;
 const double _headH = 76;
 const double _chapterExtent = 12 + _headH + 6 + _pathH + 18;
+
+/// Köşe noktası ve halka renkleri (style.css .node.tier-*).
+const Color _extremeDot = Color(0xFFB3263A);
+const Color _extremeEdge = Color(0xFF7A1420);
+
+Color _dotColor(Palette pal, String tier) {
+  switch (tier) {
+    case 'easy':
+      return pal.successC;
+    case 'medium':
+      return pal.accentC;
+    case 'hard':
+      return pal.coinC;
+    default:
+      return _extremeDot;
+  }
+}
+
+/// Haritadaki bölüm sayısı: en az [kChapters] (500); 5.000 sonrası oyuncunun bölümü + bir sonraki (kilitli).
+int mapChapterCount(int unlocked) => math.max(kChapters, (unlocked / kPerChapter).ceil() + 1);
 
 Color tierColor(Palette pal, String tier) {
   switch (tier) {
@@ -71,10 +96,10 @@ class _MapScreenState extends State<MapScreen> {
     final AppLocalizations loc = locOf(context);
     final Palette pal = Palette.of(context);
     final bool rtl = app.isRtl;
-    final int chapters = math.max(kPrebuilt ~/ kPerChapter, (app.save.unlocked / kPerChapter).ceil() + 1);
+    final int chapters = mapChapterCount(app.save.unlocked);
     final int total = eco.totalStars(app.save);
     final int max = chapters * kPerChapter * 3;
-    final int curChapter = (app.save.unlocked + 11) ~/ 12;
+    final int curChapter = chapterOf(app.save.unlocked);
     final bool narrow = MediaQuery.sizeOf(context).width <= 400;
 
     return ScreenScaffold(
@@ -105,6 +130,8 @@ class _MapScreenState extends State<MapScreen> {
             );
           }),
         ),
+        // banner (docs/15 §3): yalnızca ana menü ve harita; reklamsızda / yüklenmediyse yer kaplamaz
+        const AdBannerSlot(screen: AdScreen.map),
       ]),
     );
   }
@@ -120,13 +147,11 @@ class _ChapterView extends StatelessWidget {
     final AppController app = AppScope.of(context);
     final AppLocalizations loc = locOf(context);
     final Palette pal = Palette.of(context);
-    final String tier = tierOf(chapter);
     final int first = (chapter - 1) * kPerChapter + 1;
     int cs = 0;
     for (int k = first; k < first + kPerChapter; k++) {
       cs += app.save.stars[k] ?? 0;
     }
-    final bool extreme = tier == 'extreme';
     final bool bonusDone = app.save.chapterBonus.contains(chapter);
     final List<Offset> pts = <Offset>[];
     for (int i = 0; i < kPerChapter; i++) {
@@ -144,18 +169,13 @@ class _ChapterView extends StatelessWidget {
           decoration: BoxDecoration(
             color: pal.boardC,
             borderRadius: BorderRadius.circular(14),
-            boxShadow: <BoxShadow>[BoxShadow(color: extreme ? const Color(0xFF7A1420) : pal.edgeC, offset: const Offset(0, 3))],
-            border: extreme
-                ? BorderDirectional(start: const BorderSide(color: Color(0xFFB3263A), width: 4))
-                : null,
+            boxShadow: <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 3))],
           ),
           child: Row(children: <Widget>[
             Expanded(
               child: FitText(chapterName(loc, chapter),
                   style: TextStyle(color: pal.inkC, fontSize: 20, fontWeight: FontWeight.w800), minFont: 14, align: TextAlign.start),
             ),
-            const SizedBox(width: 8),
-            TierBadge(tier),
             const SizedBox(width: 8),
             Flexible(
               child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: <Widget>[
@@ -183,7 +203,7 @@ class _ChapterView extends StatelessWidget {
                 Positioned(
                   left: pts[i].dx * w - 32,
                   top: pts[i].dy - 32,
-                  child: _LevelNode(id: first + i, tier: tier),
+                  child: _LevelNode(id: first + i, tier: tierOf(first + i)),
                 ),
             ]);
           }),
@@ -276,7 +296,12 @@ class _LevelNode extends StatelessWidget {
                   color: face,
                   shape: BoxShape.circle,
                   border: locked ? Border.all(color: pal.edgeC, width: 3) : null,
-                  boxShadow: <BoxShadow>[BoxShadow(color: edge, offset: const Offset(0, 4))],
+                  boxShadow: tier == 'extreme'
+                      ? <BoxShadow>[
+                          const BoxShadow(color: _extremeDot, spreadRadius: 3), // 0 0 0 3px #B3263A
+                          BoxShadow(color: locked ? pal.edgeC : _extremeEdge, offset: const Offset(0, 4)),
+                        ]
+                      : <BoxShadow>[BoxShadow(color: edge, offset: const Offset(0, 4))],
                 ),
                 foregroundDecoration: current
                     ? BoxDecoration(shape: BoxShape.circle, border: Border.all(color: pal.starC, width: 4))
@@ -288,6 +313,22 @@ class _LevelNode extends StatelessWidget {
                         textDirection: TextDirection.ltr,
                         child: Text('$id', style: TextStyle(color: fg, fontSize: 22, fontWeight: FontWeight.w800)),
                       ),
+              ),
+            ),
+          ),
+          // kademe noktası (köşede, içeri yalıtımlı): Kolay yeşil, Orta mavi, Zor sarı, Aşırı zor koyu kırmızı
+          PositionedDirectional(
+            top: -2,
+            end: -2,
+            child: IgnorePointer(
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _dotColor(pal, tier),
+                  border: Border.all(color: pal.boardC, width: 2),
+                ),
               ),
             ),
           ),

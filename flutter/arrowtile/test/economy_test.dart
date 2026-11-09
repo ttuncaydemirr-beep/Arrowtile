@@ -2,6 +2,7 @@
 import 'dart:convert';
 
 import 'package:arrowtile/core/economy.dart';
+import 'package:arrowtile/core/levelgen.dart' show chapterOf;
 import 'package:arrowtile/core/save_data.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -20,8 +21,10 @@ void main() {
     }
     for (final dynamic x in (g['tiers'] as List<dynamic>)) {
       final Map<String, dynamic> m = x as Map<String, dynamic>;
-      expect(tierOfChapterId(m['c'] as int), m['tier']);
-      expect(chapterBonusFor(m['c'] as int), m['bonus']);
+      expect(tierOfLevel(m['id'] as int), m['tier'], reason: 'seviye ${m['id']}');
+      expect(chapterOf(m['id'] as int), m['chapter'], reason: 'seviye ${m['id']}');
+      expect(chapterBonusFor(m['chapter'] as int), m['bonus']);
+      expect(m['bonus'], 150); // tek bölüm bonusu
     }
   });
 

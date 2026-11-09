@@ -1,5 +1,5 @@
-// 216 hazır seviyenin tamamı: yapı (komşu hücreler, sınır, çakışma yok, baş kendi gövdesine bakmaz), çözülebilirlik,
-// par = ok sayısı, kademe = bölüm kademesi. Kaynak: lib/data/levels.json (tools/flutter/export-levels.js).
+// Hazır paketteki seviyelerin (ilk 200) tamamı: yapı (komşu hücreler, sınır, çakışma yok, baş kendi gövdesine bakmaz), çözülebilirlik,
+// par = ok sayısı, kademe = bölüm kademesi. Kaynak: lib/data/levels.json (tools/flutter/export-levels.js). Özet eşitliği: levelgen_golden_test.dart.
 import 'dart:convert';
 import 'dart:io';
 
@@ -12,8 +12,9 @@ void main() {
   final List<dynamic> raw = jsonDecode(File('lib/data/levels.json').readAsStringSync()) as List<dynamic>;
   final List<Level> levels = <Level>[for (final dynamic j in raw) Level.fromJson(j as Map<String, dynamic>)];
 
-  test('216 seviye var, kimlikler 1..216', () {
-    expect(levels.length, 216);
+  test('$kPrebuilt seviye var, kimlikler 1..$kPrebuilt', () {
+    expect(levels.length, kPrebuilt);
+    expect(kPrebuilt, 200);
     for (int i = 0; i < levels.length; i++) {
       expect(levels[i].id, i + 1);
     }
@@ -23,7 +24,7 @@ void main() {
     final List<String> bad = <String>[];
     for (final Level lv in levels) {
       final Set<int> seen = <int>{};
-      bool ok = lv.par == lv.arrows.length && lv.diff == tierOf(chapterOf(lv.id));
+      bool ok = lv.par == lv.arrows.length && lv.diff == tierOf(lv.id);
       for (final Arrow a in lv.arrows) {
         for (int k = 0; k < a.cells.length; k++) {
           final List<int> c = a.cells[k];
@@ -40,7 +41,7 @@ void main() {
   });
 
   test('hazır seviyelerde ipucu her zaman çıkabilen bir oku gösterir ve ipuçlarıyla seviye 3 yıldızla biter', () {
-    for (final Level lv in levels.where((Level l) => l.id % 9 == 1)) {
+    for (final Level lv in levels.where((Level l) => l.id % 7 == 1)) {
       final Game g = Game(lv);
       int guard = 0;
       while (!g.isWon && guard++ < 1000) {

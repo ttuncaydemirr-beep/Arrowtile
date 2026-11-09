@@ -16,52 +16,6 @@ const Map<String, int> _dx = <String, int>{'U': 0, 'D': 0, 'L': -1, 'R': 1};
 const Map<String, int> _dy = <String, int>{'U': -1, 'D': 1, 'L': 0, 'R': 0};
 const List<String> _dirs = <String>['U', 'D', 'L', 'R'];
 
-/// Math.pow(m + 0.5, 1.6), m = 0..40 — JS (V8) çıktısı. Dart'ın pow'u son basamakta farklı olabileceğinden
-/// pickDir'de pow çağrılmaz; ağırlıklar bu tablodan alınır (v = m + 0.5 her zaman bu biçimdedir).
-const List<double> _pow16 = <double>[
-  0.32987697769322355,
-  1.9131367509386863,
-  4.3321552697196655,
-  7.421793574444622,
-  11.095324849241276,
-  15.296085524342262,
-  19.983031392186508,
-  25.124534349835727,
-  30.695186832272437,
-  36.673956748302274,
-  43.04303423791882,
-  49.7870672530613,
-  56.89263134456502,
-  64.34784834371536,
-  72.14210389329124,
-  80.26583298236777,
-  88.71035368019733,
-  97.46773590912011,
-  106.53069625164699,
-  115.89251247204818,
-  125.54695321811779,
-  135.48821958576755,
-  145.71089607712125,
-  156.20990908537908,
-  166.98049147550137,
-  178.01815214992484,
-  189.3186497271384,
-  200.87796964111465,
-  212.69230410726607,
-  224.75803450694713,
-  237.07171582552166,
-  249.63006284438336,
-  262.42993783925596,
-  275.468339578696,
-  288.7423934502848,
-  302.24934256927156,
-  315.9865397467369,
-  329.9514402127054,
-  344.1415950048303,
-  358.5546449459248,
-  373.18831514418787
-];
-
 /// JS'teki `L = { w, h, arrows }` nesnesi (build sırasında arrows sürekli değişir).
 class LgBoard {
   final int w;
@@ -388,9 +342,11 @@ Arrow _flip(Arrow a) {
 }
 
 String _pickDir(int x, int y, int w, int h, Rand rand) {
-  // JS: [y + 0.5, h - y - 0.5, x + 0.5, w - x - 0.5].map(v => Math.pow(v, 1.6))  — sırayla U D L R.
-  // Her v = m + 0.5 (m tamsayı): tablo indeksi m.
-  final List<double> wts = <double>[_pow16[y], _pow16[h - y - 1], _pow16[x], _pow16[w - x - 1]];
+  // JS: [y + 0.5, h - y - 0.5, x + 0.5, w - x - 0.5].map(v => v * Math.sqrt(v)) — sırayla U D L R.
+  // Ağırlık v^1,5 = v·√v: yalnızca IEEE-kesin işlemler (çarpma, karekök) kullanılır; JS ve Dart bit-bit aynı sonucu verir
+  // (Math.pow / dart:math pow son basamakta farklı olabilirdi).
+  double wt(double v) => v * math.sqrt(v);
+  final List<double> wts = <double>[wt(y + 0.5), wt(h - y - 0.5), wt(x + 0.5), wt(w - x - 0.5)];
   final double tot = wts[0] + wts[1] + wts[2] + wts[3];
   double rr = rand() * tot;
   for (int wi = 0; wi < 4; wi++) {
@@ -795,10 +751,12 @@ class GenSpec {
   final int? passes;
   final int? cycles;
   final int minDepth;
+  final int? maxDepth; // null = üst sınır yok (JS: spec.maxDepth == null)
   final double? flipP;
   // specFor() ek alanları
   final int id;
   final int chapter;
+  final int index;
   final String tier;
   const GenSpec({
     required this.w,
@@ -813,21 +771,24 @@ class GenSpec {
     this.passes,
     this.cycles,
     this.minDepth = 0,
+    this.maxDepth,
     this.flipP,
     this.id = 0,
     this.chapter = 0,
+    this.index = 0,
     this.tier = '',
   });
 }
 
-/// generate() sonucu.
+/// generate() sonucu. [band]: kademe bandı (doluluk + başta çıkabilen) sağlandı mı (derinlik/kıvrımlı oran hariç).
 class GenResult {
   final int w;
   final int h;
   final List<Arrow> arrows;
   final Measure m;
   final bool ok;
-  const GenResult(this.w, this.h, this.arrows, this.m, this.ok);
+  final bool band;
+  const GenResult(this.w, this.h, this.arrows, this.m, this.ok, this.band);
 }
 
 /// Üretim işi: her step() tek bir build denemesi yapar.
@@ -867,21 +828,30 @@ class GenJob {
       if (m.solvable) {
         final int freeLim = math.max(1, (spec.maxFree * m.arrows + 1e-9).floor()); // docs/09: ≤ oran (en az 1)
         // kıvrımlı oran "~": seviye başına en çok 0,15 altında (bölüm ortalaması doğrulayıcıda 0,12)
-        final bool ok = m.fill >= spec.fill - 0.02 &&
-            (spec.fillMax == null || spec.fillMax == 0 || m.fill <= spec.fillMax! + 1e-9) &&
+        final int dMin = spec.minDepth; // v1.5: kademe derinlik penceresi
+        final int? dMax = spec.maxDepth;
+        final bool fillOk = m.fill >= spec.fill - 0.02 && (spec.fillMax == null || spec.fillMax == 0 || m.fill <= spec.fillMax! + 1e-9);
+        final bool ok = fillOk &&
             m.initialFree <= freeLim &&
-            m.depth >= spec.minDepth &&
+            m.depth >= dMin &&
+            (dMax == null || m.depth <= dMax) &&
             (spec.curve == null || m.curvedRatio >= spec.curve! - 0.15);
+        final bool hardOk = fillOk && m.initialFree <= freeLim; // kademe bandı (zorunlu)
+        // JS ile AYNI işlem sırası (kayan nokta toplamı soldan sağa): (ok?1000:0) + (hardOk?500:0) + score - …
+        final double depthOut = math.max(
+            0.0, math.max((dMin - m.depth).toDouble(), dMax == null ? double.negativeInfinity : (m.depth - dMax).toDouble()));
         final double key = (ok ? 1000 : 0) +
+            (hardOk ? 500 : 0) +
             m.score -
             math.max(0, m.initialFree - freeLim) * 3 -
             math.max(0, (spec.curve ?? 0) - 0.1 - m.curvedRatio) * 100 -
-            math.max(0, spec.fill - m.fill) * 200;
+            math.max(0, spec.fill - m.fill) * 200 -
+            depthOut * 5;
         if (key > _bestKey) {
           _bestKey = key;
-          _best = GenResult(spec.w, spec.h, L.arrows, m, ok);
+          _best = GenResult(spec.w, spec.h, L.arrows, m, ok, hardOk);
         }
-        if (ok && _t >= 1) _done = true;
+        if (ok) _done = true;
       }
     }
     _t++;
@@ -898,8 +868,10 @@ GenResult? generate(GenSpec spec, int seed) {
   return j.result();
 }
 
-// ---- v1.3 bölüm döngüsü (docs/09) ----
-const List<String> kCycle = <String>['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard', 'extreme'];
+// ---- v1.5 (docs/15 §5) bölüm yapısı: bölüm = 10 seviye, ZORLUK SEVİYE BAZINDA döner ----
+// Bölüm içi sıra: 1-2-3 Kolay, 4-5-6 Orta, 7-8 Zor, 9-10 Aşırı zor. Tahta bölüm bölüm büyür (bölüm içinde sabit).
+// specFor(id) SAF bir fonksiyondur (yalnızca seviye numarasına bağlı); game/js/levelgen.js ile birebir aynı tamsayı işlemleri.
+const List<String> kCycle = <String>['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard', 'extreme', 'extreme'];
 
 class Tier {
   final double fill;
@@ -907,59 +879,87 @@ class Tier {
   final double maxFree;
   final double curve;
   final double mult;
-  final int bonus;
-  const Tier(this.fill, this.band, this.maxFree, this.curve, this.mult, this.bonus);
+  const Tier(this.fill, this.band, this.maxFree, this.curve, this.mult);
 }
 
 const Map<String, Tier> kTiers = <String, Tier>{
-  'easy': Tier(0.675, <double>[0.65, 0.70], 0.12, 0.30, 1, 50),
-  'medium': Tier(0.775, <double>[0.75, 0.80], 0.07, 0.45, 1.5, 75),
-  'hard': Tier(0.840, <double>[0.82, 0.86], 0.04, 0.55, 2, 100),
-  'extreme': Tier(0.905, <double>[0.88, 0.93], 0.02, 0.65, 3, 200),
+  'easy': Tier(0.675, <double>[0.65, 0.70], 0.12, 0.30, 1),
+  'medium': Tier(0.775, <double>[0.75, 0.80], 0.07, 0.45, 1.5),
+  'hard': Tier(0.840, <double>[0.82, 0.86], 0.04, 0.55, 2),
+  'extreme': Tier(0.905, <double>[0.88, 0.93], 0.02, 0.65, 3),
 };
 
-const int kPerChapter = 12;
-const int kPrebuilt = 216;
+/// Derinlik penceresi (docs/15 §5): kademenin derinliği, tahta büyüklüğüne göre beklenen "kolay" derinliğinin (E) katı aralığında.
+/// Üst sınır null = sınırsız.
+const Map<String, List<double?>> kDepthWin = <String, List<double?>>{
+  'easy': <double?>[0.0, 1.10],
+  'medium': <double?>[1.12, 1.24],
+  'hard': <double?>[1.25, 1.42],
+  'extreme': <double?>[1.45, null],
+};
+
+const int kPerChapter = 10;
+const int kPrebuilt = 200; // pakette hazır seviyeler; sonrası oyunda üretilir
+const int kDesigned = 5000; // tasarlanmış (CI'da doğrulanmış) seviye sayısı; sonrası sonsuz devam
+const int kChapters = 500;
+const int kChapterBonus = 150;
 const int kMaxW = 22;
 const int kMaxH = 31;
 
-int chapterOf(int id) => (id - 1) ~/ kPerChapter + 1;
-String tierOf(int ch) => kCycle[(ch - 1) % kCycle.length];
+/// Seviye 1-3: elle tasarlanmış öğretici (değişmez, düz oklar). Biçim: (x, y, dir, len).
+const List<({int w, int h, List<(int, int, String, int)> arrows})> kTutorial = <({int w, int h, List<(int, int, String, int)> arrows})>[
+  (w: 3, h: 3, arrows: <(int, int, String, int)>[(2, 0, 'D', 2), (2, 2, 'L', 2)]),
+  (w: 3, h: 3, arrows: <(int, int, String, int)>[(0, 2, 'R', 2), (2, 2, 'U', 1), (2, 0, 'L', 2)]),
+  (w: 4, h: 4, arrows: <(int, int, String, int)>[(3, 1, 'D', 2), (2, 3, 'R', 2), (0, 2, 'R', 2), (1, 0, 'D', 2)]),
+];
 
-/// Seviye numarasından üretim özellikleri. Tahta bölüm bölüm büyür (zorluktan bağımsız), bölüm içinde hafifçe.
+int chapterOf(int id) => (id - 1) ~/ kPerChapter + 1;
+int indexOf(int id) => (id - 1) % kPerChapter; // bölüm içi sıra, 0..9
+String tierOf(int id) => kCycle[(id - 1) % kPerChapter]; // SEVİYE kademesi
+
+/// Tahta boyu yalnızca bölüme bağlıdır (tamsayı işlemleri): bölüm 1 = 7x9, bölüm 21+ = 22x31 (sabit).
+({int w, int h}) sizeOfChapter(int ch) {
+  final int t = ch - 1;
+  return (w: math.min(kMaxW, 7 + (t * 3 + 2) ~/ 4), h: math.min(kMaxH, 9 + (t * 11 + 5) ~/ 10));
+}
+
+/// Seviye numarasından üretim özellikleri (saf fonksiyon).
 GenSpec specFor(int id) {
   final int ch = chapterOf(id);
-  final int k = (id - 1) % kPerChapter;
-  final String tier = tierOf(ch);
+  final String tier = tierOf(id);
   final Tier T = kTiers[tier]!;
-  final double t = (ch - 1) + k / kPerChapter; // bölüm 1 başı 7x9 → bölüm 18 sonu 20x28
-  // JS Math.round: .5 yukarı yuvarlanır; değerler pozitif olduğundan Dart round() ile aynıdır.
-  final int w = math.min(kMaxW, 7 + (t * 13 / 17.92).round());
-  final int h = math.min(kMaxH, 9 + (t * 19 / 17.92).round());
-  final int maxLen = math.min(8, 4 + w ~/ 4);
-  final bool extreme = tier == 'extreme';
+  final ({int w, int h}) sz = sizeOfChapter(ch);
+  final int maxLen = math.min(8, 4 + sz.w ~/ 4);
+  // hafif onarım (effort 12 / passes 6 / cycles 2): uzun onarım tur başına süreyi ikiye katlar, başarı oranını artırmaz
+  final double e = 6.3 + 0.0677 * (sz.w * sz.h);
+  final List<double?> dw = kDepthWin[tier]!;
+  final int minDepth = dw[0]! != 0 ? (dw[0]! * e - 1e-9).ceil() : 0;
+  final int? maxDepth = dw[1] == null ? null : math.max((dw[1]! * e + 1e-9).floor(), minDepth + 2); // küçük tahtada pencere ≥ 3 derinlik
   return GenSpec(
       id: id,
       chapter: ch,
+      index: indexOf(id),
       tier: tier,
-      w: w,
-      h: h,
+      w: sz.w,
+      h: sz.h,
       fill: T.fill,
       fillMax: T.band[1],
       maxFree: T.maxFree,
       curve: T.curve,
       maxLen: maxLen,
       tries: 3,
-      effort: extreme ? 40 : 24,
-      passes: extreme ? 20 : 12,
-      cycles: extreme ? 6 : 4);
+      effort: 12,
+      passes: 6,
+      cycles: 2,
+      minDepth: minDepth,
+      maxDepth: maxDepth);
 }
 
 /// Seviye no → sabit tohum (herkes için aynı seviye). round: aynı seviyenin yedek denemeleri.
-int seedFor(int id, [int round = 0]) => fnv32('arrowtile-v13-$id-$round');
+int seedFor(int id, [int round = 0]) => fnv32('arrowtile-v15-$id-$round');
 
-const int kEndlessRounds = 8;
-const String kGenVersion = 'v13.1'; // üretici değişirse artır
+const int kEndlessRounds = 12;
+const String kGenVersion = 'v15.0'; // üretici/özellik kuralı değişirse artır (oyundaki sonsuz seviye önbelleği geçersizleşir)
 
 class LevelResult {
   final int id;
@@ -971,45 +971,64 @@ class LevelResult {
   final List<Arrow> arrows;
   final bool ok;
   final int rounds;
-  const LevelResult(this.id, this.w, this.h, this.par, this.diff, this.chapter, this.arrows, this.ok, this.rounds);
+  final Measure? m;
+  const LevelResult(this.id, this.w, this.h, this.par, this.diff, this.chapter, this.arrows, this.ok, this.rounds, [this.m]);
 
   Level toLevel() => Level(id: id, w: w, h: h, par: par, diff: diff, arrows: arrows, ok: ok);
 }
 
-/// Sonsuz seviye işi: tohum = seviye numarası; kısıtları sağlayan ilk tur seçilir (en çok 8 tur).
+LevelResult _tutorialLevel(int id) {
+  final t = kTutorial[id - 1];
+  final List<Arrow> arrows = <Arrow>[
+    for (final (int x, int y, String dir, int len) in t.arrows)
+      Arrow(<List<int>>[
+        for (int i = 0; i < len; i++) <int>[x + _dx[dir]! * i, y + _dy[dir]! * i]
+      ], dir)
+  ];
+  return LevelResult(id, t.w, t.h, arrows.length, 'easy', 1, arrows, true, 0);
+}
+
+/// Seviye işi: tohum = seviye numarası (seedFor(id, tur)); kısıtları sağlayan ilk tur seçilir (en çok [kEndlessRounds] tur,
+/// sağlanamazsa kademe bandını sağlayan en iyi aday). step() tek build yapar → arka planda dilimlenebilir. Zaman sınırı yok,
+/// yalnızca adım sayısı → aynı seviye her cihazda aynıdır. Hem hazır paket (ilk 200) hem sonsuz seviyeler bu işle üretilir.
 class LevelJob {
   final int id;
   final GenSpec _sp;
   int _r = 0;
-  late GenJob _job;
+  GenJob? _job;
   double? _bestKey;
   GenResult? _best;
   LevelResult? _out;
 
   LevelJob(this.id) : _sp = specFor(id) {
-    _job = GenJob(_sp, seedFor(id, 0));
+    if (id <= kTutorial.length) {
+      _out = _tutorialLevel(id);
+    } else {
+      _job = GenJob(_sp, seedFor(id, 0));
+    }
   }
 
   bool step() {
     if (_out != null) return true;
-    if (!_job.step()) return false;
-    final GenResult? g = _job.result();
+    if (!_job!.step()) return false;
+    final GenResult? g = _job!.result();
     if (g != null) {
-      final double key = (g.ok ? 1e6 : 0) + g.m.score;
+      final double key = (g.ok ? 2e6 : 0) + (g.band ? 1e6 : 0) + g.m.score;
       if (_best == null || key > _bestKey!) {
         _bestKey = key;
         _best = g;
       }
     }
-    if ((g != null && g.ok) || _r + 1 >= kEndlessRounds) {
-      if (_best != null) {
-        _out = LevelResult(id, _sp.w, _sp.h, _best!.arrows.length, _sp.tier, _sp.chapter, _best!.arrows, _best!.ok, _r + 1);
-        return true;
-      }
+    // bitiş: tüm koşullar sağlandı, ya da ENDLESS_ROUNDS tur sonunda kademe bandını sağlayan en iyi aday;
+    // bant da sağlanamadıysa en çok 2×ENDLESS_ROUNDS tura dek sürer (çok nadir)
+    final GenResult? b = _best;
+    if (b != null && (b.ok || (_r + 1 >= kEndlessRounds && b.band) || _r + 1 >= kEndlessRounds * 2)) {
+      _out = LevelResult(id, _sp.w, _sp.h, b.arrows.length, _sp.tier, _sp.chapter, b.arrows, b.ok, _r + 1, b.m);
+      return true;
     }
+    if (_r + 1 >= kEndlessRounds * 2) throw StateError('seviye üretilemedi: $id'); // JS'te sonsuz döngü; burada güvenli çıkış
     _r++;
     _job = GenJob(_sp, seedFor(id, _r));
-    if (_r >= kEndlessRounds * 2) throw StateError('seviye üretilemedi: $id');
     return false;
   }
 
@@ -1021,3 +1040,23 @@ LevelResult makeLevel(int id) {
   while (!j.step()) {}
   return j.result()!;
 }
+
+// ---- seviye özeti (altın test): kanonik serileştirme + FNV-1a 32 ----
+// canon = "id:wxh:tier:" + oklar "x,y;x,y;...>D" ("|" ayracı); oklar üretici sırasında (dizideki sıra).
+String canon(int id, int w, int h, String? diff, List<Arrow> arrows) {
+  final StringBuffer sb = StringBuffer('$id:${w}x$h:${diff ?? tierOf(id)}:');
+  for (int i = 0; i < arrows.length; i++) {
+    if (i > 0) sb.write('|');
+    final Arrow a = arrows[i];
+    for (int k = 0; k < a.cells.length; k++) {
+      if (k > 0) sb.write(';');
+      sb.write('${a.cells[k][0]},${a.cells[k][1]}');
+    }
+    sb.write('>${a.dir}');
+  }
+  return sb.toString();
+}
+
+/// Seviye özeti: 8 hane onaltılık FNV-1a 32 (tools/level-hashes.json ile aynı).
+String levelHash(Level lv) => fnv32(canon(lv.id, lv.w, lv.h, lv.diff, lv.arrows)).toRadixString(16).padLeft(8, '0');
+String levelResultHash(LevelResult r) => fnv32(canon(r.id, r.w, r.h, r.diff, r.arrows)).toRadixString(16).padLeft(8, '0');

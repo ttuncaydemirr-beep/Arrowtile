@@ -6,7 +6,7 @@ import 'daily.dart';
 const List<String> kLangs = <String>['tr', 'en', 'de', 'ar'];
 const List<String> kThemeIds = <String>['emaye', 'lokum', 'cini', 'bakir', 'gece'];
 const int kMaxLevel = 99999; // sonsuz devam: kayıtta kabul edilen en büyük seviye no
-const int kMaxChapters = 8334; // Math.ceil(99999 / 12)
+const int kMaxChapters = 10000; // Math.ceil(99999 / 10) — bölüm = 10 seviye (v1.1)
 const int kUndoRefund = 20; // eski ücretsiz geri alma hakkı başına jeton (kayıt göçü)
 
 final RegExp _ymdRe = RegExp(r'^\d{4}-\d{2}-\d{2}$');

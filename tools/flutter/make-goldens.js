@@ -14,14 +14,17 @@ const cp = a => ({ cells: LG.cellsOf(a).map(c => [c[0], c[1]]), dir: a.dir });
 
 // ---------------------------------------------------------------- 1) RNG + hash
 {
-  const seeds = [0, 1, 12345, 2147483647, 2147483648, 4294967295, 3735928559, LG.hash('arrowtile-v13-217-0'), LG.hash('arrowtile-daily-v13-2026-11-02-0')];
+  const seeds = [0, 1, 12345, 2147483647, 2147483648, 4294967295, 3735928559, LG.hash('arrowtile-v15-217-0'), LG.hash('arrowtile-daily-v13-2026-11-02-0')];
   const rng = seeds.map(seed => { const r = LG.rng(seed >>> 0), values = []; for (let i = 0; i < 64; i++) values.push(r()); return { seed, values }; });
-  const strs = ['', 'a', 'arrowtile-v13-1-0', 'arrowtile-v13-217-0', 'arrowtile-v13-99999-7', 'arrowtile-daily-v13-2026-11-02-0', 'arrowtile-daily-v13-2027-02-29-3', 'ÇŞĞİÖÜ ok kaçış'];
+  const strs = ['', 'a', 'arrowtile-v15-1-0', 'arrowtile-v15-217-0', 'arrowtile-v15-99999-7', 'arrowtile-daily-v13-2026-11-02-0', 'arrowtile-daily-v13-2027-02-29-3', 'ÇŞĞİÖÜ ok kaçış'];
   write('rng_golden.json', { rng, hash: strs.map(s => ({ s, h: LG.hash(s) })) });
 }
 
 // ---------------------------------------------------------------- 2) seviye üretimi
-const GEN_IDS = [217, 229, 300, 313];
+// v1.1 (docs/15 §5): bölüm = 10 seviye. Tam ok listesi altın: her kademeden küçük ve en büyük tahtada örnekler (özet altın testi ayrıca
+// tools/level-hashes.json üzerinden rastgele örneklenmiş seviyelerde çalışır).
+const GEN_IDS = [4, 7, 9, 38, 201, 204, 207, 209];
+const EXTRA_HASH_IDS = [5001, 5002, 5004, 5007, 5009, 5010, 12345, 99999]; // 5.000 sonrası (level-hashes.json'da yok)
 {
   const levels = GEN_IDS.map(id => {
     const t0 = Date.now(), L = LG.makeLevel(id), ms = Date.now() - t0;
@@ -29,14 +32,16 @@ const GEN_IDS = [217, 229, 300, 313];
     return { id, ms, level: { id: L.id, w: L.w, h: L.h, par: L.par, diff: L.diff, chapter: L.chapter, ok: L.ok, rounds: L.rounds, arrows: L.arrows.map(cp) },
       measure: { depth: m.depth, initialFree: m.initialFree, freeRatio: m.freeRatio, fill: m.fill, arrows: m.arrows, curved: m.curved, curvedRatio: m.curvedRatio, score: m.score } };
   });
-  const specs = [1, 3, 4, 12, 13, 37, 100, 108, 109, 216, 217, 229, 300, 313, 1000, 99999].map(id => { const s = LG.specFor(id); return { id, spec: { w: s.w, h: s.h, fill: s.fill, fillMax: s.fillMax, maxFree: s.maxFree, curve: s.curve, maxLen: s.maxLen, tries: s.tries, effort: s.effort, passes: s.passes, cycles: s.cycles, tier: s.tier, chapter: s.chapter }, seed0: LG.seedFor(id, 0), seed3: LG.seedFor(id, 3) }; });
-  write('levelgen_golden.json', { levels, specs });
+  const specs = [1, 3, 4, 7, 9, 10, 11, 20, 21, 38, 100, 200, 201, 209, 210, 1619, 5000, 5001, 99999].map(id => { const s = LG.specFor(id); return { id, spec: { w: s.w, h: s.h, fill: s.fill, fillMax: s.fillMax, maxFree: s.maxFree, curve: s.curve, maxLen: s.maxLen, tries: s.tries, effort: s.effort, passes: s.passes, cycles: s.cycles, tier: s.tier, chapter: s.chapter, index: s.index, minDepth: s.minDepth, maxDepth: s.maxDepth }, seed0: LG.seedFor(id, 0), seed3: LG.seedFor(id, 3) }; });
+  const sizes = [1, 2, 3, 4, 5, 10, 15, 20, 21, 22, 30, 100, 500].map(ch => ({ ch, size: LG.sizeOfChapter(ch) }));
+  const extraHashes = EXTRA_HASH_IDS.map(id => { const t0 = Date.now(), L = LG.makeLevel(id); return { id, hash: LG.levelHash(L), ms: Date.now() - t0 }; });
+  write('levelgen_golden.json', { levels, specs, sizes, extraHashes });
   levels.forEach(l => console.log(`  seviye ${l.id}: ${l.level.w}x${l.level.h} ${l.level.diff} ok=${l.level.ok} ${l.level.arrows.length} ok, tur ${l.level.rounds}, ${l.ms} ms`));
 }
 
 // ---------------------------------------------------------------- 3) günlük bulmaca (5 tarih)
 {
-  const dates = ['2026-11-02', '2026-11-05', '2026-11-07', '2026-11-08', '2027-02-14'];
+  const dates = ['2026-11-02', '2026-11-05', '2026-11-06', '2026-11-07', '2026-11-08', '2026-11-10', '2027-02-14'];
   const puzzles = dates.map(d => { const t0 = Date.now(), p = D.puzzleFor(d); return { date: d, weekday: D.weekdayIndex(d), ms: Date.now() - t0, puzzle: { id: 0, daily: p.daily, ok: p.ok, w: p.w, h: p.h, par: p.par, diff: p.diff, arrows: p.arrows.map(cp) } }; });
   const dd = [['2026-10-30', '2026-11-01'], ['2026-12-31', '2027-01-01'], ['2028-02-28', '2028-03-01'], ['2026-11-05', '2026-11-05']].map(([a, b]) => ({ a, b, diff: D.diffDays(a, b) }));
   const add = [['2026-12-31', 1], ['2028-02-28', 2], ['2026-03-01', -1], ['2026-11-02', 400]].map(([d, n]) => ({ d, n, r: D.addDays(d, n) }));
@@ -52,7 +57,7 @@ const GEN_IDS = [217, 229, 300, 313];
 {
   const scen = [];
   const gen = JSON.parse(fs.readFileSync(path.join(OUT, 'levelgen_golden.json'), 'utf8')).levels.map(x => x.level);
-  const pool = [2, 4, 50, 100].map(i => LEVELS[i - 1]).concat(gen.slice(0, 1));
+  const pool = [2, 4, 50, 100].map(i => LEVELS[i - 1]).concat(gen.slice(3, 4));
   function run(level, opts, policy) {
     const g = new E.Game(level, opts), steps = [];
     for (let n = 0; n < 600 && !g.isWon() && !g.isDead(); n++) {
@@ -101,12 +106,16 @@ function loadStore(initial) {
   const out = {};
   { // ödül tablosu
     const S = loadStore(); out.rewards = [];
-    for (const id of [1, 2, 12, 13, 36, 37, 48, 49, 72, 73, 84, 85, 96, 97, 108, 109, 120, 217, 313, 99999]) for (let st = 0; st <= 3; st++) out.rewards.push({ id, st, r: S.levelReward(id, st) });
-    out.tiers = [1, 2, 3, 4, 7, 8, 9, 10, 18, 19].map(c => ({ c, tier: S.tierOfChapter(c), bonus: S.chapterBonusFor(c) }));
+    for (const id of [1, 2, 3, 4, 6, 7, 8, 9, 10, 11, 14, 17, 19, 20, 21, 100, 200, 201, 5000, 5001, 99999]) for (let st = 0; st <= 3; st++) out.rewards.push({ id, st, r: S.levelReward(id, st) });
+    // v1.1: kademe SEVİYE bazında (1-3 Kolay, 4-6 Orta, 7-8 Zor, 9-10 Aşırı zor); bölüm bonusu tek (150)
+    out.tiers = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 17, 18, 19, 20, 5000, 99999].map(id => ({ id, chapter: S.chapterOfLevel(id), tier: S.tierOfLevel(id), bonus: S.chapterBonusFor(S.chapterOfLevel(id)) }));
   }
   { // bölüm tamamlama + yıldız artırma + rahat mod
     const S = loadStore(); S.load(); const steps = [];
-    const seq = [[1, 3, false], [2, 2, false], [2, 3, false], [2, 1, false], [3, 1, true], [4, 2, true], [4, 3, false], [5, 3, false], [6, 3, false], [7, 3, false], [8, 3, false], [9, 3, false], [10, 3, false], [11, 3, false], [12, 3, false], [3, 3, false], [13, 2, false], [13, 3, true], [100, 3, false], [217, 1, false]];
+    const seq = [[1, 3, false], [2, 2, false], [2, 3, false], [2, 1, false], [3, 1, true], [4, 2, true], [4, 3, false], [5, 3, false], [6, 3, false], [7, 3, false], [8, 3, false], [9, 3, false], [10, 3, false], [3, 3, false],
+      // bölüm 2 (11-20): son seviye ÖNCE, eksik olan en son tamamlanınca bonus
+      [11, 3, false], [12, 3, false], [13, 3, false], [14, 3, false], [15, 3, false], [16, 3, false], [17, 3, false], [18, 3, false], [20, 3, false], [19, 2, true], [19, 3, false],
+      [21, 2, false], [21, 3, true], [100, 3, false], [217, 1, false], [5000, 3, false], [5001, 2, false]];
     seq.forEach(([id, st, rl]) => { const r = S.completeLevel(id, st, rl); steps.push({ id, st, rl, r, s: snap(S), total: S.totalStars() }); });
     out.complete = steps;
   }
@@ -142,7 +151,7 @@ function loadStore(initial) {
       { stars: { '1': 3, '2': 0, '3': 9, '0': 2, 'x': 1, '99999': 1, '100000': 2 } },
       { themesOwned: ['lokum', 'bogus', 'cini'], theme: 'cini' }, { themesOwned: ['lokum'], theme: 'cini' }, { themesOwned: 'x', theme: 'lokum' },
       { daily: { lastDate: '2026-11-02', streakDay: 9 } }, { daily: { lastDate: '02.11.2026', streakDay: 3 } },
-      { tutorialDone: true }, { tutorialDone: [1, '2', 4, 0, 3, 3] }, { chapterBonus: [1, 0, 5, 9000, '7'] },
+      { tutorialDone: true }, { tutorialDone: [1, '2', 4, 0, 3, 3] }, { chapterBonus: [1, 0, 5, 9000, '7'] }, { chapterBonus: [1, 10000, 10001, 5, 5] },
       { ads: { since: 2000, lastAt: 1e17, adFree: 'true', test: true } }, { ads: { since: 4, lastAt: 1700000000000, adFree: true, test: false } },
       { ads: { since: 1, coinDate: '2026-11-04', coinCount: 7 } }, { ads: { coinDate: '4.11.2026', coinCount: -3 } }, { ads: { coinDate: 20261104, coinCount: 5000 } }, { ads: { coinCount: '4.9' } },
       { appearance: 'dark', relaxed: true, aim: true }, { appearance: 'blue', relaxed: 'y', aim: 1 },

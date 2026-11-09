@@ -3,13 +3,16 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..', '..');
+const LG = require(path.join(ROOT, 'game', 'js', 'levelgen.js'));
+const HASHES = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'level-hashes.json'), 'utf8')).hashes;
 const ctx = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'game', 'js', 'levels.js'), 'utf8'), ctx);
 const L = ctx.window.LEVELS;
-if (!Array.isArray(L) || L.length !== 216) throw new Error('beklenen 216 seviye, bulunan ' + (L && L.length));
+if (!Array.isArray(L) || L.length !== LG.PREBUILT) throw new Error('beklenen ' + LG.PREBUILT + ' seviye, bulunan ' + (L && L.length));
 const out = L.map((lv, i) => {
   if (lv.id !== i + 1) throw new Error('id sırası bozuk: ' + lv.id);
   lv.arrows.forEach(a => { if (!a.cells || !a.dir) throw new Error('eski biçim ok: seviye ' + lv.id); });
+  if (LG.levelHash(lv) !== HASHES[i]) throw new Error('seviye ' + lv.id + ' tools/level-hashes.json özetiyle uyuşmuyor (verify-5000 çalıştırın)');
   return { id: lv.id, w: lv.w, h: lv.h, par: lv.par, diff: lv.diff, arrows: lv.arrows.map(a => ({ cells: a.cells, dir: a.dir })) };
 });
 const dst = path.join(ROOT, 'flutter', 'arrowtile', 'lib', 'data', 'levels.json');
