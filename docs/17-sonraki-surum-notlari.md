@@ -30,3 +30,15 @@ Süreç: önce web önizleme → kullanıcı onayı → Flutter → CI → kapal
 - §3 davet: Android paylaşım sayfasıyla mağaza bağlantısı paylaşımı (basit, sunucusuz). Davet ödülü istenirse doğrulama için sunucu/Play kurulum yönlendirmesi gerekir; kullanıcıyla netleştirilecek.
 - §4–6 üretici değişikliği: 5.000 seviye içeriği değişir → level-hashes.json, verify-5000, Flutter altın testleri yeniden üretilir. Büyük tahtada üretim süresi (düşük telefon) yeniden ölçülmeli. Hücre ≥ 16 px kuralı ve yakınlaştırma kontrol edilmeli.
 - §1 ve §7: ses dosyası yenisiyle değişir (lisansı uygun/kendi üretimimiz); titreşim tek kısa darbe (ör. 15–20 ms), tüm olaylarda aynı.
+
+## Büyük güncelleme notları (10.11.2026)
+Kullanıcı 1.1.1'i telefonda denedi: reklam gelmeyince uyarı verip devam ediyor (donma çözüldü).
+
+11. **Ok hareketi daha simetrik/düzgün:** ok çıkarken kendi yolunu izleyerek sabit hızla tahtanın sonuna kadar gitsin ve kenardan çıkıp kaybolsun (yarıda solup kaybolmasın). Kıvrımlı okların tamamı (kuyruk dahil) yol boyunca akmalı.
+12. **Aşırı zor = referans oyundaki "Süper Zor" görünümü** (kullanıcının oynadığı benzer bir oyundan ekran görüntüsü, 10.11.2026; görsel depoya konmadı, rakip ekranı). Görülenler:
+    - Çok ince siyah çizgi oklar, açık zemin, renk yok; küçük ok uçları. Tahta ekranı neredeyse tamamen dolduruyor (tahminen ~28×45 hücre; ekran dışına taşan, kaydırma/yakınlaştırmayla gezilen alan).
+    - Okların çoğu uzun, çok kıvrımlı dik açılı yollar: spiral, S/U/G şekilleri, kancalar, 4–8 dönüşlü yılanlar; düz kısa oklar azınlıkta.
+    - Tahta dikdörtgen değil, organik/kesik bir şekil: ortada büyük boş bir delik ve içinde küçük bir ok kümesi, kenarlar düzensiz → maske/şekilli tahtalar.
+    - Doluluk çok yüksek, oklar iç içe geçmiş; çözüm derinliği büyük.
+    - Arayüz: üstte geri + yeniden başlat, zorluk adı, 3 kalp; "İpucu" (reklamla) düğmesi; altta ızgara (#) aç/kapa düğmesi.
+    → Bizde: Aşırı zor (ve daha hafif hâliyle Zor) için daha büyük alan, daha küçük/ince oklar, çok daha uzun ve karmaşık kıvrımlar, isteğe bağlı şekilli tahta maskeleri (delikli/organik). §4, §5, §6 ile birlikte tek iş olarak ele alınacak. Dokunma isabeti hücre bazlı kalmalı (bkz. §9); ızgara aç/kapa düğmesi düşünülebilir.
