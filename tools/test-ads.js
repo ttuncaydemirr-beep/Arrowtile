@@ -16,12 +16,17 @@ function harness(opts = {}) {
     isAdFree() { return this.adFree; },
     isOnline() { return online; },
     isRewardedReady() { return opts.rewardedReady !== false; },
+    ...(opts.preload ? {
+      loadRewarded(id) { calls.push(['loadRewarded', id]); if (opts.loadHold) held.push(id); else queue.push({ id, event: opts.loadFail ? 'failed' : 'loaded', code: 3 }); return true; },
+      loadInterstitial(id) { calls.push(['loadInterstitial', id]); if (opts.loadHold) held.push(id); else queue.push({ id, event: opts.loadFail ? 'failed' : 'loaded', code: 3 }); return true; },
+      isInterstitialReady() { return !!opts.interstitialReady; }
+    } : {}),
     showInterstitial(id) { calls.push(['interstitial', id]); if (!this.startOk) return false; if (this.autoClose) queue.push({ id, event: 'closed' }); return true; },
     showRewarded(id, pl) { calls.push(['rewarded', id, pl]); if (opts.rewardOutcome !== 'skip') queue.push({ id, event: 'rewarded' }); queue.push({ id, event: 'closed' }); return true; },
     purchaseRemoveAds(id) { calls.push(['purchase', id]); queue.push({ id, event: opts.purchase || 'purchased' }); return true; },
     restorePurchases(id) { calls.push(['restore', id]); queue.push({ id, event: 'restored', adFree: !!opts.owned }); return true; }
   };
-  const queue = [];
+  const queue = [], held = [];
   const env = {
     now: () => t, bridge: () => bridge, online: () => online,
     setTimeout: (f, ms) => { const h = { f, at: t + ms }; timers.push(h); return h; },
@@ -31,7 +36,7 @@ function harness(opts = {}) {
   const state = { ads: undefined }; let saves = 0;
   M.attach(() => state, () => saves++);
   const flush = () => { while (queue.length) M.onNative(JSON.stringify(queue.shift())); };
-  return { M, state, calls, bridge, flush, queue, advance: ms => { t += ms; const due = timers.filter(h => h.at <= t); timers = timers.filter(h => h.at > t); due.forEach(h => h.f()); }, setOnline: v => { online = v; }, saves: () => saves };
+  return { M, state, calls, bridge, flush, queue, held, advance: ms => { t += ms; const due = timers.filter(h => h.at <= t); timers = timers.filter(h => h.at > t); due.forEach(h => h.f()); }, setOnline: v => { online = v; }, saves: () => saves };
 }
 const MIN = 60 * 1000;
 
@@ -151,7 +156,7 @@ const MIN = 60 * 1000;
 {
   const h = harness();
   const keys = Object.keys(h.M).filter(k => /interstitial/i.test(k));
-  check('geçiş reklamı gösteren tek genel yol continueAfterLevel', !keys.some(k => k !== 'interstitialDue') && typeof h.M.continueAfterLevel === 'function');
+  check('geçiş reklamı gösteren tek genel yol continueAfterLevel', !keys.some(k => !['interstitialDue', 'preloadInterstitial', 'interstitialWillBeDue'].includes(k)) && typeof h.M.continueAfterLevel === 'function');
 }
 
 // 14) Bekleyen (pending) satın alma: reklamsızlık VERİLMEZ, neden 'pending'
@@ -228,6 +233,126 @@ const MIN = 60 * 1000;
   check('sanitize: sayaç üst sınırı 1000, hak 0', sn2.ads.coinCount === 1000 && sn2.ads.coinDate === '2026-11-04');
   const sn3 = S.sanitize({ ads: { since: 1 } });
   check('sanitize: eski kayıt (alan yok) → coinDate null, coinCount 0', sn3.ads.coinDate === null && sn3.ads.coinCount === 0);
+}
+
+
+// 16) Banner (docs/15 §3): yalnızca Ana menü ve Harita; oyun, seviye sonu, mağaza, ayarlar, günlük bulmaca ve gizlilikte yok; reklamsızda hiç yok
+{
+  const h = harness();
+  const vis = ['menu', 'map', 'game', 'end', 'shop', 'settings', 'daily', 'privacy', 'dp'].filter(n => h.M.bannerVisible(n));
+  check('banner yalnızca menu + map ekranlarında', JSON.stringify(vis) === '["menu","map"]', vis.join(','));
+  check('banner ekran listesi sabit: menu, map', JSON.stringify(h.M.BANNER_SCREENS) === '["menu","map"]');
+  // "Reklamları kaldır" (web test modu): banner kapanır
+  const t = harness({ noBridge: true });
+  check('web test modunda banner menu/map görünür (reklamsız değil)', t.M.bannerVisible('menu') && t.M.bannerVisible('map') && t.M.isTestMode());
+  let r = null; t.M.purchaseRemoveAds(x => { r = x; });
+  check('reklamsız satın alma sonrası banner hiçbir ekranda yok', r && r.ok && !t.M.bannerVisible('menu') && !t.M.bannerVisible('map'));
+  const owned = harness({ adFree: true });
+  check('Play sahipliği (isAdFree) varsa banner yok', !owned.M.bannerVisible('menu') && !owned.M.bannerVisible('map'));
+}
+// 17) Önceden yükleme — ödüllü (docs/15 §4)
+{
+  const h = harness({ preload: true, rewardedReady: false });
+  check('ödüllü: oyun açılınca yükleme başlar', h.M.preloadRewarded() === 'started' && h.calls.filter(c => c[0] === 'loadRewarded').length === 1);
+  check('ödüllü: zaten yükleniyorsa tekrar başlatılmaz', h.M.preloadRewarded() === 'loading' && h.calls.filter(c => c[0] === 'loadRewarded').length === 1 && h.M.rewardedLoading());
+  // oyuncu yükleme sürerken reklam isterse AYNI yüklemeye katılır (ikinci yükleme yok)
+  let res = null; h.M.ensureRewardedLoaded(r => { res = r; });
+  check('ödüllü: bekleyen önceden yükleme paylaşılır (ikinci loadRewarded yok)', h.calls.filter(c => c[0] === 'loadRewarded').length === 1 && res === null);
+  h.flush();
+  check('ödüllü: yükleme bitince bekleyen cb çağrılır, yükleniyor değil', res && res.ok === true && !h.M.rewardedLoading());
+  const r = harness({ preload: true, rewardedReady: true });
+  check('ödüllü: zaten hazırsa yükleme başlatılmaz', r.M.preloadRewarded() === 'ready' && r.calls.length === 0);
+  const f = harness({ preload: true, rewardedReady: false, loadFail: true });
+  f.M.preloadRewarded(); f.flush();
+  check('ödüllü: başarısız yükleme sonrası 20 sn içinde tekrar denenmez', f.M.preloadRewarded() === 'wait' && f.calls.length === 1);
+  f.advance(21 * 1000);
+  check('ödüllü: 20 sn sonra yeniden denenir', f.M.preloadRewarded() === 'started' && f.calls.length === 2);
+  const o = harness({ preload: true, rewardedReady: false, online: false });
+  check('ödüllü: çevrimdışıyken yükleme denenmez', o.M.preloadRewarded() === 'skip' && o.calls.length === 0);
+  const nb = harness({ noBridge: true });
+  check('ödüllü: köprü yoksa (web test modu) yükleme yok', nb.M.preloadRewarded() === 'skip');
+  const hold = harness({ preload: true, rewardedReady: false, loadHold: true });
+  hold.M.preloadRewarded(); hold.advance(RULES.nativeTimeoutMs + 1);
+  check('ödüllü: yanıt gelmezse zaman aşımı sonrası yükleniyor durumu temizlenir', !hold.M.rewardedLoading());
+  check('"Reklam yükleniyor…" eşiği 300 ms', RULES.loadingOverlayMs === 300);
+}
+// 18) Önceden yükleme — geçiş reklamı: seviye bitmeden, yalnızca gerekecekse; hazır/yükleniyorsa tekrar yok
+{
+  const h = harness({ preload: true });
+  for (let id = 13; id <= 14; id++) h.M.onLevelComplete(id);
+  check('geçiş: 3. tamamlamadan önceki seviyede (sayaç 2) yükleme gerekir', h.M.interstitialWillBeDue(15) === true);
+  check('geçiş: seviye 15 son oklar çıkarken yükleme başlar', h.M.preloadInterstitial(15) === 'started' && h.calls.filter(c => c[0] === 'loadInterstitial').length === 1);
+  check('geçiş: yüklenirken tekrar başlatılmaz', h.M.preloadInterstitial(15) === 'loading' && h.calls.filter(c => c[0] === 'loadInterstitial').length === 1);
+  h.flush();
+  const none = harness({ preload: true });
+  check('geçiş: sayaç yetersizken (1. seviye sonrası) yükleme yok', none.M.preloadInterstitial(13) === 'skip' && none.calls.length === 0);
+  const free = harness({ preload: true });
+  for (let id = 1; id <= 12; id++) free.M.onLevelComplete(id);
+  check('geçiş: seviye 1-12 için yükleme yok', free.M.preloadInterstitial(12) === 'skip' && free.calls.length === 0);
+  const af = harness({ preload: true, adFree: true });
+  for (let id = 13; id <= 14; id++) af.M.onLevelComplete(id);
+  check('geçiş: reklamsızda yükleme yok', af.M.preloadInterstitial(15) === 'skip' && af.calls.length === 0);
+  const rdy = harness({ preload: true, interstitialReady: true });
+  for (let id = 13; id <= 14; id++) rdy.M.onLevelComplete(id);
+  check('geçiş: zaten hazırsa yükleme yok', rdy.M.preloadInterstitial(15) === 'ready' && rdy.calls.length === 0);
+  const nb = harness({ noBridge: true });
+  check('geçiş: köprü yoksa yükleme yok', nb.M.preloadInterstitial(15) === 'skip');
+  // kural değişmedi: önceden yükleme sayaç/aralık durumunu etkilemez
+  const cnt = harness({ preload: true }); cnt.M.onLevelComplete(13); cnt.M.onLevelComplete(14);
+  const before = JSON.stringify(cnt.state.ads); cnt.M.preloadInterstitial(15); cnt.flush();
+  check('geçiş: önceden yükleme sayaç/son gösterim zamanını değiştirmez', JSON.stringify(cnt.state.ads) === before);
+}
+// 19) Reklam gösterilirken oyun ve ses duraklar (dinleyici): geçiş + ödüllü (köprülü ve test modu)
+{
+  const h = harness(); const ev = [];
+  h.M.setAdListener(a => ev.push(a));
+  for (let id = 13; id <= 15; id++) h.M.onLevelComplete(id);
+  h.M.continueAfterLevel(15, () => {});
+  check('geçiş reklamı açılınca dinleyici true', JSON.stringify(ev) === '[true]' && h.M.isAdShowing());
+  h.flush();
+  check('geçiş reklamı kapanınca dinleyici false', JSON.stringify(ev) === '[true,false]' && !h.M.isAdShowing());
+  const t = harness({ noBridge: true }); const ev2 = [];
+  t.M.setAdListener(a => ev2.push(a));
+  t.M.showRewarded('hint', () => {}, () => {});
+  check('test modu ödüllü: reklam süresince duraklatma', JSON.stringify(ev2) === '[true]');
+  t.advance(RULES.testRewardMs + 1);
+  check('test modu ödüllü: bitince devam', JSON.stringify(ev2) === '[true,false]' && !t.M.isAdShowing());
+  const w = harness(); const ev3 = [];
+  w.M.setAdListener(a => ev3.push(a));
+  w.M.showRewarded('life', () => {}, () => {}); w.flush();
+  check('köprülü ödüllü: açılış true, kapanış false (tam bir kez)', JSON.stringify(ev3) === '[true,false]');
+  const to = harness({ autoClose: false }); const ev4 = [];
+  to.M.setAdListener(a => ev4.push(a));
+  for (let id = 13; id <= 15; id++) to.M.onLevelComplete(id);
+  to.M.continueAfterLevel(15, () => {}); to.advance(RULES.nativeTimeoutMs + 1);
+  check('yerel taraf yanıt vermezse zaman aşımında duraklatma kalkar', JSON.stringify(ev4) === '[true,false]' && !to.M.isAdShowing());
+}
+// 20) Ekonomi (docs/15 §5): seviye çarpanları seviye bazında (1-3 ×1, 4-6 ×1,5, 7-8 ×2, 9-10 ×3), bölüm = 10 seviye, tek bölüm bonusu 150
+{
+  const fs = require('fs'), vm = require('vm');
+  const store = {}; const ls = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+  const ctx = { window: { LEVELS: [] }, localStorage: ls, location: { search: '' }, navigator: { languages: ['en-US'], language: 'en-US' }, console, JSON, Math, Date, Object, Array, Number, String, isFinite, TextEncoder, TextDecoder, btoa: x => Buffer.from(x, 'binary').toString('base64'), atob: x => Buffer.from(x, 'base64').toString('binary'), unescape, escape, encodeURIComponent, decodeURIComponent, parseInt, RegExp, Uint8Array };
+  ctx.window.window = ctx.window; vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'game', 'js', 'storage.js'), 'utf8'), ctx);
+  const S = ctx.window.Store; S.load();
+  const LG = require(path.join(__dirname, '..', 'game', 'js', 'levelgen.js'));
+  const mult = id => S.levelReward(id, 3) / 20;
+  const expect = [1, 1, 1, 1.5, 1.5, 1.5, 2, 2, 3, 3];
+  check('seviye çarpanı bölüm içinde 1,1,1,1.5,1.5,1.5,2,2,3,3 (1., 2., 50. bölüm)', [0, 10, 490].every(b => expect.every((m, k) => mult(b + k + 1) === m)));
+  check('★/★★/★★★ taban 10/15/20 × çarpan (seviye 9: 30/45/60)', [1, 2, 3].map(st => S.levelReward(9, st)).join() === '30,45,60' && [1, 2, 3].map(st => S.levelReward(4, st)).join() === '15,23,30');
+  check('Store.tierOfLevel == LevelGen.tierOf (ilk 600 seviye)', Array.from({ length: 600 }, (_, i) => i + 1).every(id => S.tierOfLevel(id) === LG.tierOf(id)));
+  check('bölüm bonusu tek: 150 (tüm bölümler)', S.CHAPTER_BONUS === 150 && S.chapterBonusFor(1) === 150 && S.chapterBonusFor(7) === 150 && S.chapterBonusFor(500) === 150 && S.PER_CHAPTER === 10);
+  // bölüm 1: 9 seviye bitince bonus yok, 10. seviyede 150
+  let bonuses = [];
+  for (let id = 1; id <= 10; id++) { const r = S.completeLevel(id, 3, false); bonuses.push(r.bonus); }
+  check('bölüm 1 bonusu yalnızca 10. seviyenin tamamlanmasında (+150), bir kez', JSON.stringify(bonuses) === '[0,0,0,0,0,0,0,0,0,150]' && S.get().chapterBonus.join() === '1');
+  const coins0 = S.get().coins; S.completeLevel(10, 3, false);
+  check('aynı bölümün bonusu tekrar verilmez', S.get().coins === coins0 && S.get().chapterBonus.length === 1);
+  // toplam kazanç bölüm 1 (tüm ★★★): 3×20 + 3×30 + 2×40 + 2×60 = 350 + 150 bonus; başlangıç 50
+  check('bölüm 1 tüm ★★★: 50 + 350 + 150 = 550 jeton', coins0 === 50 + (3 * 20 + 3 * 30 + 2 * 40 + 2 * 60) + 150, String(coins0));
+  S.completeLevel(11, 3, false);
+  for (let id = 12; id <= 20; id++) S.completeLevel(id, 1, false);
+  check('bölüm 2 bonusu da 150 (kademe fark etmez), 11. seviye 1 yıldız sonrası', S.get().chapterBonus.join() === '1,2' && S.get().unlocked === 21);
 }
 
 console.log(`\n${fail ? fail + ' KALDI, ' : ''}${pass} GEÇTİ (reklam/satın alma birim testi)`);

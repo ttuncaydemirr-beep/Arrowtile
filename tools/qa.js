@@ -127,7 +127,7 @@ const base = (extra = {}) => Object.assign({ lang: 'tr', coins: 50, freeHints: 2
 
 async function startLevel(page, id) { // haritadan dokunarak seviye başlat
   await page.evaluate(() => window.__ok.show('map')); await wait(350);
-  await page.evaluate(id => document.querySelector('.node[data-level="' + id + '"]').scrollIntoView({ block: 'center' }), id);
+  await page.evaluate(id => { window.__ok.mapScrollToChapter(Math.ceil(id / 10)); document.querySelector('.node[data-level="' + id + '"]').scrollIntoView({ block: 'center' }); }, id); // v1.5: harita tembel liste
   await wait(100);
   await page.tap('.node[data-level="' + id + '"]');
   await page.waitForFunction(id => window.__ok.screen() === 'game' && window.__ok.level().id === id, id);
@@ -237,7 +237,7 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
     {
       const P = track(await newPage(browser, { ...VP, seed: base({ coins: 0 }) })); const page = P.page;
       const id = LEVELS.findIndex((Lx, k) => k >= 3 && blockedArrow(Lx)) + 1, L = LEVELS[id - 1], b = blockedArrow(L);
-      const runs = [[2, 1, 10], [1, 2, 5], [0, 3, 5]], got = [];
+      const runs = [[2, 1, 15], [1, 2, 8], [0, 3, 7]], got = []; // sv4 Orta ×1,5: ★15, ★★23, ★★★30 (fark 15 / 8 / 7)
       for (const [coll, expStars, expCoins] of runs) {
         const c0 = (await sstate(page)).coins;
         const ly = await startLevel(page, id);
@@ -301,18 +301,18 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
   } catch (e) { check('TEST ÇALIŞTIRILAMADI ('+group+')', false, String(e).slice(0,160)); }
   try {
     // bölüm bonusu
-    const st11 = {}; for (let k = 1; k <= 11; k++) st11[k] = 1;
+    const st11 = {}; for (let k = 1; k <= 9; k++) st11[k] = 1;
     const P = track(await newPage(browser, { seed: base({ coins: 0, stars: st11 }) })); const page = P.page;
-    let ly = await startLevel(page, 12); await solveByTouch(page, ly, 12);
+    let ly = await startLevel(page, 10); await solveByTouch(page, ly, 10);
     let s = await sstate(page);
-    check('bölüm bonusu: 12. seviye (son eksik) bitince +20 +50', s.coins === 70 && s.chapterBonus.includes(1), String(s.coins));
+    check('bölüm bonusu: 10. seviye (son eksik, Aşırı zor ×3) bitince +60 +150 (tek bölüm bonusu)', s.coins === 210 && s.chapterBonus.includes(1), String(s.coins));
     check('bölüm sonu etiketi gösteriliyor', await page.isVisible('#end-sheet .tag'));
-    await page.evaluate(() => { const st = Object.assign({}, window.__ok.state().stars); st[12] = 1; window.__ok.debugPatch({ stars: st }); }); // yıldız artırma tekrarında bonus tekrar verilmemeli
-    ly = await startLevel(page, 12); await solveByTouch(page, ly, 12); s = await sstate(page);
-    check('bölüm bonusu ikinci kez verilmez', s.coins === 70 + 10, String(s.coins));
-    // bölüm tamamlanmadan bonus yok
-    ly = await startLevel(page, 13); await solveByTouch(page, ly, 13); s = await sstate(page);
-    check('bölüm eksikken bonus yok (sv13 → +20)', s.coins === 100, String(s.coins));
+    await page.evaluate(() => { const st = Object.assign({}, window.__ok.state().stars); st[10] = 1; window.__ok.debugPatch({ stars: st }); }); // yıldız artırma tekrarında bonus tekrar verilmemeli
+    ly = await startLevel(page, 10); await solveByTouch(page, ly, 10); s = await sstate(page);
+    check('bölüm bonusu ikinci kez verilmez (★ 1 → 3: yalnızca +30 fark)', s.coins === 210 + 30, String(s.coins));
+    // bölüm tamamlanmadan bonus yok (bölüm 2'de yalnızca 1 seviye)
+    ly = await startLevel(page, 11); await solveByTouch(page, ly, 11); s = await sstate(page);
+    check('bölüm eksikken bonus yok (sv11 Kolay → +20)', s.coins === 260, String(s.coins));
     await P.ctx.close();
   } catch (e) { check('TEST ÇALIŞTIRILAMADI ('+group+')', false, String(e).slice(0,160)); }
   try {
@@ -473,7 +473,7 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
       await page.evaluate(() => document.getElementById('modal').click()); await wait(200);
       await visit('harita', async () => page.tap('#btn-map'));
       await visit('kilitli düğüm uyarısı', async () => { await page.evaluate(() => document.querySelector('.node.locked').scrollIntoView({ block: 'center' })); await wait(80); await page.tap('.node.locked'); await wait(60); });
-      await visit('oyun + öğretici sv1', async () => { await page.evaluate(() => document.querySelector('.node[data-level="1"]').scrollIntoView({ block: 'center' })); await wait(80); await page.tap('.node[data-level="1"]'); });
+      await visit('oyun + öğretici sv1', async () => { await page.evaluate(() => { window.__ok.mapScrollToChapter(1); document.querySelector('.node[data-level="1"]').scrollIntoView({ block: 'center' }); }); await wait(80); await page.tap('.node[data-level="1"]'); });
       await visit('duraklat', async () => page.tap('#btn-pause'));
       await visit('oyun (devam)', async () => page.tap('#pause-resume'));
       await visit('ipucu', async () => page.tap('#btn-hint'));
@@ -569,7 +569,7 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
         check('ar: canvas ctx.direction = rtl', ctxDir === 'rtl', ctxDir);
         const backT = await page.evaluate(() => { window.__ok.show('map'); return getComputedStyle(document.querySelector('#scr-map .back .ic')).transform; });
         check('ar: geri ikonu aynalı', /matrix\(-1/.test(backT), backT);
-        const mapX = await page.evaluate(() => { const n1 = document.querySelector('.node[data-level="1"]'), n2 = document.querySelector('.node[data-level="2"]'); return [n1.style.left, n2.style.left]; });
+        const mapX = await page.evaluate(() => { window.__ok.mapScrollToChapter(1); const n1 = document.querySelector('.node[data-level="1"]'), n2 = document.querySelector('.node[data-level="2"]'); return [n1.style.left, n2.style.left]; });
         check('ar: harita patikası aynalı', parseFloat(mapX[1]) < 50, mapX.join(','));
         const nums = await page.evaluate(() => document.body.innerText);
         check('ar: rakamlar Batı rakamı', !/[٠-٩]/.test(nums));

@@ -11,6 +11,12 @@
  *  - İnternet yoksa ya da köprü yoksa (web önizleme) reklam gösterilmez, oyun normal devam eder.
  *  - "Reklamları kaldır" (Google Play, tüketilmeyen ürün `remove_ads`): geçiş reklamları kalıcı kapanır,
  *    ödüllü reklamlar isteğe bağlı kalır. Köprü yoksa satın alma TEST MODUNDA taklit edilir.
+ *  - Banner (v1.1, docs/15 §3): yalnızca Ana menü ve Harita ekranlarında (BANNER_SCREENS); oyun, seviye sonu, mağaza, ayarlar ve
+ *    günlük bulmacada yok; "Reklamları kaldır" alınmışsa yok. bannerVisible(ekran) kuralı burada; web önizlemede (köprü yok) ekranda
+ *    kesikli çerçeveli "Reklam alanı" yer tutucusu gösterilir (main.js), içeriği örtmez (ekranın altında yer ayırır).
+ *  - Önceden yükleme (docs/15 §4): ödüllü reklam oyun ekranı açılınca ve can 1'e düşünce (preloadRewarded), geçiş reklamı seviye
+ *    bitmeden, son oklar çıkarken (preloadInterstitial) yüklenmeye başlar; zaten yükleniyor/hazırsa tekrar başlatılmaz.
+ *  - Reklam gösterilirken oyun döngüsü ve ses duraklar (setAdListener(function (active) {...}): reklam açılınca true, kapanınca false).
  *  - Süre sınırı yoktur; bu katman hiçbir zaman oyunu bekletmez: yerel tarafın yanıt vermemesi durumunda
  *    NATIVE_TIMEOUT sonra oyun kendiliğinden devam eder.
  *
@@ -19,7 +25,9 @@
  *  isOnline(): boolean            (isteğe bağlı)
  *  isRewardedReady(): boolean     (isteğe bağlı)
  *  showInterstitial(id: number): boolean     — true = gösterim başladı; bitince native → onNative({id, event:'closed'})
- *  loadRewarded(id: number): boolean         (isteğe bağlı) — dokunuşta yükleme; sonuç {id, event:'loaded'} ya da {id, event:'failed', code}
+ *  loadRewarded(id: number): boolean         (isteğe bağlı) — yükleme; sonuç {id, event:'loaded'} ya da {id, event:'failed', code}
+ *  loadInterstitial(id: number): boolean     (isteğe bağlı) — önceden yükleme; sonuç {id, event:'loaded'} ya da {id, event:'failed', code}
+ *  isInterstitialReady(): boolean            (isteğe bağlı)
  *  showRewarded(id: number, placement: string): boolean
  *                                             — ödül hak edilince {id, event:'rewarded'}, kapanınca {id, event:'closed'}
  *  purchaseRemoveAds(id: number): boolean    — sonuç {id, event:'purchased'|'pending'|'cancelled'|'failed'}
@@ -32,7 +40,8 @@
 (function (root) {
   'use strict';
 
-  var RULES = { freeUntilLevel: 12, everyLevels: 3, minGapMs: 3 * 60 * 1000, nativeTimeoutMs: 90 * 1000, testRewardMs: 600 };
+  var RULES = { freeUntilLevel: 12, everyLevels: 3, minGapMs: 3 * 60 * 1000, nativeTimeoutMs: 90 * 1000, testRewardMs: 600, preloadRetryMs: 20 * 1000, loadingOverlayMs: 300 };
+  var BANNER_SCREENS = ['menu', 'map']; // v1.1: banner yalnızca Ana menü ve Harita ekranlarında
   var PRODUCT_ID = 'remove_ads';
 
   function defaultEnv() {
@@ -49,6 +58,11 @@
     env = env || defaultEnv();
     var getState = function () { return null; }, persist = function () {};
     var seq = 0, pending = {};
+    var adListener = null, adActive = 0;
+    function adState(on) { // reklam gösterimi başladı/bitti → dinleyiciye (oyun döngüsü + ses duraklatma); iç içe çağrılara dayanıklı
+      var was = adActive > 0; adActive = Math.max(0, adActive + (on ? 1 : -1));
+      var now = adActive > 0; if (was !== now && adListener) { try { adListener(now); } catch (e) {} }
+    }
 
     function ads() {
       var s = getState();
@@ -118,13 +132,49 @@
       var called = false;
       function go(shown) { if (called) return; called = true; try { cb && cb(!!shown); } catch (e) {} }
       if (!interstitialDue(levelId)) { go(false); return false; }
+      var open = true;
+      function end() { if (open) { open = false; adState(false); } }
+      adState(true); // yerel çağrıdan ÖNCE duraklat: reklam açılırken oyun döngüsü/ses çalışmaya devam etmesin
       var ok = request('showInterstitial', [], function (m) {
-        if (m.event === 'closed' || m.event === 'failed') { go(m.event === 'closed'); return true; }
+        if (m.event === 'closed' || m.event === 'failed') { end(); iReady = false; go(m.event === 'closed'); return true; }
         return false;
-      }, function () { go(false); });
-      if (!ok) { go(false); return false; }
+      }, function () { end(); go(false); });
+      if (!ok) { end(); go(false); return false; }
+      iReady = false; iLoading = false;
       var a = ads(); a.since = 0; a.lastAt = env.now(); persist();
       return true;
+    }
+    // ---- geçiş reklamı önceden yükleme (docs/15 §4) ----
+    var iLoading = false, iReady = false, iFailAt = 0;
+    /** Bu seviye bitince geçiş reklamı gösterilecek mi (sayaç + bölüm + reklamsızlık + bağlantı; 3 dk aralığı gösterim anında bakılır)? */
+    function interstitialWillBeDue(levelId) {
+      var a = ads();
+      if (!(levelId > RULES.freeUntilLevel)) return false;
+      if (isAdFree()) return false;
+      if ((a.since | 0) + 1 < RULES.everyLevels) return false;
+      if (!bridge() || !online()) return false;
+      return true;
+    }
+    function interstitialReady() {
+      if (!bridge()) return false;
+      var r = call('isInterstitialReady');
+      return r === undefined ? iReady : !!r;
+    }
+    /** Seviye bitmeden (son oklar çıkarken) çağrılır: reklam gerekecekse ve hazır/yükleniyor değilse yüklemeyi başlatır.
+     *  Dönen: 'skip' (gerekmiyor/destek yok) | 'ready' | 'loading' | 'started' | 'wait' (yakın zamanda başarısız oldu). */
+    function preloadInterstitial(levelId) {
+      if (!interstitialWillBeDue(levelId)) return 'skip';
+      var b = bridge(); if (!b || typeof b.loadInterstitial !== 'function') return 'skip';
+      if (interstitialReady()) return 'ready';
+      if (iLoading) return 'loading';
+      if (iFailAt && env.now() - iFailAt < RULES.preloadRetryMs) return 'wait';
+      var ok = request('loadInterstitial', [], function (m) {
+        iLoading = false;
+        if (m.event === 'loaded') { iReady = true; iFailAt = 0; } else { iReady = false; iFailAt = env.now(); }
+        return true;
+      }, function () { iLoading = false; iFailAt = env.now(); });
+      if (!ok) { iFailAt = env.now(); return 'skip'; }
+      iLoading = true; return 'started';
     }
 
     // ---- ödüllü reklam (isteğe bağlı; reklamsız sürümde de kullanılabilir) ----
@@ -146,18 +196,39 @@
       function out(r) { if (called) return; called = true; try { cb && cb(r); } catch (e) {} }
       if (!bridge()) { out({ ok: true, test: true }); return; }
       if (rewardedAvailable()) { out({ ok: true }); return; }
-      var ok = request('loadRewarded', [], function (m) {
-        out(m.event === 'loaded' ? { ok: true } : { ok: false, code: m.code === undefined ? 'failed' : String(m.code) });
-        return true;
-      }, function () { out({ ok: false, code: 'timeout' }); });
-      if (!ok) out({ ok: false, code: online() ? 'unavailable' : 'offline' });
+      if (!loadRewardedShared(out)) out({ ok: false, code: online() ? 'unavailable' : 'offline' });
     }
+    // Ödüllü yükleme tek yerde: önceden yükleme sürerken oyuncu reklam isterse AYNI yüklemeye katılır (ikinci yükleme başlatılmaz)
+    var rLoading = null, rFailAt = 0;
+    function loadRewardedShared(cb) {
+      if (rLoading) { if (cb) rLoading.waiters.push(cb); return true; }
+      var st = { waiters: cb ? [cb] : [] };
+      function settle(r) { rLoading = null; if (!r.ok) rFailAt = env.now(); else rFailAt = 0; st.waiters.forEach(function (f) { f(r); }); }
+      var ok = request('loadRewarded', [], function (m) {
+        settle(m.event === 'loaded' ? { ok: true } : { ok: false, code: m.code === undefined ? 'failed' : String(m.code) });
+        return true;
+      }, function () { settle({ ok: false, code: 'timeout' }); });
+      if (!ok) return false;
+      rLoading = st; return true;
+    }
+    /** Oyun ekranı açılınca ve can 1'e düşünce çağrılır (docs/15 §4): hazır değilse ve yüklenmiyorsa yüklemeyi sessizce başlatır.
+     *  Dönen: 'skip' (köprü/yükleme desteği yok ya da çevrimdışı) | 'ready' | 'loading' | 'started' | 'wait' (yakın zamanda başarısız). */
+    function preloadRewarded() {
+      var b = bridge(); if (!b || typeof b.loadRewarded !== 'function' || !online()) return 'skip';
+      if (rewardedAvailable()) return 'ready';
+      if (rLoading) return 'loading';
+      if (rFailAt && env.now() - rFailAt < RULES.preloadRetryMs) return 'wait';
+      return loadRewardedShared(null) ? 'started' : 'skip';
+    }
+    /** Ödüllü reklam şu an yükleniyor mu (önceden yükleme dahil)? "Reklam yükleniyor…" kaplaması yalnızca gerçekten bekleniyorsa gösterilir. */
+    function rewardedLoading() { return !!rLoading; }
     /** onReward() ödül hak edilirse bir kez; onDone(rewarded) her durumda bir kez.
      *  Köprü yoksa (web önizleme test modu) kısa gecikmeyle ödül taklit edilir. */
     function showRewarded(placement, onReward, onDone) {
-      var rewarded = false, closed = false;
-      function done() { if (closed) return; closed = true; try { onDone && onDone(rewarded); } catch (e) {} }
+      var rewarded = false, closed = false, shown = false;
+      function done() { if (closed) return; closed = true; if (shown) { shown = false; adState(false); } try { onDone && onDone(rewarded); } catch (e) {} }
       if (!bridge()) {
+        shown = true; adState(true); // test modu: kısa süre "reklam gösteriliyor" (oyun döngüsü + ses duraklar)
         env.setTimeout(function () {
           if (!rewarded) { rewarded = true; try { onReward && onReward(); } catch (e) {} }
           done();
@@ -165,6 +236,7 @@
         return true;
       }
       if (!rewardedAvailable()) { done(); return false; }
+      shown = true; adState(true); // yerel çağrıdan önce duraklat
       var ok = request('showRewarded', [String(placement || '')], function (m) {
         if (m.event === 'rewarded' && !rewarded) { rewarded = true; try { onReward && onReward(); } catch (e) {} return false; }
         if (m.event === 'closed' || m.event === 'failed') { done(); return true; }
@@ -217,7 +289,13 @@
     }
 
     return {
-      RULES: RULES, PRODUCT_ID: PRODUCT_ID,
+      RULES: RULES, PRODUCT_ID: PRODUCT_ID, BANNER_SCREENS: BANNER_SCREENS,
+      /** Bu ekranda banner gösterilir mi? (yalnızca menu/map ve reklamsız satın alma yoksa) */
+      bannerVisible: function (screen) { return BANNER_SCREENS.indexOf(screen) >= 0 && !isAdFree(); },
+      setAdListener: function (fn) { adListener = typeof fn === 'function' ? fn : null; },
+      isAdShowing: function () { return adActive > 0; },
+      preloadRewarded: preloadRewarded, rewardedLoading: rewardedLoading,
+      preloadInterstitial: preloadInterstitial, interstitialWillBeDue: interstitialWillBeDue,
       privacyOptionsRequired: privacyOptionsRequired,
       showPrivacyOptions: showPrivacyOptions,
       attach: function (get, save) { getState = get || getState; persist = save || persist; },
@@ -241,5 +319,5 @@
   var M = create();
   M.create = create;
   root.Monetization = M;
-  if (typeof module !== 'undefined' && module.exports) module.exports = { create: create, RULES: RULES };
+  if (typeof module !== 'undefined' && module.exports) module.exports = { create: create, RULES: RULES, BANNER_SCREENS: BANNER_SCREENS };
 })(typeof window !== 'undefined' ? window : globalThis);

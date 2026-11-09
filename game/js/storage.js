@@ -23,18 +23,19 @@
   var AD_COINS = 50;               // v1.4: ödüllü reklam başına jeton (= bir ipucu fiyatı)
   var MAX_COIN_ADS = 10;           // v1.4: takvim günü başına en çok reklam-jeton hakkı
   var UNDO_REFUND = 20;            // eski ücretsiz geri alma hakkı başına jeton (kayıt göçü)
-  // v1.3 (docs/09): ödüller bölüm kademesine göre. Seviye jetonu taban 10/15/20 (1/2/3 yıldız) × kademe çarpanı;
-  // bölüm bonusu kademeye göre. Döngü levelgen.js ile aynı (K-K-K-O-O-O-Z-Z-A).
-  var CYCLE = ['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard', 'extreme'];
+  // v1.5 (docs/15 §5): bölüm = 10 seviye; zorluk SEVİYE bazında döner (1-3 Kolay, 4-6 Orta, 7-8 Zor, 9-10 Aşırı zor).
+  // Seviye jetonu taban 10/15/20 (1/2/3 yıldız) × seviye kademesi çarpanı; bölüm bonusu tek: 150 jeton.
+  // Döngü levelgen.js CYCLE ile aynı.
+  var PER_CHAPTER = 10;
+  var CYCLE = ['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard', 'extreme', 'extreme'];
   var TIER_MULT = { easy: 1, medium: 1.5, hard: 2, extreme: 3 };
-  var TIER_BONUS = { easy: 50, medium: 75, hard: 100, extreme: 200 };
-  var CHAPTER_BONUS = 50; // eski ad (kolay bölüm bonusu)
-  var TOTAL_LEVELS = (window.LEVELS && window.LEVELS.length) || 36; // hazır seviyeler; sonrası sonsuz
+  var CHAPTER_BONUS = 150; // her bölüm için tek bonus
+  var TOTAL_LEVELS = (window.LEVELS && window.LEVELS.length) || 36; // pakette hazır seviyeler; sonrası oyunda üretilir
   var MAX_LEVEL = 99999;  // sonsuz devam: kayıtta kabul edilen en büyük seviye no
-  var MAX_CHAPTERS = Math.ceil(MAX_LEVEL / 12);
-  function tierOfChapter(ch) { return CYCLE[(ch - 1) % CYCLE.length]; }
-  function tierOfLevel(id) { return tierOfChapter(Math.ceil(id / 12)); }
-  function chapterBonusFor(ch) { return TIER_BONUS[tierOfChapter(ch)]; }
+  var MAX_CHAPTERS = Math.ceil(MAX_LEVEL / PER_CHAPTER);
+  function chapterOfLevel(id) { return Math.floor((id - 1) / PER_CHAPTER) + 1; }
+  function tierOfLevel(id) { return CYCLE[(id - 1) % PER_CHAPTER]; }
+  function chapterBonusFor() { return CHAPTER_BONUS; }
   function levelReward(id, stars) { return Math.round([0, 10, 15, 20][stars] * TIER_MULT[tierOfLevel(id)]); }
 
   function detectLang() {
@@ -237,10 +238,10 @@
     if (best) state.stars[id] = stars;
     state.coins += coins;
     if (id >= state.unlocked && id < MAX_LEVEL) state.unlocked = id + 1;
-    var ch = Math.ceil(id / 12), bonus = 0, chapterDone = false;
+    var ch = chapterOfLevel(id), bonus = 0, chapterDone = false;
     if (state.chapterBonus.indexOf(ch) < 0) {
       var all = true;
-      for (var k = (ch - 1) * 12 + 1; k <= ch * 12; k++) if (!state.stars[k]) { all = false; break; }
+      for (var k = (ch - 1) * PER_CHAPTER + 1; k <= ch * PER_CHAPTER; k++) if (!state.stars[k]) { all = false; break; }
       if (all) { chapterDone = true; bonus = chapterBonusFor(ch); state.coins += bonus; state.chapterBonus.push(ch); }
     }
     save();
@@ -299,8 +300,8 @@
 
   window.Store = {
     KEY: KEY, OLD_KEY: OLD_KEY, DEBUG: DEBUG, LANGS: LANGS, THEME_IDS: THEME_IDS, DAILY: DAILY, PRICES: PRICES, TOTAL_LEVELS: TOTAL_LEVELS,
-    CHAPTER_BONUS: CHAPTER_BONUS, MAX_LEVEL: MAX_LEVEL, TIER_MULT: TIER_MULT, TIER_BONUS: TIER_BONUS,
-    tierOfChapter: tierOfChapter, tierOfLevel: tierOfLevel, chapterBonusFor: chapterBonusFor, levelReward: levelReward,
+    CHAPTER_BONUS: CHAPTER_BONUS, PER_CHAPTER: PER_CHAPTER, MAX_LEVEL: MAX_LEVEL, TIER_MULT: TIER_MULT,
+    chapterOfLevel: chapterOfLevel, tierOfLevel: tierOfLevel, chapterBonusFor: chapterBonusFor, levelReward: levelReward,
     load: load, save: save, adopt: adopt, resetProgress: resetProgress, sanitize: sanitize, defaults: defaults,
     get: function () { return state || load(); },
     AD_COINS: AD_COINS, MAX_COIN_ADS: MAX_COIN_ADS, coinAdsLeft: coinAdsLeft, grantAdCoins: grantAdCoins,

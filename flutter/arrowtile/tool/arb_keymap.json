@@ -118,6 +118,7 @@
  "adsNoReward": "ads.no_reward",
  "adsOptional": "ads.optional",
  "adsLoading": "ads.loading",
+ "adsBannerPlaceholder": "ads.banner_placeholder",
  "adsUnavailable": "ads.unavailable",
  "adsWatchCoins": "ads.watch_coins",
  "adsRewardCoins": "ads.reward_coins",

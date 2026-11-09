@@ -554,6 +554,10 @@
   "@adsLoading": {
     "description": "ads.loading"
   },
+  "adsBannerPlaceholder": "Reklam alanı",
+  "@adsBannerPlaceholder": {
+    "description": "ads.banner_placeholder"
+  },
   "adsUnavailable": "Şu an reklam yok, biraz sonra tekrar dene.",
   "@adsUnavailable": {
     "description": "ads.unavailable"
@@ -639,7 +643,7 @@
   "@privacyHData": {
     "description": "privacy.h_data"
   },
-  "privacyPData": "Arrowtile hesap istemez. İlerlemen (seviyeler, yıldızlar, jetonlar ve ayarlar) yalnızca cihazında saklanır; bize gönderilmez. Oyun, reklam ve satın alma dışında internete bağlanmaz.",
+  "privacyPData": "Arrowtile hesap istemez. İlerlemen (seviyeler, yıldızlar, jetonlar ve ayarlar) yalnızca cihazında saklanır; bize gönderilmez. Oyun, reklam ve satın alma dışında internete bağlanmaz. Bu oyun 13 yaş altındaki çocuklara yönelik değildir.",
   "@privacyPData": {
     "description": "privacy.p_data"
   },
@@ -647,7 +651,7 @@
   "@privacyHAds": {
     "description": "privacy.h_ads"
   },
-  "privacyPAds": "Android sürümünde reklamlar Google AdMob ile gösterilir. AdMob; reklam kimliği, IP adresi, cihaz ve uygulama bilgileri ile reklam etkileşimleri gibi verileri reklam göstermek, ölçmek ve kötüye kullanımı önlemek için toplayabilir. Avrupa Ekonomik Alanı, Birleşik Krallık ve İsviçre’de kişiselleştirilmiş reklamdan önce onayın istenir ve onayını istediğin zaman değiştirebilirsin. Reklam kimliğini cihaz ayarlarından sıfırlayabilir veya silebilirsin.",
+  "privacyPAds": "Android sürümünde reklamlar Google AdMob ile gösterilir. AdMob; reklam kimliği, IP adresi, cihaz ve uygulama bilgileri ile reklam etkileşimleri gibi verileri reklam göstermek, ölçmek ve kötüye kullanımı önlemek için toplayabilir. Avrupa Ekonomik Alanı, Birleşik Krallık ve İsviçre’de kişiselleştirilmiş reklamdan önce onayın istenir ve onayını istediğin zaman değiştirebilirsin. Reklam kimliğini cihaz ayarlarından sıfırlayabilir veya silebilirsin. Google’ın iş ortaklarının sitelerinden veya uygulamalarından elde edilen verileri nasıl kullandığını şuradan öğrenebilirsin: https://policies.google.com/technologies/partner-sites",
   "@privacyPAds": {
     "description": "privacy.p_ads"
   },

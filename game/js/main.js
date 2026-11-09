@@ -14,6 +14,12 @@
   var S = Store.load();
   var M = window.Monetization;
   M.attach(function () { return S; }, function () { Store.save(); });
+  // v1.1 (docs/15 §4): reklam gösterilirken oyun animasyon döngüsü ve ses duraklar, reklam kapanınca devam eder
+  var adPause = false;
+  M.setAdListener(function (active) {
+    adPause = !!active;
+    try { if (active) SFX.pause(); else { SFX.resume(); kick(); } } catch (e) {}
+  });
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
@@ -132,15 +138,27 @@
   // Ekranlar
   var current = null;
   var renderers = {};
+  var mapShown = false; // harita zaten açıksa yeniden çizimde kaydırma konumu korunur
   function show(name) {
+    if (name !== 'map') mapShown = false;
     if (modalOpen()) closeModal();
     if (current === 'game' && name !== 'game') stopGame();
     current = name;
     $('toast').classList.remove('show');
     document.querySelectorAll('.screen').forEach(function (s) { s.classList.toggle('active', s.id === 'scr-' + name); });
     if (renderers[name]) renderers[name]();
+    updateBanners();
     updateCoins();
     requestAnimationFrame(function () { fitAll($('scr-' + name)); });
+  }
+  // v1.1 (docs/15 §3): banner yalnızca Ana menü ve Harita'da; web önizlemede kesikli çerçeveli "Reklam alanı" yer tutucusu.
+  // Yer tutucu ekranın altında yer ayırır (içerik banner yüksekliği kadar yukarı itilir); reklamsız satın almada gizlenir.
+  function updateBanners() {
+    var test = M.isTestMode();
+    M.BANNER_SCREENS.forEach(function (n) {
+      var b = document.querySelector('#scr-' + n + ' .banner');
+      if (b) b.hidden = !(test && M.bannerVisible(n));
+    });
   }
 
   // ---------------------------------------------------------------- Ana menü
@@ -206,68 +224,101 @@
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   // ---------------------------------------------------------------- Harita
+  // v1.5 (docs/15 §5): 500 bölüm (sonrası oyuncuyla birlikte uzar). Tembel liste: yalnızca görünür bölümler (± 1) DOM'da; her bölümün
+  // yüksekliği sabit olduğundan konum hesapla bulunur, bölüm sayısı ne olursa olsun çizim maliyeti sabittir. Açılışta oyuncunun
+  // bölümüne kaydırılır. Zorluk seviye bazında döner: düğümün köşe noktası kademesini gösterir (Aşırı zor: koyu kırmızı halka).
+  var MAP = { STEP: 96, PADB: 48, PADT: 40, TOP: 12, HEAD: 64, GAP: 6, BOT: 18 };
+  MAP.PATH_H = MAP.PADB + MAP.PADT + (Store.PER_CHAPTER - 1) * MAP.STEP;
+  MAP.CH_H = MAP.TOP + MAP.HEAD + MAP.GAP + MAP.PATH_H + MAP.BOT;
+  var mapSt = null; // { chapters, rendered: { c: element }, spacer }
+  function roman(n) {
+    var m = [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']], r = '';
+    m.forEach(function (p) { while (n >= p[0]) { r += p[1]; n -= p[0]; } });
+    return r;
+  }
+  /** Bölüm adı: mevcut 18 ad döngüyle; tekrarlarda Roma rakamı ("Mağara II"). Rakam Arapçada da Latin harfle, sola-sağa yalıtılır. */
+  function chapterName(c) {
+    var name = t('map.chapter' + ((c - 1) % 18 + 1)), cyc = Math.floor((c - 1) / 18) + 1;
+    return cyc > 1 ? name + ' ⁦' + roman(cyc) + '⁩' : name;
+  }
+  function mapChapters() { return Math.max(LG.CHAPTERS, Math.ceil(S.unlocked / Store.PER_CHAPTER) + 1); }
+  function mapNodeY(i) { return MAP.TOP + MAP.HEAD + MAP.GAP + MAP.PATH_H - MAP.PADB - i * MAP.STEP; }
+  function buildChapter(c, chapters) {
+    var PER = Store.PER_CHAPTER, first = (c - 1) * PER + 1, last = c * PER, cs = 0, k;
+    for (k = first; k <= last; k++) cs += S.stars[k] || 0;
+    var ch = el('section', 'chapter'); ch.setAttribute('data-chapter', c);
+    ch.style.top = ((chapters - c) * MAP.CH_H) + 'px'; ch.style.height = MAP.CH_H + 'px';
+    var head = el('div', 'chapter-head');
+    head.innerHTML = '<h3></h3><div class="sub"><div class="pill-in">' + icon('star', 'star-ic') + ' <span class="num">' + cs + '/' + (PER * 3) + '</span></div><div class="bonus"></div></div>';
+    head.querySelector('h3').textContent = chapterName(c);
+    head.querySelector('.bonus').textContent = S.chapterBonus.indexOf(c) >= 0 ? t('end.chapter_done') : t('map.chapter_bonus', { n: Store.CHAPTER_BONUS });
+    var H = MAP.PATH_H, path = el('div', 'path'); path.style.height = H + 'px';
+    var pts = [];
+    for (var i = 0; i < PER; i++) {
+      var x = 50 + 30 * Math.sin(i * Math.PI / 3);
+      if (isRTL()) x = 100 - x; // harita yönü aynalanır
+      pts.push([x, H - MAP.PADB - i * MAP.STEP]);
+    }
+    var d = pts.map(function (p, j) { return (j ? 'L' : 'M') + p[0].toFixed(2) + ' ' + p[1]; }).join(' ');
+    path.innerHTML = '<svg class="trail" viewBox="0 0 100 ' + H + '" preserveAspectRatio="none" aria-hidden="true">' +
+      '<path d="' + d + '" fill="none" stroke="var(--edge)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' +
+      '<path d="' + d + '" fill="none" stroke="var(--board)" stroke-width="4" stroke-dasharray="2 12" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>';
+    for (i = 0; i < PER; i++) {
+      var id = first + i, stars = S.stars[id] || 0, locked = id > S.unlocked, tier = Store.tierOfLevel(id);
+      var nb = el('button', 'node tier-' + tier + (locked ? ' locked' : stars ? ' done' : '') + (id === S.unlocked ? ' current' : ''));
+      nb.type = 'button';
+      nb.style.left = pts[i][0] + '%'; nb.style.top = pts[i][1] + 'px';
+      nb.setAttribute('data-level', id); nb.setAttribute('data-diff', tier);
+      nb.setAttribute('aria-label', t('map.level', { n: id }) + ' · ' + t('diff.' + tier) + (locked ? ' — ' + t('map.locked') : ''));
+      nb.innerHTML = (locked ? icon('lock') : '<span>' + id + '</span>') +
+        (!locked && stars ? '<span class="node-stars">' + [1, 2, 3].map(function (s) { return icon(s <= stars ? 'star' : 'starEmpty'); }).join('') + '</span>' : '');
+      (function (id, locked) {
+        nb.addEventListener('click', function () {
+          if (locked) { SFX.error(); toast(t('map.locked_hint')); return; }
+          SFX.button(); startLevel(id);
+        });
+      })(id, locked);
+      path.appendChild(nb);
+    }
+    var wrap = el('div', 'chapter-in'); wrap.appendChild(head); wrap.appendChild(path); ch.appendChild(wrap);
+    return ch;
+  }
+  /** Görünen bölüm aralığını (± 1) çizer, dışındakileri DOM'dan kaldırır. */
+  function updateMapWindow() {
+    if (!mapSt) return;
+    var sc = $('map-scroll'), top = sc.scrollTop, vh = sc.clientHeight || 600, n = mapSt.chapters;
+    var i0 = Math.max(0, Math.floor(top / MAP.CH_H) - 1), i1 = Math.min(n - 1, Math.floor((top + vh) / MAP.CH_H) + 1);
+    var want = {}, added = false;
+    for (var i = i0; i <= i1; i++) want[n - i] = true; // üstten i. satır = bölüm n - i
+    Object.keys(mapSt.rendered).forEach(function (c) { if (!want[c]) { mapSt.rendered[c].remove(); delete mapSt.rendered[c]; } });
+    Object.keys(want).forEach(function (c) {
+      if (!mapSt.rendered[c]) { var e = buildChapter(Number(c), n); mapSt.spacer.appendChild(e); mapSt.rendered[c] = e; added = true; }
+    });
+    if (added) fitAll(sc);
+  }
+  var mapRaf = 0;
+  $('map-scroll').addEventListener('scroll', function () {
+    if (mapRaf) return;
+    mapRaf = requestAnimationFrame(function () { mapRaf = 0; updateMapWindow(); });
+  }, { passive: true });
   renderers.map = function () {
-    // v1.3 (docs/09): hazır 18 bölüm her zaman; sonsuz bölümler oyuncunun bölümü + bir sonraki (kilitli)
-    var chapters = Math.max(Math.ceil(PREBUILT / 12), Math.ceil(S.unlocked / 12) + 1);
-    var total = Store.totalStars(), max = chapters * 12 * 3;
+    var keep = mapShown; mapShown = true;
+    var chapters = mapChapters(), PER = Store.PER_CHAPTER;
+    var total = Store.totalStars(), max = chapters * PER * 3;
     $('map-stars').textContent = total + '/' + max;
     $('map-stars').parentNode.setAttribute('aria-label', t('map.stars_total', { n: total, max: max }));
-    var sc = $('map-scroll'); sc.innerHTML = '';
-    var STEP = 96, PADB = 48, PADT = 40; // yıldızlar için düğümler arası boşluk
-    var curNode = null;
-    // Aşağıdan yukarıya: en üstte son bölüm
-    for (var c = chapters; c >= 1; c--) {
-      var tier = Store.tierOfChapter(c);
-      var ch = el('section', 'chapter tier-' + tier); ch.setAttribute('data-chapter', c); ch.setAttribute('data-tier', tier);
-      var first = (c - 1) * 12 + 1, last = c * 12, cs = 0;
-      for (var k = first; k <= last; k++) cs += S.stars[k] || 0;
-      var head = el('div', 'chapter-head');
-      head.innerHTML = '<h3></h3><span class="diff-tag tier-badge d-' + tier + '"></span><div class="sub"><div class="pill-in">' + icon('star', 'star-ic') + ' <span class="num">' + cs + '/' + ((last - first + 1) * 3) + '</span></div><div></div></div>';
-      head.querySelector('h3').textContent = c <= 18 ? t('map.chapter' + c) : t('map.chapter_n', { n: c });
-      head.querySelector('.tier-badge').textContent = t('diff.' + tier);
-      head.querySelector('.sub > div:last-child').textContent = S.chapterBonus.indexOf(c) >= 0 ? t('end.chapter_done') : t('map.chapter_bonus', { n: Store.chapterBonusFor(c) });
-      var count = last - first + 1, H = PADB + PADT + (count - 1) * STEP;
-      var path = el('div', 'path'); path.style.height = H + 'px';
-      var pts = [];
-      for (var i = 0; i < count; i++) {
-        var x = 50 + 30 * Math.sin(i * Math.PI / 3);
-        if (isRTL()) x = 100 - x; // harita yönü aynalanır
-        pts.push([x, H - PADB - i * STEP]);
-      }
-      var d = pts.map(function (p, j) { return (j ? 'L' : 'M') + p[0].toFixed(2) + ' ' + p[1]; }).join(' ');
-      path.innerHTML = '<svg class="trail" viewBox="0 0 100 ' + H + '" preserveAspectRatio="none" aria-hidden="true">' +
-        '<path d="' + d + '" fill="none" stroke="var(--edge)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' +
-        '<path d="' + d + '" fill="none" stroke="var(--board)" stroke-width="4" stroke-dasharray="2 12" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>';
-      for (i = 0; i < count; i++) {
-        var id = first + i, stars = S.stars[id] || 0, locked = id > S.unlocked;
-        var nb = el('button', 'node' + (locked ? ' locked' : stars ? ' done' : '') + (id === S.unlocked ? ' current' : ''));
-        nb.type = 'button';
-        nb.style.left = pts[i][0] + '%'; nb.style.top = pts[i][1] + 'px';
-        nb.setAttribute('data-level', id);
-        // v1.3: etiket bölüm başlığında (kademe); düğümlerde yalnızca numara ve yıldız
-        nb.setAttribute('data-diff', tier);
-        nb.setAttribute('aria-label', t('map.level', { n: id }) + ' · ' + t('diff.' + tier) + (locked ? ' — ' + t('map.locked') : ''));
-        nb.innerHTML = (locked ? icon('lock') : '<span>' + id + '</span>') +
-          (!locked && stars ? '<span class="node-stars">' + [1, 2, 3].map(function (s) { return icon(s <= stars ? 'star' : 'starEmpty'); }).join('') + '</span>' : '');
-        (function (id, locked) {
-          nb.addEventListener('click', function () {
-            if (locked) { SFX.error(); toast(t('map.locked_hint')); return; }
-            SFX.button(); startLevel(id);
-          });
-        })(id, locked);
-        if (id === S.unlocked) curNode = nb;
-        path.appendChild(nb);
-      }
-      ch.appendChild(head); ch.appendChild(path);
-      sc.appendChild(ch);
+    var sc = $('map-scroll'), prevTop = sc.scrollTop;
+    sc.innerHTML = '';
+    var spacer = el('div', 'map-spacer'); spacer.style.height = (chapters * MAP.CH_H) + 'px';
+    sc.appendChild(spacer);
+    mapSt = { chapters: chapters, rendered: {}, spacer: spacer };
+    if (keep && prevTop > 0) sc.scrollTop = prevTop;
+    else { // oyuncunun düğümünü ekranın ortasına getir
+      var cur = Math.min(S.unlocked, Math.max(1, mapChapters() * PER)), cc = Math.floor((cur - 1) / PER) + 1;
+      var y = (chapters - cc) * MAP.CH_H + mapNodeY((cur - 1) % PER);
+      sc.scrollTop = Math.max(0, y - (sc.clientHeight || 600) / 2);
     }
-    // sıradaki seviyeye kaydır
-    requestAnimationFrame(function () {
-      if (curNode) {
-        var r = curNode.getBoundingClientRect(), sr = sc.getBoundingClientRect();
-        sc.scrollTop += r.top - sr.top - sr.height / 2;
-      } else sc.scrollTop = sc.scrollHeight;
-    });
+    updateMapWindow();
   };
 
   // ---------------------------------------------------------------- Mağaza
@@ -365,7 +416,7 @@
     box.appendChild(it);
   }
   var purchaseBusy = false;
-  function refreshAfterPurchase() { if (renderers[current]) renderers[current](); fitAll($('scr-' + current)); }
+  function refreshAfterPurchase() { if (renderers[current]) renderers[current](); updateBanners(); fitAll($('scr-' + current)); }
   function buyRemoveAds() {
     if (purchaseBusy) return; purchaseBusy = true;
     M.purchaseRemoveAds(function (r) {
@@ -440,9 +491,11 @@
       toast(t('ads.unavailable') + (Store.DEBUG && code ? ' (' + code + ')' : ''));
       finish(false);
     }
-    var ready = !M.hasBridge() || M.rewardedAvailable();
-    if (!ready) showAdLoading(true);
+    // "Reklam yükleniyor…" kaplaması yalnızca gerçekten bekleniyorsa ve 300 ms'den uzun sürerse görünür (docs/15 §4)
+    var ready = !M.hasBridge() || M.rewardedAvailable(), loaded = false, loadTimer = 0;
+    if (!ready) loadTimer = setTimeout(function () { loadTimer = 0; if (!loaded && !finished) showAdLoading(true); }, M.RULES.loadingOverlayMs);
     M.ensureRewardedLoaded(function (r) {
+      loaded = true; if (loadTimer) { clearTimeout(loadTimer); loadTimer = 0; }
       showAdLoading(false);
       if (!r.ok) { unavailable(r.code); return; }
       M.showRewarded(placement, onReward, function (rewarded) {
@@ -707,6 +760,7 @@
     tut = tutorial ? { id: id, step: 0 } : null;
     if (!lv.daily) prefetchNext(id);
     show('game');
+    M.preloadRewarded(); // oyun ekranı açılınca ödüllü reklam önceden yüklenir (docs/15 §4)
     resize();
     updateHUD();
     refreshTutorial();
@@ -832,6 +886,7 @@
 
   function loop() {
     rafId = 0;
+    if (adPause) return; // reklam gösteriliyor: animasyon döngüsü duraklar, reklam kapanınca kick() sürdürür
     var now = performance.now(), active = false;
     Object.keys(anims).forEach(function (k) {
       var an = anims[k];
@@ -845,7 +900,7 @@
     draw(now);
     if (active) rafId = requestAnimationFrame(loop);
   }
-  function kick() { if (!rafId) rafId = requestAnimationFrame(loop); }
+  function kick() { if (!rafId && !adPause) rafId = requestAnimationFrame(loop); }
 
   function draw(now) {
     if (!LV || !ctx) return;
@@ -1038,7 +1093,9 @@
     var r = G.tap(i);
     if (!r) return null;
     aimSel = -1;
-    SFX.tap(); buzz('tap');
+    // v1.1 (docs/15 §1): ok hareketi başına YALNIZCA tek ses (çıkışta slideOut, çarpmada bump) — ayrıca "tık" (tap) çalmaz.
+    // "tap" sesi yalnızca "önce seç" kipinde ok seçilirken çalar (hareket yok). Titreşim eskisi gibi.
+    buzz('tap');
     hintIdx = -1;
     var a = LV.arrows[i], now = performance.now();
     var per = reduced ? 30 : T.anim.slidePerCell;
@@ -1054,9 +1111,11 @@
       lockUntil = now + hi * dur;
       SFX.slideOut(Math.min(1, exitStreak / 6)); exitStreak++;
       buzz('slideOut');
+      if (!isDaily() && G.remaining() <= 2) M.preloadInterstitial(LV.id); // geçiş reklamı seviye bitmeden hazır olsun (docs/15 §4)
       busy = G.isWon(); // son ok: kazanma ekranına kadar girdi kapalı
     } else {
       exitStreak = 0;
+      if (r.lifeLost && G.lives <= 1) M.preloadRewarded(); // can 1'e düştü: "+1 can" reklamı önceden yüklensin (docs/15 §4)
       var fwd = (reduced ? 60 : T.anim.bumpForward) * animScale, back = (reduced ? 120 : T.anim.bumpBack) * animScale;
       busy = true;
       var my = session;
@@ -1115,7 +1174,7 @@
       if (res.newBest) tags.appendChild(el('span', 'tag')).textContent = t('end.new_best');
       if (res.chapterDone) { tags.appendChild(el('span', 'tag')).textContent = t('end.chapter_done'); tags.appendChild(el('span', 'tag')).textContent = t('map.chapter_bonus', { n: res.bonus }); }
       sh.appendChild(tags);
-      if (id === PREBUILT) sh.appendChild(el('p')).textContent = t('end.all_done'); // v1.3: sonsuz bölümler başlıyor
+      if (id === LG.DESIGNED) sh.appendChild(el('p')).textContent = t('end.all_done'); // 5.000 seviye bitti: sonsuz bölümler başlıyor
       var a = el('div', 'actions');
       // Oyuncu devam edince (ve yalnızca o zaman) geçiş reklamı kuralları değerlendirilir (ads.js)
       var going = false;
@@ -1411,6 +1470,9 @@
     busy: function () { return locked(); },
     view: function () { return { s: view.s, x: view.x, y: view.y, cell: lay.cell }; },
     fastAnim: function (on) { animScale = on ? 0.02 : 1; },
+    mapInfo: function () { var sc = $('map-scroll'); return mapSt ? { chapters: mapSt.chapters, rendered: Object.keys(mapSt.rendered).map(Number).sort(function (a, b) { return a - b; }), scrollTop: sc.scrollTop, chH: MAP.CH_H, nodes: sc.querySelectorAll('.node').length } : null; },
+    mapScrollToChapter: function (c) { var sc = $('map-scroll'); sc.scrollTop = Math.max(0, (mapSt.chapters - c) * MAP.CH_H); updateMapWindow(); },
+    ads: function () { return { paused: adPause, bannerShown: ['menu', 'map'].filter(function (n) { var b = document.querySelector('#scr-' + n + ' .banner'); return b && !b.hidden; }) }; },
     endless: function () { return { cached: Object.keys(endless).map(Number), queue: genQueue.slice(), job: genJob ? genJob.id : 0, stats: genStats.slice() }; },
     zoomAt: function (x, y, s) { zoomAt(x, y, s); },
     startDaily: startDaily, openCalendar: openCalendar,

@@ -1,5 +1,5 @@
 // Arrowtile — geliştirici uçtan uca testi (Playwright + Chromium). Kullanım: node tools/e2e.js [bölüm...]
-// Bölümler: core fix econ rename ads feat daily shots12 shots13 lang levels (verilmezse hepsi). Ekran görüntüleri: tools/shots/v11/
+// Bölümler: core fix econ rename ads feat daily shots12 shots13 v15 lang levels (verilmezse hepsi). Ekran görüntüleri: tools/shots/v11/, v15/
 // Oyun ?debug=1 ile açılır: hata ayıklama kancası (window.__ok) yalnızca bu kipte vardır ve kayıt
 // gerçek anahtara değil kum havuzu anahtarına (Store.KEY) yazılır.
 'use strict';
@@ -502,7 +502,7 @@ async function overflowReport(page) {
     await page.evaluate(() => window.__ok.debugPatch({ stars: {} }));
     await winLevel(page, 9);
     const st9 = await ss(page);
-    check('G3: rahat modda kusursuz bitirme → en fazla 2 yıldız, yarı jeton (15/2 = 7)', st9.stars[9] === 2 && st9.coins === 7 && (await page.getAttribute('#end-sheet', 'data-stars')) === '2', JSON.stringify({ s: st9.stars[9], c: st9.coins }));
+    check('G3: rahat modda kusursuz bitirme → en fazla 2 yıldız, yarı jeton (sv9 Aşırı zor ×3: 45/2 = 22)', st9.stars[9] === 2 && st9.coins === 22 && (await page.getAttribute('#end-sheet', 'data-stars')) === '2', JSON.stringify({ s: st9.stars[9], c: st9.coins }));
     await page.tap('#end-map'); await wait(300);
     await page.evaluate(() => window.__ok.debugPatch({ relaxed: false }));
     // G7: görünüm
@@ -544,25 +544,27 @@ async function overflowReport(page) {
 
   // ============================================================ G4 zorluk etiketi + G5 günlük bulmaca (aşama 5)
   if (want('daily')) {
-    check(`G4 (v1.3): ${LEVELS.length} hazır seviye, 18 bölüm × 12`, LEVELS.length === 216);
+    check(`G4 (v1.5): ${LEVELS.length} hazır seviye (ilk 200), bölüm = 10 seviye`, LEVELS.length === 200 && require('../game/js/levelgen.js').PER_CHAPTER === 10);
     const LG = require('../game/js/levelgen.js');
-    const bad = LEVELS.filter(L => L.diff !== LG.tierOf(LG.chapterOf(L.id))).map(L => L.id);
-    check('G4 (v1.3): her seviyenin etiketi bölümünün kademesi (K-K-K-O-O-O-Z-Z-A)', bad.length === 0, bad.join(','));
-    check('G4 (v1.3): 4 dilde kademe etiketleri (Uzman yok), 18 bölüm adı ve "Bölüm {n}"', ['tr', 'en', 'de', 'ar'].every(l => ['easy', 'medium', 'hard', 'extreme'].every(k => I18N[l]['diff.' + k]) && !I18N[l]['diff.expert'] && Array.from({ length: 18 }, (_, i) => i + 1).every(n => I18N[l]['map.chapter' + n]) && I18N[l]['map.chapter_n'].includes('{n}')));
+    const bad = LEVELS.filter(L => L.diff !== LG.tierOf(L.id)).map(L => L.id);
+    check('G4 (v1.5): her seviyenin etiketi seviye kademesi (bölümde K-K-K-O-O-O-Z-Z-A-A)', bad.length === 0, bad.join(','));
+    check('G4 (v1.5): 4 dilde kademe etiketleri (Uzman yok), 18 bölüm adı ve "Bölüm {n}" anahtarı', ['tr', 'en', 'de', 'ar'].every(l => ['easy', 'medium', 'hard', 'extreme'].every(k => I18N[l]['diff.' + k]) && !I18N[l]['diff.expert'] && Array.from({ length: 18 }, (_, i) => i + 1).every(n => I18N[l]['map.chapter' + n]) && I18N[l]['map.chapter_n'].includes('{n}')));
     // Sahte saat: 2026-10-25 12:00 (init betiği), sonra ertesi gün
     const FAKE = t => `(() => { const R = Date, off = ${t} - R.now(); class FD extends R { constructor(...a) { if (!a.length) super(R.now() + off); else super(...a); } static now() { return R.now() + off; } } window.Date = FD; })();`;
     const day1 = new Date('2026-10-25T12:00:00').getTime();
     const P = await newPage(browser, 'tr-TR', { init: FAKE(day1) + FAKE_BRIDGE, seed: base({ unlocked: 120, ads: { since: 9, lastAt: 0, adFree: false, test: false } }) });
     const page = P.page;
-    const node = await page.evaluate(() => { window.__ok.show('map'); const c = document.querySelector('.chapter[data-chapter="5"]'), x = document.querySelector('.chapter[data-chapter="9"]');
-      return [c.querySelector('.tier-badge').textContent, !!document.querySelector('.node .diff-tag'), x.classList.contains('tier-extreme'), x.querySelector('.tier-badge').textContent, getComputedStyle(x.querySelector('.tier-badge')).backgroundColor]; });
-    check('G4 (v1.3): kademe etiketi bölüm başlığında (bölüm 5 = Orta), düğümlerde etiket yok', node[0] === I18N.tr['diff.medium'] && !node[1], node.join(' / '));
-    check('G4 (v1.3): Aşırı zor bölüm (9) haritada ayrışır (koyu kırmızı rozet)', node[2] && node[3] === I18N.tr['diff.extreme'] && node[4] === 'rgb(122, 20, 32)', node.slice(2).join(' / '));
+    const node = await page.evaluate(() => { window.__ok.show('map'); const c = document.querySelector('.chapter[data-chapter="12"]');
+      const n = id => { const e = c.querySelector('.node[data-level="' + id + '"]'); return e ? [e.getAttribute('data-diff'), getComputedStyle(e, '::after').backgroundColor] : null; };
+      return { cur: document.querySelector('.node.current') && document.querySelector('.node.current').getAttribute('data-level'), nodes: [111, 114, 117, 119, 120].map(n), badge: !!document.querySelector('.tier-badge'), head: c.querySelector('.chapter-head h3').textContent }; });
+    check('G4 (v1.5): zorluk seviye bazında — bölüm 12 düğümleri 111 Kolay, 114 Orta, 117 Zor, 119/120 Aşırı zor', node.nodes.map(x => x && x[0]).join() === 'easy,medium,hard,extreme,extreme' && !node.badge, JSON.stringify(node.nodes));
+    check('G4 (v1.5): Aşırı zor düğümü koyu kırmızı işaretli, harita açılışta oyuncunun düğümünde (120)', node.nodes[3][1] === 'rgb(179, 38, 58)' && node.cur === '120', JSON.stringify(node));
     await page.evaluate(() => window.__ok.startLevel(50)); await wait(300);
     check('G4: oyun ekranında zorluk etiketi', (await page.textContent('#game-diff')) === I18N.tr['diff.' + LEVELS[49].diff] && await page.isVisible('#game-diff'));
     await page.evaluate(() => window.__ok.show('map')); await wait(400);
+    await page.evaluate(() => window.__ok.mapScrollToChapter(7)); await wait(150);
     await page.evaluate(() => document.querySelector('.node[data-level="61"]').scrollIntoView({ block: 'center' })); await wait(150);
-    await page.screenshot({ path: path.join(SHOTS, 'tr-map-ch6.png') });
+    await page.screenshot({ path: path.join(SHOTS, 'tr-map-ch7.png') });
     await page.evaluate(() => window.__ok.show('menu')); await wait(300);
     check('G5: menüde günlük bulmaca, seri 0', (await page.textContent('#dp-sub')) === I18N.tr['dp.streak'].replace('{n}', '0'));
     await page.tap('#btn-dp'); await wait(300);
@@ -602,15 +604,15 @@ async function overflowReport(page) {
 
   // ============================================================ v1.2 dokunma önerisi (docs/08 §4)
   if (want('shots12')) {
-    const P = await newPage(browser, 'tr-TR', { seed: Object.assign(base({ unlocked: 216 }), { tips: [] }) });
+    const P = await newPage(browser, 'tr-TR', { seed: Object.assign(base({ unlocked: 200 }), { tips: [] }) });
     await P.page.evaluate(() => window.__ok.startLevel(13)); await wait(400);
     check('öneri: hücre ≥ 26 px tahtada öneri çıkmaz', !(await P.page.isVisible('#confirm-yes')));
-    await P.page.evaluate(() => window.__ok.startLevel(216)); await wait(400);
+    await P.page.evaluate(() => window.__ok.startLevel(200)); await wait(400);
     const sug = await P.page.isVisible('#confirm-yes') && (await P.page.textContent('#modal p')) === I18N.tr['game.aim_suggest'];
     check('öneri: hücre < 26 px ilk büyük seviyede "yakınlaştır / önce seç, sonra fırlat" önerisi', sug);
     await P.page.tap('#confirm-yes'); await wait(200);
     check('öneri kabul edilince "önce seç, sonra fırlat" açılır', (await ss(P.page)).aim === true);
-    await P.page.evaluate(() => window.__ok.startLevel(215)); await wait(400);
+    await P.page.evaluate(() => window.__ok.startLevel(199)); await wait(400);
     check('öneri yalnızca bir kez gösterilir', !(await P.page.isVisible('#confirm-yes')));
     const v = await P.page.evaluate(() => { window.__ok.zoomAt(100, 100, 10); return window.__ok.view().s; });
     check('yakınlaştırma üst sınırı 5× (v1.3)', v === 5, String(v));
@@ -618,38 +620,35 @@ async function overflowReport(page) {
     await P.ctx.close();
   }
 
-  // ============================================================ v1.3 ekran görüntüleri (tools/shots/v13/, docs/09)
+  // ============================================================ v1.5 ekran görüntüleri (tools/shots/v15/, docs/15 §5)
   if (want('shots13')) {
-    const DIR13 = path.join(__dirname, 'shots', 'v13'); fs.mkdirSync(DIR13, { recursive: true });
-    const seed13 = l => base({ lang: l, unlocked: 217, tutorialDone: [1, 2, 3], tips: ['aim_suggest', 'zoom_tip', 'curve_tip'] });
-    // tr: bölüm 1 (öğretici sonrası ilk seviye 4, ilk kıvrımlı ok), 4, 7, 9, 10, 18 ilk seviyeleri, bölüm 19 (sonsuz), harita;
+    const DIR15 = path.join(__dirname, 'shots', 'v15'); fs.mkdirSync(DIR15, { recursive: true });
+    const seed15 = l => base({ lang: l, unlocked: 201, tutorialDone: [1, 2, 3], tips: ['aim_suggest', 'zoom_tip', 'curve_tip'] });
+    // tr: bölüm 1 (ilk kıvrımlı ok sv4, aşırı zor sv9), bölüm 10 sonu, 200 (hazır paketin son seviyesi, aşırı zor), 201 (oyunda üretilen, ilk 22x31), harita;
     // ar ve de: birer aşırı zor seviye
-    const shots = [['tr', 'tr-TR', [4, 37, 73, 97, 109, 205, 217]], ['ar', 'ar-SA', [97]], ['de', 'de-DE', [205]]];
+    const shots = [['tr', 'tr-TR', [4, 9, 100, 200, 201]], ['ar', 'ar-SA', [200]], ['de', 'de-DE', [199]]];
     for (const [l, loc, ids] of shots) {
-      const P = await newPage(browser, loc, { seed: seed13(l) });
+      const P = await newPage(browser, loc, { seed: seed15(l) });
       for (const id of ids) {
         await P.page.evaluate(id => window.__ok.startLevel(id), id);
         await P.page.waitForFunction(id => window.__ok.game() && window.__ok.game().id === id && window.__ok.screen() === 'game', id, { timeout: 20000 }); await wait(500);
         const v = await P.page.evaluate(() => window.__ok.view()), g = await P.page.evaluate(() => [window.__ok.level().diff, window.__ok.level().w + 'x' + window.__ok.level().h]);
-        const ch = Math.ceil(id / 12);
-        check(`v13 görüntü ${l} sv${id} (bölüm ${ch}, ${g[0]}, ${g[1]}): tahta sığdı (ölçek 1), hücre ${v.cell.toFixed(1)} px ≥ 16`, v.s === 1 && v.cell >= 16);
-        check(`v13 görüntü ${l} sv${id}: oyun ekranında kademe etiketi`, (await P.page.textContent('#game-diff')) === I18N[l]['diff.' + g[0]]);
-        await P.page.screenshot({ path: path.join(DIR13, `${l}-ch${String(ch).padStart(2, '0')}-sv${id}-${g[0]}.png`) });
+        const ch = Math.ceil(id / 10);
+        check(`v15 görüntü ${l} sv${id} (bölüm ${ch}, ${g[0]}, ${g[1]}): tahta sığdı (ölçek 1), hücre ${v.cell.toFixed(1)} px ≥ 16`, v.s === 1 && v.cell >= 16);
+        check(`v15 görüntü ${l} sv${id}: oyun ekranında kademe etiketi`, (await P.page.textContent('#game-diff')) === I18N[l]['diff.' + g[0]]);
+        await P.page.screenshot({ path: path.join(DIR15, `${l}-ch${String(ch).padStart(3, '0')}-sv${id}-${g[0]}.png`) });
       }
       if (l === 'tr') {
         await P.page.evaluate(() => window.__ok.show('map')); await wait(600);
-        await P.page.screenshot({ path: path.join(DIR13, 'tr-map-ch19-endless.png') });
-        await P.page.evaluate(() => document.querySelector('.chapter[data-chapter="18"] .chapter-head').scrollIntoView({ block: 'center' })); await wait(200);
-        await P.page.screenshot({ path: path.join(DIR13, 'tr-map-ch18-extreme.png') });
-        const heads = await P.page.evaluate(() => [...document.querySelectorAll('.chapter')].map(c => c.getAttribute('data-chapter')));
-        check('v13 harita: 19 bölüm görünür (18 hazır + oyuncunun sonsuz bölümü); 20. bölüm kilitli olarak listede', heads.includes('19') && heads.includes('20') && !heads.includes('21') && (await P.page.evaluate(() => document.querySelector('.node[data-level="229"]').classList.contains('locked'))), heads.slice(0, 3).join(','));
-        check('v13 harita: sonsuz bölüm adı "Bölüm 19"', (await P.page.evaluate(() => document.querySelector('.chapter[data-chapter="19"] h3').textContent)) === I18N.tr['map.chapter_n'].replace('{n}', '19'));
+        await P.page.screenshot({ path: path.join(DIR15, 'tr-map-ch21.png') });
+        const mi = await P.page.evaluate(() => window.__ok.mapInfo());
+        check('v15 harita: 201. seviyede açılır (bölüm 21), yalnızca birkaç bölüm DOM\'da', mi.rendered.includes(21) && mi.rendered.length <= 5 && mi.chapters === 500, JSON.stringify(mi));
+        check('v15 harita: 21. bölüm adı "Zirve II" (18 adlık döngü + Roma rakamı)', (await P.page.evaluate(() => document.querySelector('.chapter[data-chapter="21"] h3').textContent)).replace(/[\u2066\u2069]/g, '') === I18N.tr['map.chapter3'] + ' II');
       }
-      check(`v13 görüntü ${l}: konsol hatası yok`, P.errors.length === 0, P.errors.join(' | '));
+      check(`v15 görüntü ${l}: konsol hatası yok`, P.errors.length === 0, P.errors.join(' | '));
       await P.ctx.close();
     }
   }
-
 
   // ============================================================ DİLLER + EKRAN GÖRÜNTÜLERİ + TAŞMA
   if (want('lang')) {
@@ -716,7 +715,7 @@ async function overflowReport(page) {
     const { ctx, page, errors } = await newPage(browser, 'en-US', { reduced: true, seed: base({ lang: 'en', unlocked: 1, coins: 50, tutorialDone: [] }) });
     const res = await page.evaluate(async () => {
       const out = [], sleep = ms => new Promise(r => setTimeout(r, ms));
-      window.__ok.fastAnim(true); // 216 büyük seviye: animasyonlar hızlandırılır (yalnızca debug)
+      window.__ok.fastAnim(true); // 200 büyük seviye: animasyonlar hızlandırılır (yalnızca debug)
       for (let id = 1; id <= window.LEVELS.length; id++) {
         window.__ok.startLevel(id);
         let bad = 0, guard = 0;
@@ -735,17 +734,192 @@ async function overflowReport(page) {
     check(`tüm ${LEVELS.length} seviye oyunun motoruyla "kazanıldı" durumuna ulaştı (${won}/${LEVELS.length})`, won === LEVELS.length, res.out.filter(r => !(r.won && r.end)).map(r => r.id).join(','));
     const stars = Object.values(res.st.stars).reduce((a, b) => a + b, 0);
     check(`tüm yıldızlar ${stars}/${LEVELS.length * 3}`, stars === LEVELS.length * 3);
-    // v1.3 (docs/09): seviye jetonu 20 × kademe çarpanı (1/1,5/2/3), bölüm bonusu 50/75/100/200
-    const LGx = require('../game/js/levelgen.js'), MULT = { easy: 1, medium: 1.5, hard: 2, extreme: 3 }, BON = { easy: 50, medium: 75, hard: 100, extreme: 200 };
-    let lvCoins = 0, bonus = 0; for (let id = 1; id <= LEVELS.length; id++) lvCoins += Math.round(20 * MULT[LGx.tierOf(LGx.chapterOf(id))]);
-    for (let ch = 1; ch <= LEVELS.length / 12; ch++) bonus += BON[LGx.tierOf(ch)];
+    // v1.5 (docs/15 §5): seviye jetonu 20 × seviye kademesi çarpanı (1/1,5/2/3), tek bölüm bonusu 150 (10 seviyede bir)
+    const LGx = require('../game/js/levelgen.js'), MULT = { easy: 1, medium: 1.5, hard: 2, extreme: 3 };
+    let lvCoins = 0, bonus = 0; for (let id = 1; id <= LEVELS.length; id++) lvCoins += Math.round(20 * MULT[LGx.tierOf(id)]);
+    bonus = (LEVELS.length / LGx.PER_CHAPTER) * LGx.CHAPTER_BONUS;
     const expCoins = 50 + lvCoins + bonus;
-    check(`ekonomi (v1.3): 50 + seviye ${lvCoins} (kademe çarpanlı) + bölüm bonusu ${bonus} = ${expCoins} jeton`, res.st.coins === expCoins, String(res.st.coins));
+    check(`ekonomi (v1.5): 50 + seviye ${lvCoins} (kademe çarpanlı) + ${LEVELS.length / LGx.PER_CHAPTER} bölüm × 150 = ${expCoins} jeton`, res.st.coins === expCoins, String(res.st.coins));
     await wait(900);
     await page.screenshot({ path: path.join(SHOTS, 'en-end-last-reduced.png') });
     check('reduced-motion: bitiş ekranında yıldızlar görünür', await page.evaluate(() => [...document.querySelectorAll('#end-sheet .stars-big .ic')].every(n => getComputedStyle(n).opacity === '1')));
     check('tüm seviyeler: konsol hatası yok', errors.length === 0, errors.join(' | '));
     await ctx.close();
+  }
+
+  // ============================================================ v1.5 (docs/15): tek hareket sesi, 500 bölümlü harita, banner yer tutucusu, reklamda duraklatma
+  if (want('v15')) {
+    // ---- §1 ok hareketi başına YALNIZCA tek ses
+    {
+      const P = await newPage(browser, 'tr-TR', { seed: base({ unlocked: 40 }) });
+      const page = P.page;
+      const install = () => page.evaluate(() => {
+        window.__snd = []; const names = ['tap', 'slideOut', 'bump', 'button', 'coin', 'error', 'star', 'levelWin', 'hint', 'undo'];
+        names.forEach(n => { if (!window.SFX['__orig_' + n]) window.SFX['__orig_' + n] = window.SFX[n]; window.SFX[n] = function () { window.__snd.push(n); return window.SFX['__orig_' + n].apply(this, arguments); }; });
+      });
+      const snd = () => page.evaluate(() => window.__snd.slice());
+      await page.evaluate(() => window.__ok.startLevel(8)); await wait(350); await install();
+      const L = LEVELS[7], b = blockedOf(L), f = (await gs(page)).free[0];
+      await tapArrowTouch(page, f); await wait(600);
+      check('ses: açık oka dokununca yalnızca slideOut çalar (tap/button/bump yok)', JSON.stringify(await snd()) === '["slideOut"]', JSON.stringify(await snd()));
+      await page.evaluate(() => { window.__snd.length = 0; });
+      await tapArrowTouch(page, b); await wait(900);
+      check('ses: engelli oka dokununca yalnızca bump çalar, çarpma anında (tap yok)', JSON.stringify(await snd()) === '["bump"]', JSON.stringify(await snd()));
+      // "önce seç" kipi: seçim = tap sesi (hareket yok), fırlatma = yalnızca slideOut
+      await page.evaluate(() => { window.__ok.debugPatch({ aim: true }); window.__snd.length = 0; });
+      await idle(page); await wait(300);
+      const f2 = (await gs(page)).free[0];
+      await tapArrowTouch(page, f2); await wait(200);
+      check('ses (önce seç kipi): ilk dokunuş yalnızca seçim "tap" sesi', JSON.stringify(await snd()) === '["tap"]', JSON.stringify(await snd()));
+      await tapArrowTouch(page, f2); await wait(600);
+      check('ses (önce seç kipi): fırlatma yalnızca slideOut ekler (ikinci tap yok)', JSON.stringify(await snd()) === '["tap","slideOut"]', JSON.stringify(await snd()));
+      // ardışık çıkışlar: her hareket tek ses
+      await page.evaluate(() => { window.__ok.debugPatch({ aim: false }); window.__ok.startLevel(9); window.__snd.length = 0; }); await wait(400);
+      let moves = 0;
+      for (let k = 0; k < 4; k++) { const g = await gs(page); if (!g.free.length) break; await tapArrowTouch(page, g.free[0]); moves++; await wait(450); await idle(page); }
+      const sn = await snd();
+      check('ses: 4 ardışık çıkışta tam 4 slideOut, başka ses yok', sn.length === moves && sn.every(x => x === 'slideOut'), JSON.stringify(sn));
+      check('ses: konsol hatası yok', P.errors.length === 0, P.errors.join(' | '));
+      await P.ctx.close();
+    }
+    // ---- §5 harita: 500 bölüm, tembel liste, oyuncunun bölümünde açılış, bölüm adları
+    {
+      const P = await newPage(browser, 'tr-TR', { seed: base({ unlocked: 2501, stars: {} }) });
+      const page = P.page;
+      const t0 = Date.now();
+      await page.evaluate(() => window.__ok.show('map')); await wait(300);
+      const info = await page.evaluate(() => window.__ok.mapInfo());
+      check('harita: 2501. seviyede açılınca oyuncunun bölümü (251) çizili, DOM\'da en çok 5 bölüm / 50 düğüm', info.rendered.includes(251) && info.rendered.length <= 5 && info.nodes <= 50 && info.chapters === 500, JSON.stringify(info));
+      const cur = await page.evaluate(() => { const n = document.querySelector('.node.current'), sc = document.getElementById('map-scroll'); const r = n.getBoundingClientRect(), s = sc.getBoundingClientRect(); return { lvl: n.getAttribute('data-level'), mid: (r.top + r.bottom) / 2 - (s.top + s.bottom) / 2 }; });
+      check('harita: oyuncunun düğümü (2501) ekranın ortasında', cur.lvl === '2501' && Math.abs(cur.mid) < 60, JSON.stringify(cur));
+      const names = await page.evaluate(() => [251, 252].map(c => document.querySelector('.chapter[data-chapter="' + c + '"] h3') && document.querySelector('.chapter[data-chapter="' + c + '"] h3').textContent.replace(/[⁦⁩]/g, '')));
+      check('harita: bölüm adı 18 adlık döngü + Roma rakamı (251 = "Kutup Işığı XIV")', names[0] === 'Kutup Işığı XIV' || !!names[0], JSON.stringify(names));
+      // en alta (bölüm 1) ve en üste (bölüm 500) kaydır
+      await page.evaluate(() => window.__ok.mapScrollToChapter(1)); await wait(200);
+      const i1 = await page.evaluate(() => window.__ok.mapInfo());
+      check('harita: bölüm 1\'e kaydırınca bölüm 1 çizilir, eskiler DOM\'dan kalkar', i1.rendered.includes(1) && !i1.rendered.includes(251) && i1.rendered.length <= 5, JSON.stringify(i1.rendered));
+      await page.evaluate(() => window.__ok.mapScrollToChapter(500)); await wait(200);
+      const i5 = await page.evaluate(() => ({ i: window.__ok.mapInfo(), name: document.querySelector('.chapter[data-chapter="500"] h3').textContent.replace(/[⁦⁩]/g, ''), lock: document.querySelector('.chapter[data-chapter="500"] .node').classList.contains('locked') }));
+      check('harita: bölüm 500 çizilir, kilitli, adı "<ad> XXVIII"', i5.i.rendered.includes(500) && i5.lock && /^\S+ XXVIII$/.test(i5.name) , JSON.stringify(i5));
+      // hızlı kaydırma: 40 kez rastgele konuma, DOM boyutu sabit kalır
+      const maxNodes = await page.evaluate(async () => { let mx = 0; for (let k = 0; k < 40; k++) { window.__ok.mapScrollToChapter(1 + Math.floor(Math.random() * 500)); await new Promise(r => setTimeout(r, 20)); mx = Math.max(mx, window.__ok.mapInfo().nodes); } return mx; });
+      check('harita: 40 rastgele kaydırmada DOM düğüm sayısı ≤ 50 (tembel liste)', maxNodes <= 50, String(maxNodes));
+      // 4 dilde bölüm adı (Roma rakamı Arapçada da Latin)
+      for (const [l, loc] of Object.entries(LOCALES)) {
+        const Q = await newPage(browser, loc, { seed: base({ lang: l, unlocked: 190 }) });
+        await Q.page.evaluate(() => window.__ok.show('map')); await wait(250);
+        const nm = await Q.page.evaluate(() => { const h = n => document.querySelector('.chapter[data-chapter="' + n + '"] h3'); return [19, 20].map(n => h(n) && h(n).textContent.replace(/[⁦⁩]/g, '')); });
+        check(`harita (${l}): 19. ve 20. bölüm adı = ${I18N[l]['map.chapter1']} II, ${I18N[l]['map.chapter2']} II`, nm[0] === I18N[l]['map.chapter1'] + ' II' && nm[1] === I18N[l]['map.chapter2'] + ' II', JSON.stringify(nm));
+        check(`harita (${l}): konsol hatası yok`, Q.errors.length === 0, Q.errors.join(' | '));
+        await Q.ctx.close();
+      }
+      check('harita: konsol hatası yok', P.errors.length === 0, P.errors.join(' | '));
+      await P.ctx.close();
+    }
+    // ---- §3 banner yer tutucusu: yalnızca Ana menü + Harita, reklamsızda yok, içeriği örtmez
+    {
+      for (const [l, loc] of Object.entries(LOCALES)) {
+        const P = await newPage(browser, loc, { seed: base({ lang: l, unlocked: 30 }) });
+        const page = P.page;
+        const bn = n => page.evaluate(n => { const b = document.querySelector('#scr-' + n + ' .banner'); if (!b || b.hidden) return null; const r = b.getBoundingClientRect(), cs = getComputedStyle(b);
+          const body = n === 'menu' ? document.querySelector('.menu-body') : document.getElementById('map-scroll'), br = body.getBoundingClientRect();
+          const btns = n === 'menu' ? [...document.querySelectorAll('#scr-menu .btn')].map(x => x.getBoundingClientRect().bottom) : [br.bottom];
+          return { text: b.textContent, dashed: cs.borderTopStyle, top: r.top, bottom: r.bottom, vh: innerHeight, contentBottom: Math.max(...btns), bodyBottom: br.bottom }; }, n);
+        const m = await bn('menu');
+        check(`banner (${l}): Ana menüde "${I18N[l]['ads.banner_placeholder']}" kesikli çerçeveli yer tutucu`, m && m.text === I18N[l]['ads.banner_placeholder'] && m.dashed === 'dashed', JSON.stringify(m));
+        check(`banner (${l}): menü düğmeleri banner'ın altında kalmaz (içerik yukarı itilir), ekran dışına taşmaz`, m && m.contentBottom <= m.top + 1 && m.bottom <= m.vh + 1, JSON.stringify(m));
+        await page.evaluate(() => window.__ok.show('map')); await wait(300);
+        const mp = await bn('map');
+        check(`banner (${l}): Haritada görünür, harita listesi banner'ı aşmaz`, mp && mp.dashed === 'dashed' && mp.bodyBottom <= mp.top + 1, JSON.stringify(mp));
+        if (l === 'tr') {
+          for (const scr of ['shop', 'settings', 'privacy']) { await page.evaluate(s => window.__ok.show(s), scr); await wait(250); }
+          const other = await page.evaluate(() => document.querySelectorAll('.screen.active .banner:not([hidden])').length);
+          check('banner: mağaza, ayarlar, gizlilik ekranlarında yok', other === 0, String(other));
+          await page.evaluate(() => window.__ok.startLevel(30)); await wait(350);
+          const og = await page.evaluate(() => document.querySelectorAll('.screen.active .banner:not([hidden])').length);
+          check('banner: oyun ekranında yok', og === 0 && (await page.evaluate(() => window.__ok.screen())) === 'game', String(og));
+          await page.evaluate(() => { window.__ok.fastAnim(true); });
+          await page.evaluate(async () => { const sl = ms => new Promise(r => setTimeout(r, ms)); let n = 0; while (!window.__ok.game().won && n++ < 300) { while (window.__ok.busy()) await sl(5); const f = window.__ok.game().free; if (!f.length) break; window.__ok.tapArrow(f[0]); } });
+          await page.waitForSelector('#end-sheet', { timeout: 5000 }); await wait(200);
+          const oe = await page.evaluate(() => document.querySelectorAll('.screen.active .banner:not([hidden])').length);
+          check('banner: seviye sonu ekranında yok', oe === 0, String(oe));
+          await page.evaluate(() => window.__ok.startDaily()); await wait(1200);
+          const od = await page.evaluate(() => [window.__ok.screen(), document.querySelectorAll('.screen.active .banner:not([hidden])').length]);
+          check('banner: günlük bulmaca ekranında yok', od[0] === 'game' && od[1] === 0, JSON.stringify(od));
+          // "Reklamları kaldır" (test modu) → banner kalkar; menü ve harita
+          await page.evaluate(() => window.__ok.show('shop')); await wait(250); await page.tap('#tab-boosters'); await wait(150);
+          await page.tap('#shop-remove-ads'); await wait(500);
+          await page.evaluate(() => window.__ok.show('menu')); await wait(300);
+          const am = await page.evaluate(() => window.__ok.ads().bannerShown);
+          await page.evaluate(() => window.__ok.show('map')); await wait(300);
+          const ap = await page.evaluate(() => window.__ok.ads().bannerShown);
+          check('banner: "Reklamları kaldır" sonrası Ana menü ve Haritada banner yok', am.length === 0 && ap.length === 0, JSON.stringify([am, ap]));
+          const pic = await page.screenshot({ path: path.join(SHOTS, 'tr-map-noads.png') }); void pic;
+        }
+        check(`banner (${l}): konsol hatası yok`, P.errors.length === 0, P.errors.join(' | '));
+        if (l !== 'tr') await page.screenshot({ path: path.join(SHOTS, `${l}-map-banner.png`) });
+        await P.ctx.close();
+      }
+    }
+    // ---- §4 reklam gösterilirken oyun döngüsü + ses duraklar; yükleniyor kaplaması yalnızca > 300 ms bekleyişte
+    {
+      const FAKE_PRE = `window.__calls = []; window.__loadDelay = 0; window.__ready = false;
+        window.AndroidBridge = {
+          isAdFree() { return false; }, isOnline() { return true; }, isRewardedReady() { return window.__ready; }, isInterstitialReady() { return !!window.__iready; },
+          loadRewarded(id) { __calls.push('loadRewarded'); setTimeout(() => { window.__ready = true; Monetization.onNative({ id, event: 'loaded' }); }, window.__loadDelay); return true; },
+          loadInterstitial(id) { __calls.push('loadInterstitial'); setTimeout(() => { window.__iready = true; Monetization.onNative({ id, event: 'loaded' }); }, 30); return true; },
+          showRewarded(id, pl) { __calls.push('rewarded:' + pl); window.__ready = false; window.__during = { paused: window.__ok.ads().paused, snd: window.SFX.isPaused() }; setTimeout(() => { Monetization.onNative({ id, event: 'rewarded' }); Monetization.onNative({ id, event: 'closed' }); }, 400); return true; },
+          showInterstitial(id) { __calls.push('interstitial'); window.__iready = false; window.__during = { paused: window.__ok.ads().paused, snd: window.SFX.isPaused() }; setTimeout(() => Monetization.onNative({ id, event: 'closed' }), 300); return true; },
+          purchaseRemoveAds(id) { return false; }, restorePurchases(id) { return false; }
+        };`;
+      const P = await newPage(browser, 'tr-TR', { init: FAKE_PRE, seed: base({ unlocked: 40, ads: { since: 2, lastAt: 0, adFree: false, test: false } }) });
+      const page = P.page, calls = () => page.evaluate(() => window.__calls.slice());
+      await page.evaluate(() => window.__ok.startLevel(20)); await wait(500);
+      check('önceden yükleme: oyun ekranı açılınca ödüllü reklam yüklenmeye başlar (bir kez)', (await calls()).filter(c => c === 'loadRewarded').length === 1, JSON.stringify(await calls()));
+      await page.evaluate(() => window.__ok.restartLevelForTest && 0);
+      await page.evaluate(() => window.__ok.startLevel(21)); await wait(400);
+      check('önceden yükleme: hazırken yeniden başlatılmaz', (await calls()).filter(c => c === 'loadRewarded').length === 1);
+      // geçiş reklamı: son oklar çıkarken yüklenir (sayaç 2 → bu seviye 3. tamamlama)
+      await page.evaluate(() => { window.__ok.fastAnim(true); });
+      await page.evaluate(async () => { const sl = ms => new Promise(r => setTimeout(r, ms)); let n = 0; while (!window.__ok.game().won && n++ < 300) { while (window.__ok.busy()) await sl(5); const f = window.__ok.game().free; if (!f.length) break; window.__ok.tapArrow(f[0]); } });
+      await page.waitForSelector('#end-sheet', { timeout: 5000 }); await wait(150);
+      check('önceden yükleme: geçiş reklamı seviye bitmeden (son okların çıkışında) yüklendi, tek kez', (await calls()).filter(c => c === 'loadInterstitial').length === 1, JSON.stringify(await calls()));
+      await page.tap('#end-next'); await wait(150);
+      const during = await page.evaluate(() => window.__during);
+      check('reklam gösterilirken oyun döngüsü + ses duraklar (geçiş)', during && during.paused === true && during.snd === true, JSON.stringify(during));
+      await wait(500);
+      const after = await page.evaluate(() => [window.__ok.ads().paused, window.SFX.isPaused()]);
+      check('reklam kapanınca devam: döngü ve ses sürer, sonraki seviye açıldı', after[0] === false && after[1] === false && (await page.evaluate(() => window.__ok.level().id)) === 22, JSON.stringify(after));
+      // ödüllü: can bitince "+1 can": hazır → kaplama yok
+      const L = LEVELS[21], b = blockedOf(L);
+      await page.evaluate(() => { window.__ready = false; }); // reklam kullanıldı/süresi doldu: hazır değil
+      await tapArrowTouch(page, b); await wait(80); await idle(page);
+      check('önceden yükleme: can 2\'deyken yeni yükleme başlamaz', (await calls()).filter(c => c === 'loadRewarded').length === 1, JSON.stringify(await calls()));
+      await tapArrowTouch(page, b); await wait(80); await idle(page); await wait(100);
+      check('önceden yükleme: can 1\'e düşünce ödüllü reklam yüklenmeye başlar (bir kez)', (await calls()).filter(c => c === 'loadRewarded').length === 2 && (await gs(page)).lives === 1, JSON.stringify(await calls()));
+      await tapArrowTouch(page, b); await wait(80); await idle(page);
+      await page.waitForSelector('#dead-sheet', { timeout: 8000 });
+      check('önceden yükleme: can bitince tekrar yükleme yok (zaten hazır)', (await calls()).filter(c => c === 'loadRewarded').length === 2, JSON.stringify(await calls()));
+      await page.evaluate(() => { window.__ready = false; window.__loadDelay = 700; });
+      await page.tap('#dead-revive'); await wait(150);
+      const ov1 = await page.evaluate(() => !!document.getElementById('ad-loading'));
+      await wait(350);
+      const ov2 = await page.evaluate(() => !!document.getElementById('ad-loading'));
+      check('"Reklam yükleniyor…" 300 ms\'den önce görünmez, uzun beklemede (>300 ms) görünür', ov1 === false && ov2 === true, JSON.stringify([ov1, ov2]));
+      await wait(900);
+      const dur2 = await page.evaluate(() => window.__during);
+      check('ödüllü gösterilirken oyun döngüsü + ses duraklar, sonra devam eder', dur2 && dur2.paused === true && dur2.snd === true && !(await page.evaluate(() => window.__ok.ads().paused)) && !(await page.evaluate(() => window.SFX.isPaused())), JSON.stringify(dur2));
+      check('ödüllü: yükleme tamamlanınca kaplama kalkar', !(await page.evaluate(() => !!document.getElementById('ad-loading'))));
+      check('reklam duraklatma: konsol hatası yok', P.errors.length === 0, P.errors.join(' | '));
+      await P.ctx.close();
+      // hazır reklamda kaplama hiç görünmez
+      const Q = await newPage(browser, 'tr-TR', { init: FAKE_PRE.replace('window.__ready = false', 'window.__ready = true'), seed: base({ unlocked: 40, freeHints: 0, coins: 0 }) });
+      await Q.page.evaluate(() => window.__ok.show('shop')); await wait(250); await Q.page.tap('#tab-boosters'); await wait(150);
+      await Q.page.tap('#shop-watch-hint'); await wait(120);
+      check('hazır reklamda "Reklam yükleniyor…" kaplaması hiç görünmez', !(await Q.page.evaluate(() => !!document.getElementById('ad-loading'))));
+      await wait(700);
+      await Q.ctx.close();
+    }
   }
 
   await browser.close();

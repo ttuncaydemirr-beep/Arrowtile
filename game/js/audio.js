@@ -6,7 +6,7 @@
   'use strict';
 
   var ctx = null, master = null, noiseBuf = null;
-  var enabled = true;
+  var enabled = true, held = false; // held: reklam gösterilirken ses bağlamı duraklatılır (docs/15 §4)
   var lastPlay = {};
 
   function now() { return ctx ? ctx.currentTime : 0; }
@@ -35,7 +35,7 @@
   }
 
   function ready(name, minGapMs) {
-    if (!enabled) return false;
+    if (!enabled || held) return false;
     if (!ctx && !init()) return false;
     if (ctx.state === 'suspended') { try { ctx.resume(); } catch (e) {} }
     var t = Date.now();
@@ -94,6 +94,10 @@
     init: init,
     setEnabled: function (b) { enabled = !!b; try { if (master) master.gain.value = enabled ? 0.55 : 0; } catch (e) {} },
     isEnabled: function () { return enabled; },
+    /** Reklam gösterilirken: yeni ses çalınmaz, bağlam askıya alınır. resume() reklam kapanınca devam ettirir. */
+    pause: function () { held = true; try { if (ctx && ctx.state === 'running') ctx.suspend(); } catch (e) {} },
+    resume: function () { held = false; try { if (ctx && enabled && !document.hidden && ctx.state === 'suspended') ctx.resume(); } catch (e) {} },
+    isPaused: function () { return held; },
     setVolume: function (v) { try { if (master) master.gain.value = Math.max(0, Math.min(1, v)); } catch (e) {} },
 
     // Oka dokunma: kısa ahşap "tık"

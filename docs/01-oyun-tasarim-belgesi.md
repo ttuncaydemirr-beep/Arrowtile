@@ -38,9 +38,9 @@ Tek oturum hedefi: 1–3 dakikada bir seviye. Kayıp cezası hafif (seviye tekra
 | Kalem | Değer |
 |---|---|
 | Başlangıç bakiyesi | 50 jeton + 2 ücretsiz ipucu (v1.2) |
-| Seviye bitirme (ilk kez) | ★ 10 · ★★ 15 · ★★★ 20 jeton × bölüm kademesi (v1.3, docs/09: Kolay ×1, Orta ×1,5, Zor ×2, Aşırı zor ×3) |
+| Seviye bitirme (ilk kez) | ★ 10 · ★★ 15 · ★★★ 20 jeton × seviye kademesi (v1.3 çarpanları: Kolay ×1, Orta ×1,5, Zor ×2, Aşırı zor ×3; v1.5'te kademe seviye bazında: bölümde 1-3 Kolay, 4-6 Orta, 7-8 Zor, 9-10 Aşırı zor) |
 | Tekrar oynayıp yıldızı artırmak | Yalnızca aradaki fark (ör. ★→★★★ = +10) |
-| Bölüm bonusu (12 seviyenin tamamı) | Kolay +50 · Orta +75 · Zor +100 · Aşırı zor +200 jeton (v1.3) |
+| Bölüm bonusu (10 seviyenin tamamı) | tek bonus: +150 jeton (v1.5, docs/15 §5; kademeye göre bonus kalktı) |
 | İpucu | 50 jeton (v1.2; önce ücretsiz hak kullanılır) |
 
 **Günlük ödül (7 günlük döngü):**

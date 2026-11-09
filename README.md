@@ -2,10 +2,10 @@
 
 Süre sınırı olmayan, internetsiz oynanan ok bulmacası. Oklara dokun, yolu açık olanı tahtadan çıkar, tahtayı boşalt.
 
-- 216 hazır seviye, ardından sonsuz bölümler (3 kolay → 3 orta → 2 zor → 1 aşırı zor döngüsü)
+- 5.000 seviye (500 bölüm × 10 seviye; ilk 200'ü pakette hazır, gerisi oyunda belirlenimli üretilir), ardından sonsuz devam; zorluk seviye bazında döner (bölümde 3 kolay → 3 orta → 2 zor → 2 aşırı zor)
 - Düz ve kıvrımlı oklar, günlük bulmaca, ok temaları, rahat mod
 - 4 dil: Türkçe, English, Deutsch, العربية (sağdan sola)
-- Reklam yalnızca seviye sonunda (en erken 3 seviyede bir, ilk 12 seviye reklamsız) + tek seferlik "reklamları kaldır"
+- Reklam: seviye sonunda geçiş reklamı (en erken 3 seviyede bir, ilk 12 seviye reklamsız) + yalnızca Ana menü ve Harita'da banner + tek seferlik "reklamları kaldır"
 
 Destek: nilkaren.tuncay.demir@gmail.com
 

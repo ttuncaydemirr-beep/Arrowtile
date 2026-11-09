@@ -1,5 +1,6 @@
-/* Arrowtile — levelgen.js: ortak seviye üretici + ölçüler (v1.2 docs/08 §3; v1.3 kıvrımlı oklar docs/09)
- * Hem tools/generate-levels.js (120 seviye) hem game/js/daily.js (günlük bulmaca) bunu kullanır.
+/* Arrowtile — levelgen.js: ortak seviye üretici + ölçüler (v1.2 docs/08 §3; v1.3 kıvrımlı oklar docs/09; v1.5 docs/15 §5)
+ * tools/generate-levels.js (ilk 200 seviye), tools/verify-5000.js (5.000 seviye), oyun içi üretim ve
+ * game/js/daily.js (günlük bulmaca) bunu kullanır.
  * Tarayıcıda window.LevelGen, Node'da module.exports. Bağımlılık yok.
  *
  * YÖNTEM — yoğun yerleşim + onarım (build içindeki açıklamaya bakın). Her çıktı açgözlü çözücüyle
@@ -149,7 +150,8 @@
   function stuckOf(L) { return analyze(L).stuck; }
   function freeNow(L) { return analyze(L).free; }
   function pickDir(x, y, w, h, rand) {
-    var wts = [y + 0.5, h - y - 0.5, x + 0.5, w - x - 0.5].map(function (v) { return Math.pow(v, 1.6); }); // U D L R
+    // ağırlık = v^1.5 (v·√v): Math.pow yerine yalnızca IEEE-kesin işlemler (çarpma, karekök) → Dart'ta bit-bit aynı sonuç
+    var wts = [y + 0.5, h - y - 0.5, x + 0.5, w - x - 0.5].map(function (v) { return v * Math.sqrt(v); }); // U D L R
     var tot = wts[0] + wts[1] + wts[2] + wts[3], rr = rand() * tot;
     for (var wi = 0; wi < 4; wi++) { rr -= wts[wi]; if (rr <= 0) return DIRS[wi]; }
     return 'R';
@@ -347,7 +349,7 @@
     var floorCells = target - 0.015 * N;
     for (var guard7 = 0; guard7 < 40; guard7++) {
       var an7 = analyze(L); if (an7.free.length <= limitFree()) break;
-      var fr7 = an7.free.slice().sort(function (p, q) { return lenOf(L.arrows[p]) - lenOf(L.arrows[q]); }), did7 = false;
+      var fr7 = an7.free.slice().sort(function (p, q) { return (lenOf(L.arrows[p]) - lenOf(L.arrows[q])) || (p - q); }), did7 = false; // kararlı sıralama: eşitlikte indeks (Dart List.sort kararsızdır)
       for (var q7 = 0; q7 < fr7.length && !did7; q7++) {
         var A7 = L.arrows[fr7[q7]];
         if (totalCells(L) - lenOf(A7) < floorCells) continue;
@@ -378,10 +380,13 @@
         if (m.solvable) {
           var freeLim = Math.max(1, Math.floor(spec.maxFree * m.arrows + 1e-9)); // docs/09: ≤ oran (en az 1)
           // kıvrımlı oran "~": seviye başına en çok 0,15 altında (bölüm ortalaması doğrulayıcıda 0,12)
-          var ok = m.fill >= spec.fill - 0.02 && (!spec.fillMax || m.fill <= spec.fillMax + 1e-9) && m.initialFree <= freeLim && m.depth >= (spec.minDepth || 0) && (spec.curve == null || m.curvedRatio >= spec.curve - 0.15);
-          var key = (ok ? 1000 : 0) + m.score - Math.max(0, m.initialFree - freeLim) * 3 - Math.max(0, (spec.curve || 0) - 0.1 - m.curvedRatio) * 100 - Math.max(0, spec.fill - m.fill) * 200;
-          if (key > bestKey) { bestKey = key; best = { w: spec.w, h: spec.h, arrows: L.arrows, m: m, ok: ok }; }
-          if (ok && t >= 1) done = true;
+          var dMin = spec.minDepth || 0, dMax = spec.maxDepth == null ? Infinity : spec.maxDepth; // v1.5: kademe derinlik penceresi
+          var ok = m.fill >= spec.fill - 0.02 && (!spec.fillMax || m.fill <= spec.fillMax + 1e-9) && m.initialFree <= freeLim && m.depth >= dMin && m.depth <= dMax && (spec.curve == null || m.curvedRatio >= spec.curve - (spec.curveSlack == null ? 0.15 : spec.curveSlack));
+          var hardOk = m.fill >= spec.fill - 0.02 && (!spec.fillMax || m.fill <= spec.fillMax + 1e-9) && m.initialFree <= freeLim; // kademe bandı (zorunlu)
+          var key = (ok ? 1000 : 0) + (hardOk ? 500 : 0) + m.score - Math.max(0, m.initialFree - freeLim) * 3 - Math.max(0, (spec.curve || 0) - 0.1 - m.curvedRatio) * 100 - Math.max(0, spec.fill - m.fill) * 200
+            - Math.max(0, dMin - m.depth, m.depth - dMax) * 5;
+          if (key > bestKey) { bestKey = key; best = { w: spec.w, h: spec.h, arrows: L.arrows, m: m, ok: ok, band: hardOk }; }
+          if (ok) done = true;
         }
       }
       t++; if (t >= tries) done = true;
@@ -395,62 +400,95 @@
    */
   function generate(spec, seed) { var j = genJob(spec, seed); while (!j.step()); return j.result(); }
 
-  // ---- v1.3 bölüm döngüsü (docs/09) — hazır 216 seviye ve sonsuz devam aynı kuralları kullanır ----
-  var CYCLE = ['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard', 'extreme'];
+  // ---- v1.5 (docs/15 §5) bölüm yapısı: bölüm = 10 seviye, ZORLUK SEVİYE BAZINDA döner ----
+  // Bölüm içi sıra: 1-2-3 Kolay, 4-5-6 Orta, 7-8 Zor, 9-10 Aşırı zor. Tahta bölüm bölüm büyür (bölüm içinde sabit).
+  // specFor(id) SAF bir fonksiyondur (yalnızca seviye numarasına bağlı); tools/generate-levels.js, tools/verify-5000.js ve
+  // oyun içi üretici (levelJob) aynı fonksiyonu kullanır. Dart portu aynı tamsayı işlemlerini birebir yeniden üretmelidir.
+  var CYCLE = ['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard', 'extreme', 'extreme'];
   // fill = hedef doluluk (bant ortası), band = [en az, en çok], maxFree = başta çıkabilen oranı üst sınırı, curve = kıvrımlı oran
   var TIERS = {
-    easy:    { fill: 0.675, band: [0.65, 0.70], maxFree: 0.12, curve: 0.30, mult: 1,   bonus: 50 },
-    medium:  { fill: 0.775, band: [0.75, 0.80], maxFree: 0.07, curve: 0.45, mult: 1.5, bonus: 75 },
-    hard:    { fill: 0.840, band: [0.82, 0.86], maxFree: 0.04, curve: 0.55, mult: 2,   bonus: 100 },
-    extreme: { fill: 0.905, band: [0.88, 0.93], maxFree: 0.02, curve: 0.65, mult: 3,   bonus: 200 }
+    easy:    { fill: 0.675, band: [0.65, 0.70], maxFree: 0.12, curve: 0.30, mult: 1 },
+    medium:  { fill: 0.775, band: [0.75, 0.80], maxFree: 0.07, curve: 0.45, mult: 1.5 },
+    hard:    { fill: 0.840, band: [0.82, 0.86], maxFree: 0.04, curve: 0.55, mult: 2 },
+    extreme: { fill: 0.905, band: [0.88, 0.93], maxFree: 0.02, curve: 0.65, mult: 3 }
   };
-  var PER_CHAPTER = 12, PREBUILT = 216, MAX_W = 22, MAX_H = 31;
+  // Derinlik penceresi (docs/15 §5): her kademenin derinliği tahta büyüklüğüne göre beklenen "kolay" derinliğinin
+  // (E = 6,3 + 0,0677·hücre) katı aralığında olmalı; pencereler ayrıktır → bölüm içinde Kolay < Orta < Zor < Aşırı zor.
+  var DEPTH_WIN = { easy: [0, 1.10], medium: [1.12, 1.24], hard: [1.25, 1.42], extreme: [1.45, Infinity] };
+  var PER_CHAPTER = 10, PREBUILT = 200, DESIGNED = 5000, CHAPTERS = 500, CHAPTER_BONUS = 150, MAX_W = 22, MAX_H = 31;
+  var TUTORIAL = [ // seviye 1-3 (elle tasarlanmış, değişmez; düz oklar). Biçim: eski {x,y,dir,len} → toCells ile {cells,dir}
+    { w: 3, h: 3, arrows: [{ x: 2, y: 0, dir: 'D', len: 2 }, { x: 2, y: 2, dir: 'L', len: 2 }] },
+    { w: 3, h: 3, arrows: [{ x: 0, y: 2, dir: 'R', len: 2 }, { x: 2, y: 2, dir: 'U', len: 1 }, { x: 2, y: 0, dir: 'L', len: 2 }] },
+    { w: 4, h: 4, arrows: [{ x: 3, y: 1, dir: 'D', len: 2 }, { x: 2, y: 3, dir: 'R', len: 2 }, { x: 0, y: 2, dir: 'R', len: 2 }, { x: 1, y: 0, dir: 'D', len: 2 }] }
+  ];
   function chapterOf(id) { return Math.floor((id - 1) / PER_CHAPTER) + 1; }
-  function tierOf(ch) { return CYCLE[(ch - 1) % CYCLE.length]; }
-  /** Seviye numarasından üretim özellikleri. Tahta bölüm bölüm büyür (zorluktan bağımsız), bölüm içinde hafifçe. */
+  function indexOf(id) { return (id - 1) % PER_CHAPTER; }              // bölüm içi sıra, 0..9
+  function tierOf(id) { return CYCLE[(id - 1) % PER_CHAPTER]; }        // SEVİYE kademesi
+  // Tahta boyu yalnızca bölüme bağlıdır (tamsayı işlemleri): bölüm 1 = 7x9, bölüm 21+ = 22x31 (sabit)
+  function sizeOfChapter(ch) {
+    var t = ch - 1;
+    return { w: Math.min(MAX_W, 7 + Math.floor((t * 3 + 2) / 4)), h: Math.min(MAX_H, 9 + Math.floor((t * 11 + 5) / 10)) };
+  }
+  /** Seviye numarasından üretim özellikleri (saf fonksiyon). seed = seedFor(id, 0); yedek turlar seedFor(id, r). */
   function specFor(id) {
-    var ch = chapterOf(id), k = (id - 1) % PER_CHAPTER, tier = tierOf(ch), T = TIERS[tier];
-    var t = (ch - 1) + k / PER_CHAPTER; // bölüm 1 başı 7x9 → bölüm 18 sonu 20x28
-    var w = Math.min(MAX_W, 7 + Math.round(t * 13 / 17.92)), h = Math.min(MAX_H, 9 + Math.round(t * 19 / 17.92));
-    var maxLen = Math.min(8, 4 + Math.floor(w / 4));
-    var sp = { id: id, chapter: ch, tier: tier, w: w, h: h, fill: T.fill, fillMax: T.band[1], maxFree: T.maxFree, curve: T.curve, maxLen: maxLen,
-      tries: 3, effort: 24, passes: 12, cycles: 4 };
-    if (tier === 'extreme') { sp.effort = 40; sp.passes = 20; sp.cycles = 6; }
+    var ch = chapterOf(id), tier = tierOf(id), T = TIERS[tier], sz = sizeOfChapter(ch);
+    var maxLen = Math.min(8, 4 + Math.floor(sz.w / 4));
+    var sp = { id: id, chapter: ch, index: indexOf(id), tier: tier, w: sz.w, h: sz.h, fill: T.fill, fillMax: T.band[1], maxFree: T.maxFree, curve: T.curve, maxLen: maxLen,
+      tries: 3, effort: 12, passes: 6, cycles: 2, seed: seedFor(id, 0) }; // hafif onarım: ölçüm — uzun onarım tur başına süreyi ikiye katlar, başarı oranını artırmaz
+    var E = 6.3 + 0.0677 * (sz.w * sz.h), dw = DEPTH_WIN[tier];
+    sp.minDepth = dw[0] ? Math.ceil(dw[0] * E - 1e-9) : 0;
+    sp.maxDepth = dw[1] === Infinity ? null : Math.max(Math.floor(dw[1] * E + 1e-9), sp.minDepth + 2); // küçük tahtada pencere en az 3 derinlik genişliğinde
     return sp;
   }
   /** Seviye no → sabit tohum (herkes için aynı seviye). round: aynı seviyenin yedek denemeleri. */
-  function seedFor(id, round) { return hash('arrowtile-v13-' + id + '-' + (round || 0)); }
-  /** Bir seviyeyi üretir: { id, w, h, par, diff, arrows, m, ok } (kısıtlar sağlanamazsa en iyi aday). */
+  function seedFor(id, round) { return hash('arrowtile-v15-' + id + '-' + (round || 0)); }
+  function toCells(a) { return { cells: cellsOf(a).map(function (c) { return [c[0], c[1]]; }), dir: a.dir }; }
+  function tutorialLevel(id) {
+    var t = TUTORIAL[id - 1], arrows = t.arrows.map(toCells);
+    return { id: id, w: t.w, h: t.h, par: arrows.length, diff: 'easy', chapter: 1, arrows: arrows, ok: true, rounds: 0 };
+  }
   /**
-   * Sonsuz seviye işi (oyun içi, docs/09): tohum = seviye numarası (seedFor(id, tur)); kısıtları sağlayan ilk tur
-   * seçilir (en çok ENDLESS_ROUNDS tur, sağlanamazsa en iyi aday). step() tek build yapar → arka planda dilimlenebilir.
-   * Aynı seviye her cihazda aynıdır (zaman sınırı yok, yalnızca adım sayısı).
+   * Seviye işi: tohum = seviye numarası (seedFor(id, tur)); kısıtları sağlayan ilk tur seçilir (en çok ENDLESS_ROUNDS tur,
+   * sağlanamazsa en iyi aday). step() tek build yapar → arka planda dilimlenebilir. Zaman sınırı yok, yalnızca adım sayısı →
+   * aynı seviye her cihazda aynıdır. Hem hazır paket (ilk 200) hem sonsuz seviyeler bu işle üretilir.
    */
-  var ENDLESS_ROUNDS = 8;
+  var ENDLESS_ROUNDS = 12;
   function levelJob(id) {
+    if (id <= TUTORIAL.length) { var tl = tutorialLevel(id); return { id: id, step: function () { return true; }, result: function () { return tl; } }; }
     var sp = specFor(id), r = 0, job = genJob(sp, seedFor(id, 0)), best = null, out = null;
     function finish() {
-      out = { id: id, w: sp.w, h: sp.h, par: best.g.arrows.length, diff: sp.tier, chapter: sp.chapter, arrows: best.g.arrows, ok: best.g.ok, rounds: r + 1 };
+      out = { id: id, w: sp.w, h: sp.h, par: best.g.arrows.length, diff: sp.tier, chapter: sp.chapter, arrows: best.g.arrows, ok: best.g.ok, rounds: r + 1, m: best.g.m };
       return true;
     }
     function step() {
       if (out) return true;
       if (!job.step()) return false;
       var g = job.result();
-      if (g) { var key = (g.ok ? 1e6 : 0) + g.m.score; if (!best || key > best.key) best = { key: key, g: g }; }
-      if ((g && g.ok) || r + 1 >= ENDLESS_ROUNDS) { if (best) return finish(); }
+      if (g) { var key = (g.ok ? 2e6 : 0) + (g.band ? 1e6 : 0) + g.m.score; if (!best || key > best.key) best = { key: key, g: g }; }
+      // bitiş: tüm koşullar sağlandı, ya da ENDLESS_ROUNDS tur sonunda kademe bandı (doluluk + başta çıkabilen) sağlayan en iyi aday;
+      // bant da sağlanamadıysa en çok 2×ENDLESS_ROUNDS tura dek sürer (çok nadir)
+      if (best && (best.g.ok || (r + 1 >= ENDLESS_ROUNDS && best.g.band) || r + 1 >= ENDLESS_ROUNDS * 2)) return finish();
       r++; job = genJob(sp, seedFor(id, r));
-      if (r >= ENDLESS_ROUNDS * 2) throw new Error('seviye üretilemedi: ' + id);
       return false;
     }
     return { id: id, step: step, result: function () { return out; } };
   }
   function makeLevel(id) { var j = levelJob(id); while (!j.step()); return j.result(); }
 
-  var VERSION = 'v13.1'; // üretici değişirse artır (oyundaki sonsuz seviye önbelleği geçersizleşir)
+  // ---- seviye özeti (Dart altın testi): kanonik serileştirme + FNV-1a 32 ----
+  // canon = "id:wxh:tier:" + oklar "x,y;x,y;...>D" birleşimi ("|" ayracı); oklar üretici sırasında (dizideki sıra).
+  function canon(lv) {
+    return lv.id + ':' + lv.w + 'x' + lv.h + ':' + (lv.diff || tierOf(lv.id)) + ':' + lv.arrows.map(function (a) {
+      return cellsOf(a).map(function (c) { return c[0] + ',' + c[1]; }).join(';') + '>' + a.dir;
+    }).join('|');
+  }
+  function levelHash(lv) { return ('0000000' + hash(canon(lv)).toString(16)).slice(-8); }
+
+  var VERSION = 'v15.0'; // üretici/özellik kuralı değişirse artır (oyundaki sonsuz seviye önbelleği geçersizleşir)
   var LevelGen = { VERSION: VERSION, rng: rng, hash: hash, build: build, generate: generate, measure: measure, analyze: analyze, label: label, BANDS: BANDS, cellsOf: cellsOf, headOf: headOf, lenOf: lenOf, norm: norm, isCurved: isCurved, ownLineOk: ownLineOk,
-    CYCLE: CYCLE, TIERS: TIERS, PER_CHAPTER: PER_CHAPTER, PREBUILT: PREBUILT, MAX_W: MAX_W, MAX_H: MAX_H,
-    chapterOf: chapterOf, tierOf: tierOf, specFor: specFor, seedFor: seedFor, makeLevel: makeLevel, levelJob: levelJob, genJob: genJob, ENDLESS_ROUNDS: ENDLESS_ROUNDS };
+    CYCLE: CYCLE, TIERS: TIERS, PER_CHAPTER: PER_CHAPTER, PREBUILT: PREBUILT, DESIGNED: DESIGNED, CHAPTERS: CHAPTERS, CHAPTER_BONUS: CHAPTER_BONUS, MAX_W: MAX_W, MAX_H: MAX_H, TUTORIAL: TUTORIAL,
+    chapterOf: chapterOf, indexOf: indexOf, tierOf: tierOf, sizeOfChapter: sizeOfChapter, specFor: specFor, seedFor: seedFor, makeLevel: makeLevel, levelJob: levelJob, genJob: genJob, ENDLESS_ROUNDS: ENDLESS_ROUNDS,
+    canon: canon, levelHash: levelHash };
   root.LevelGen = LevelGen;
   if (typeof module !== 'undefined' && module.exports) module.exports = LevelGen;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -113,8 +113,12 @@ a { color: var(--accent); }
 /* Harita */
 .scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .scroll.pad { padding: 4px 16px 24px; }
-.chapter { position: relative; padding: 12px 0 18px; }
-.chapter-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 16px 6px; padding: 10px 14px; border-radius: 14px; background: var(--card); box-shadow: 0 3px 0 var(--edge); }
+.map-spacer { position: relative; width: 100%; }
+.chapter { position: absolute; inset-inline: 0; }
+.chapter-in { padding: 12px 0 18px; }
+.chapter-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 16px 6px; padding: 0 14px; height: 64px; overflow: hidden; border-radius: 14px; background: var(--card); box-shadow: 0 3px 0 var(--edge); }
+.chapter-head h3 { flex: 1 1 auto; min-width: 0; }
+.chapter-head .sub { flex: none; max-width: 52%; }
 .chapter-head h3 { margin: 0; font-size: calc(20px * var(--fs-scale)); }
 .chapter-head .sub { font-size: calc(13px * var(--fs-scale)); color: var(--ink-soft); font-weight: 600; text-align: end; }
 .path { position: relative; }
@@ -129,6 +133,18 @@ a { color: var(--accent); }
 .node.done { background: var(--success); box-shadow: 0 4px 0 color-mix(in srgb, var(--success) 60%, #000); }
 .node.locked { background: var(--cell); color: var(--ink-soft); box-shadow: inset 0 0 0 3px var(--edge), 0 4px 0 var(--edge); }
 .node.current { outline: 4px solid var(--star); outline-offset: 3px; }
+/* v1.5: zorluk seviye bazında döner → düğümün köşesinde kademe noktası; Aşırı zor: koyu kırmızı halka */
+.node::after { content: ""; position: absolute; top: -2px; inset-inline-end: -2px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--board); background: var(--success); }
+.node.tier-medium::after { background: var(--accent); }
+.node.tier-hard::after { background: var(--coin); }
+.node.tier-extreme::after { background: #B3263A; }
+.node.tier-extreme { box-shadow: 0 4px 0 #7A1420, 0 0 0 3px #B3263A; }
+.node.tier-extreme.locked { box-shadow: inset 0 0 0 3px var(--edge), 0 4px 0 #7A1420, 0 0 0 3px #B3263A; }
+.node.tier-extreme.current { outline-offset: 6px; }
+
+/* v1.1: banner yer tutucusu (web önizleme) — yalnızca Ana menü ve Harita; ekranın altında yer ayırır, içeriği örtmez */
+.banner { flex: none; height: 56px; margin: 6px 12px 8px; border: 2px dashed var(--edge); border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  color: var(--ink-soft); font-weight: 700; font-size: calc(14px * var(--fs-scale)); background: color-mix(in srgb, var(--card) 60%, transparent); }
 .node .ic { width: 22px; height: 22px; }
 .node-stars { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); display: flex; gap: 1px; direction: ltr; }
 .node-stars .ic { width: 16px; height: 16px; }
@@ -314,9 +330,6 @@ body.doc-page { user-select: text; -webkit-user-select: text; }
 [dir="rtl"] .diff-tag { direction: rtl; }
 .d-easy { background: var(--success); } .d-medium { background: var(--accent); } .d-hard { background: var(--coin); color: #1D2C3B; } .d-extreme { background: #7A1420; color: #fff; }
 /* v1.3 (docs/09): kademe rozeti bölüm başlığında; aşırı zor bölüm koyu kırmızı rozet + kenar şeridiyle ayrışır */
-.chapter-head .tier-badge { position: static; transform: none; flex: none; font-size: calc(12px * var(--fs-scale)); padding: 2px 9px; }
-.chapter.tier-extreme .chapter-head { box-shadow: 0 3px 0 #7A1420, inset 4px 0 0 #B3263A; }
-[dir="rtl"] .chapter.tier-extreme .chapter-head { box-shadow: 0 3px 0 #7A1420, inset -4px 0 0 #B3263A; }
 .preparing { text-align: center; font-weight: 700; }
 /* v1.3: kıvrımlı ok baloncuğu tahtayı kapatabilir (büyük tahta, eski oyuncu) → dokunuşlar tahtaya geçer, yalnızca "Atla" tıklanır */
 .bubble.pass { pointer-events: none; }

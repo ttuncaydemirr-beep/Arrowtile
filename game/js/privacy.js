@@ -5,9 +5,20 @@
 (function () {
   'use strict';
   var EMAIL = 'nilkaren.tuncay.demir@gmail.com';
-  var UPDATED = '2026-10-25';
+  var UPDATED = '2026-11-09';
   var SECTIONS = [['privacy.h_data', 'privacy.p_data'], ['privacy.h_ads', 'privacy.p_ads'], ['privacy.h_buy', 'privacy.p_buy'],
                   ['privacy.h_delete', 'privacy.p_delete'], ['privacy.h_contact', 'privacy.p_contact']];
+  // Metindeki https:// adresleri tıklanabilir bağlantı olur (Google iş ortağı veri kullanımı sayfası); bağlantı RTL metinde de soldan sağa okunur
+  function fillLinked(p, text) {
+    var re = /https:\/\/[^\s<>"]+/g, last = 0, m;
+    while ((m = re.exec(text))) {
+      if (m.index > last) p.appendChild(document.createTextNode(text.slice(last, m.index)));
+      var a = document.createElement('a'); a.href = m[0]; a.textContent = m[0]; a.rel = 'noopener noreferrer'; a.target = '_blank'; a.className = 'privacy-link';
+      a.setAttribute('dir', 'ltr'); a.style.unicodeBidi = 'isolate'; a.style.overflowWrap = 'anywhere';
+      p.appendChild(a); last = m.index + m[0].length;
+    }
+    if (last < text.length) p.appendChild(document.createTextNode(text.slice(last)));
+  }
   /** container'ı temizleyip metni yazar. t(key, vars) çeviri fonksiyonu. */
   function renderPrivacy(container, t) {
     container.textContent = '';
@@ -15,7 +26,7 @@
     container.appendChild(up);
     SECTIONS.forEach(function (s) {
       var h = document.createElement('h3'); h.textContent = t(s[0]); container.appendChild(h);
-      var p = document.createElement('p'); p.textContent = t(s[1]); container.appendChild(p);
+      var p = document.createElement('p'); fillLinked(p, t(s[1])); container.appendChild(p);
     });
     var a = document.createElement('a'); a.href = 'mailto:' + EMAIL + '?subject=' + encodeURIComponent(t('app.name') + ' — ' + t('privacy.title'));
     a.textContent = EMAIL; a.className = 'privacy-mail'; container.appendChild(a);
