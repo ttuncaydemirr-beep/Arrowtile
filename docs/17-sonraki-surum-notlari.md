@@ -13,6 +13,10 @@ Süreç: önce web önizleme → kullanıcı onayı → Flutter → CI → kapal
 7. Titreşim tek kısa "bip" şeklinde olsun.
 8. Kullanıcı bunlara ekleme yapacak; liste güncellenecek.
 
+## Kapalı test geri bildirimleri (09.11.2026 akşam)
+9. **Oklara dokunmada temas sorunu** — testçiler dokunuşun bazen algılanmadığını / yanlış algılandığını söylüyor. Ayrıntı (hangi sürüm, ne oluyor: tepki yok mu, komşu ok mu seçiliyor, yakınlaştırmada mı) kullanıcıdan istenecek. İncelenecek: dokunma toleransı/isabet alanı (ince oklar + büyük tahta), kaydırma/yakınlaştırma jestiyle çakışma, "dokunma koruması" eşiği, "önce seç sonra fırlat" ayarı. §5 (daha ince ok, daha büyük alan) bu sorunu büyütebilir → isabet alanı ok çizgisinden bağımsız ve hücre boyutuna göre olmalı. Ciddi çıkarsa 1.2.0'ı beklemeden acil düzeltme.
+10. **Reklamlarda donma** — sebep biliniyor: AdMob uygulaması henüz onaylı değil (sınırlı reklam sunumu), reklam isteği dolmuyor ve bekleme süresince oyun duraklıyor. AdMob onayı + mağaza bağlantısından sonra yeniden değerlendirilecek. Yine de: dolmayan reklamda bekleme süresi kısaltılmalı (ör. ≤3 sn) ve geçiş reklamı hiç yoksa sessizce atlanmalı; ödüllü reklam yoksa kullanıcıya net "şu an reklam yok" mesajı.
+
 ## Kararlar (09.11.2026)
 - §3 davet: yalnızca WhatsApp (Android paylaşım sayfası) ile mağaza bağlantılı davet mesajı, 4 dilde. Ödül YOK.
 - §2 lider tablosu: kullanıcı "seviye için puan" önerdi veya rakiplerde en beğenileni. Yönetici önerisi — kullanıcı ONAYLADI (09.11.2026):
