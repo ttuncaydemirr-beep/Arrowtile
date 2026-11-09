@@ -46,9 +46,14 @@ wait_for() {
   return 1
 }
 
-tap_label() { # <regex>
-  local xy
-  xy=$($UI find "$OUT/cur.xml" "$1") || fail "düğme bulunamadı: $1"
+tap_label() { # <regex> : güncel dökümü alır (bayat döküme güvenmez), 5 deneme
+  local xy="" i
+  for i in 1 2 3 4 5; do
+    dump "$OUT/cur.xml"
+    if xy=$($UI find "$OUT/cur.xml" "$1"); then break; fi
+    xy=""; sleep 1
+  done
+  [ -n "$xy" ] || fail "düğme bulunamadı: $1"
   log "dokun '$1' @ $xy"
   adb shell input tap $xy
 }

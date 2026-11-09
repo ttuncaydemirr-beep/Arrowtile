@@ -44,6 +44,9 @@ Future<AppController> _openGame(WidgetTester t, {int level = 5}) async {
   return app;
 }
 
+/// Pencere (Dialog) içindeki metin: araç çubuğundaki aynı adlı düğmelerle karışmasın.
+Finder _inSheet(String text) => find.descendant(of: find.byType(Dialog), matching: find.text(text));
+
 void _life(WidgetTester t, List<AppLifecycleState> seq) {
   for (final AppLifecycleState s in seq) {
     t.binding.handleAppLifecycleStateChanged(s);
@@ -73,9 +76,9 @@ void main() {
     _life(t, _toForeground);
     await _settle(t);
     expect(find.text('Paused'), findsOneWidget);
-    expect(find.text('Resume'), findsOneWidget);
-    expect(find.text('Restart'), findsOneWidget);
-    expect(find.text('Back to map'), findsOneWidget);
+    expect(_inSheet('Resume'), findsOneWidget);
+    expect(_inSheet('Restart'), findsOneWidget);
+    expect(_inSheet('Back to map'), findsOneWidget);
   });
 
   testWidgets('Resume pencereyi kapatır, bayraklar sıfırlanır, tahta çizilir, tekrar duraklatılabilir', (WidgetTester t) async {
@@ -85,7 +88,7 @@ void main() {
     await _settle(t);
     expect(find.text('Paused'), findsOneWidget);
 
-    await t.tap(find.text('Resume'));
+    await t.tap(_inSheet('Resume'));
     await _settle(t);
     expect(find.text('Paused'), findsNothing);
     final GameScreen gs = t.widget<GameScreen>(find.byType(GameScreen));
@@ -100,7 +103,7 @@ void main() {
     _life(t, _toForeground);
     await _settle(t);
     expect(find.text('Paused'), findsOneWidget);
-    await t.tap(find.text('Resume'));
+    await t.tap(_inSheet('Resume'));
     await _settle(t);
     expect(find.text('Paused'), findsNothing);
   });
@@ -118,7 +121,7 @@ void main() {
       await _settle(t);
     }
     expect(find.text('Paused'), findsOneWidget);
-    await t.tap(find.text('Resume'));
+    await t.tap(_inSheet('Resume'));
     await _settle(t);
     expect(find.text('Paused'), findsNothing, reason: 'tek Resume ile tüm pencereler kapanmalı (üst üste ikinci pencere yok)');
   });
@@ -148,7 +151,7 @@ void main() {
     _life(t, _toBackground);
     _life(t, _toForeground);
     await _settle(t);
-    await t.tap(find.text('Restart'));
+    await t.tap(_inSheet('Restart'));
     await _settle(t);
     expect(find.text('Paused'), findsNothing);
     await t.tap(find.byIcon(Icons.pause));
