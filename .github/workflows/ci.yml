@@ -22,6 +22,7 @@ jobs:
       - run: node tools/validate-i18n.js
       - run: node tools/test-ads.js
       - run: node tools/test-daily.js
+      - run: node tools/verify-5000.js --no-write
       - run: node tools/flutter/check-arb.js
 
   flutter:
