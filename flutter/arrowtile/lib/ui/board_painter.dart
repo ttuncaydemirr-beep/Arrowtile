@@ -302,7 +302,13 @@ class BoardModel {
 
   BoardModel(this.level, this.game, this.theme, this.pal, this.rtl) : colors = colorize(level, theme.colors.length);
 
-  double get nowMs => _clock.elapsedMicroseconds / 1000.0;
+  /// Testler için: sahte saat (widget testlerinde gerçek Stopwatch ilerlemez, animasyonlar bitmez). Üretimde null.
+  static double Function()? testClock;
+
+  double get nowMs {
+    final double Function()? tc = testClock;
+    return tc != null ? tc() : _clock.elapsedMicroseconds / 1000.0;
+  }
 
   void recolor() {
     colors = colorize(level, theme.colors.length);

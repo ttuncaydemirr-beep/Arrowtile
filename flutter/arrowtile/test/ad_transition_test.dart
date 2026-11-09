@@ -7,6 +7,7 @@ import 'package:arrowtile/config/ads_config.dart';
 import 'package:arrowtile/l10n/app_localizations.dart';
 import 'package:arrowtile/state/app_controller.dart';
 import 'package:arrowtile/state/app_scope.dart';
+import 'package:arrowtile/ui/board_painter.dart' show BoardModel;
 import 'package:arrowtile/ui/flow.dart';
 import 'package:arrowtile/ui/screens/game_screen.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +22,8 @@ const Duration _step = Duration(milliseconds: 100);
 Future<AppController> _boot(WidgetTester t, FakePlatform fp, {required int level}) async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   AdsConfig.autoPlayTestOverride = true;
+  // tahta animasyonları BoardModel.nowMs ile ilerler (gerçek Stopwatch); widget testinde sanal saate bağlanır
+  BoardModel.testClock = () => t.binding.clock.now().microsecondsSinceEpoch / 1000.0;
   final AppController? made = await t.runAsync(() => AppController.create(adsPlatform: fp));
   final AppController app = made!;
   app.save.lang = 'en';
@@ -89,7 +92,10 @@ Future<void> _expectPlayable(WidgetTester t, AppController app, int id) async {
 }
 
 void main() {
-  tearDown(() => AdsConfig.autoPlayTestOverride = false);
+  tearDown(() {
+    AdsConfig.autoPlayTestOverride = false;
+    BoardModel.testClock = null;
+  });
 
   // 900 ms: seviye sonu penceresinde otomatik "Next level" gecikmesi; + gösterim denemesi sınırı (3 sn) + geçiş animasyonu payı
   const int limitMs = 900 + 3000 + 700;

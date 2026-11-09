@@ -371,7 +371,7 @@ class FlutterAdsPlatform implements AdsPlatform {
     // 3 sn içinde ekrana gelmezse: sessizce atla, reklamı bırak (geri çağrı gelmeyen SDK oyunu tutamaz)
     startTimer = Timer(const Duration(milliseconds: _showStartMs), () {
       if (_interstitialOnScreen || c.isCompleted) return;
-      _log('interstitial: ${_showStartMs} ms içinde ekrana gelmedi, atlandı');
+      _log('interstitial: $_showStartMs ms içinde ekrana gelmedi, atlandı');
       try {
         ad.dispose();
       } catch (_) {}
@@ -408,7 +408,7 @@ class FlutterAdsPlatform implements AdsPlatform {
     });
     startTimer = Timer(const Duration(milliseconds: _showStartMs), () {
       if (onScreen || c.isCompleted) return;
-      _setRewardedError('show_timeout', 'rewarded ad did not appear within ${_showStartMs} ms');
+      _setRewardedError('show_timeout', 'rewarded ad did not appear within $_showStartMs ms');
       _log('rewarded: ekrana gelmedi, atlandı');
       try {
         ad.dispose();
@@ -453,7 +453,7 @@ class FlutterAdsPlatform implements AdsPlatform {
         if (!c.isCompleted) c.complete();
       });
     } catch (e) {
-      startTimer?.cancel();
+      startTimer.cancel();
       _endShow();
       _setRewardedError('show_exception', '$e');
       if (!c.isCompleted) c.complete();

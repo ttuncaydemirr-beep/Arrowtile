@@ -1,7 +1,5 @@
 // Reklam/satın alma kuralları (ads.js → ads_rules.dart): altın senaryolar + tools/test-ads.js vakalarının Dart karşılığı.
 // Sahte saat + sahte platform; gerçek AdMob/Billing çağrılmaz.
-import 'dart:async';
-
 import 'package:arrowtile/core/ads_rules.dart';
 import 'package:arrowtile/core/save_data.dart';
 import 'package:flutter_test/flutter_test.dart';
