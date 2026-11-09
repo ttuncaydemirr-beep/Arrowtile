@@ -34,3 +34,23 @@ Web referansı (game/js/main.js:1356): `visibilitychange` → sayfa gizlenirse v
 - Sonuç (bulgu 3 doğrulandı): onay formu, oyuncu çoktan oyundayken ve/veya uygulama arka plandayken gösterilmeye çalışılıyor.
   Avusturya'daki (AEA) kullanıcıda form yerel bir pencere olarak Flutter'ın üstüne biner: altta duraklatma penceresi
   ("Pausiert") kararmış bir katmanın arkasında görünür, dokunuşlar yerel pencereye gider → "düğmeler yanıt vermiyor, tahta yok".
+
+## Düzeltmeler (commit b2d8c97 + c44c4f9)
+- `ads_service.dart` / `core/consent_gate.dart`: onay bilgisi güncellemesi açılışta BİR kez; form yalnızca ön plandayken ve oyun
+  ekranı dışındayken gösterilir, aksi halde "bekliyor" olur ve öne gelince / oyundan çıkınca en çok bir kez gösterilir. Öne her
+  gelişte yeni form tetiklenmez. `AppController.gameEntered/gameLeft` oyun sayacını tutar; `startLevel/startDaily` sürmekte olan
+  onay akışını en çok 8 sn bekler.
+- `game_screen.dart`: `hidden/paused` → pencere ARKA PLANDA açılmaz (`_pausePending`); `resumed` → tahta yeniden çizilir, ticker
+  canlandırılır, tek pencere açılır (`_pauseOpen` bayrağı try/finally ile sıfırlanır). `inactive` duraklatmaz.
+- `billing_service.dart`: `InAppPurchase.instance` tembel (testlerde platform kaydı gerekmez).
+- Debug yolu: `--dart-define=UMP_DEBUG_EEA=true` yalnızca debug derlemede `DebugGeography.debugGeographyEea` uygular
+  (`AdsConfig.umpDebugGeographyEea`); varsayılan false, yayın derlemesinde etkisizdir.
+
+## CI sonucu (c44c4f9)
+- analyze: 0 sorun. flutter test: 161 test geçti (13'ü yeni: 6 yaşam döngüsü + 7 onay kapısı).
+- smoke (yayın APK'sı, ABD coğrafyası): tüm tur geçti. smoke-eea (debug + EEA coğrafyası): UMP formu menüde görüldü ve onaylandı,
+  oyun başladı, 3 tur arka plana git/dön + pencere açıkken HOME: her dönüşte TEK "Paused" penceresi, Resume kapatıyor, tahta
+  çiziliyor (renk sayısı 17-18), süreç ve MainActivity örneği değişmedi, logcat'te istisna yok.
+- Doğrulanamayanlar: gerçek cihazda gerçek AdMob kimlikleriyle gerçek AEA; "Play'e çok hızlı dokunma" ile formun oyunun üstüne
+  çıkması (8 sn bekleme sınırı aşılırsa form yine gelebilir — pencere bu durumda öne dönünce açılır); reklam etkinliği (AdActivity)
+  önündeyken yaşam döngüsü (emülatörde ödüllü/geçiş reklamı tetiklenmedi).
