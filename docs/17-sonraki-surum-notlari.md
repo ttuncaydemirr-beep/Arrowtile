@@ -13,6 +13,14 @@ Süreç: önce web önizleme → kullanıcı onayı → Flutter → CI → kapal
 7. Titreşim tek kısa "bip" şeklinde olsun.
 8. Kullanıcı bunlara ekleme yapacak; liste güncellenecek.
 
+## Kararlar (09.11.2026)
+- §3 davet: yalnızca WhatsApp (Android paylaşım sayfası) ile mağaza bağlantılı davet mesajı, 4 dilde. Ödül YOK.
+- §2 lider tablosu: kullanıcı "seviye için puan" önerdi veya rakiplerde en beğenileni. Yönetici önerisi (kullanıcı onayı bekliyor):
+  - Altyapı: Google Play Games Services lider tablosu (kendi sunucumuz yok, ücretsiz; günlük/haftalık/tüm zamanlar sürümlerini otomatik üretir; Android'de hileli skor gizleme var; arkadaşlar ve herkese açık görünüm).
+  - Ana tablo "Puan": her tamamlanan seviye puan verir = kademe tabanı (Kolay 100, Orta 150, Zor 200, Aşırı zor 300) × yıldız (1–3). Haftalık görünüm varsayılan (her pazar sıfırlanır, yeni başlayan da zirveye çıkabilir); tüm zamanlar da görülebilir. Rakiplerde (Royal Match vb.) ilerleme bazlı sıralama + süreli sıfırlanan tablolar yaygın.
+  - İkinci tablo: "En yüksek seviye" (tüm zamanlar).
+  - Oyun internetsiz oynanmaya devam eder; puanlar bağlantı gelince gönderilir. Giriş isteğe bağlı.
+
 ## Planlama notları (yönetici)
 - §2 lider tablosu internet ve hesap gerektirir (ör. Google Play Games Services). Oyunun "internetsiz oynanır" vaadi, gizlilik politikası ve Play veri güvenliği formu buna göre güncellenmeli; oyun internetsiz oynanmaya devam etmeli, tablo yalnızca bağlantı varken çalışmalı. Hangi skor (seviye, yıldız, günlük bulmaca serisi) kullanıcıyla netleştirilecek.
 - §3 davet: Android paylaşım sayfasıyla mağaza bağlantısı paylaşımı (basit, sunucusuz). Davet ödülü istenirse doğrulama için sunucu/Play kurulum yönlendirmesi gerekir; kullanıcıyla netleştirilecek.
