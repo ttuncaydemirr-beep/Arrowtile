@@ -17,7 +17,8 @@ import '../config/ads_config.dart';
 import '../core/ads_rules.dart';
 
 class BillingService {
-  final InAppPurchase _iap = InAppPurchase.instance;
+  // tembel: platform kaydı olmayan ortamlarda (birim/widget testi) yalnızca kullanılınca erişilir
+  late final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _sub;
   ProductDetails? _product;
   Completer<PurchaseOutcome>? _purchase;

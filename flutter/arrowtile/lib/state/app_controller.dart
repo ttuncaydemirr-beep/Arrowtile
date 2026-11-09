@@ -41,7 +41,7 @@ class AppController extends ChangeNotifier {
   }) {
     sfx.enabled = save.sound;
     haptics.enabled = save.vibration;
-    platform = FlutterAdsPlatform(billing: billing, onChanged: notifyListeners);
+    platform = FlutterAdsPlatform(billing: billing, onChanged: notifyListeners, inGame: () => _gameDepth > 0);
     mon = Monetization(platform: platform, getAds: () => save.ads, persist: persist);
     billing.onOwnedChanged = (bool owned) {
       if (owned) {
@@ -101,6 +101,21 @@ class AppController extends ChangeNotifier {
   void onAppResumed() {
     platform.onResume();
   }
+
+  // ------------------------------------------------------------------ oyun ekranı sayacı
+  // Açık oyun ekranı sayısı (seviye geçişinde kısa süre 2). Onay formu (UMP) oyunun üstüne açılmaz: oyundan çıkılınca gösterilir.
+  int _gameDepth = 0;
+  bool get inGame => _gameDepth > 0;
+
+  void gameEntered() => _gameDepth++;
+
+  void gameLeft() {
+    if (_gameDepth > 0) _gameDepth--;
+    if (_gameDepth == 0) platform.retryConsentForm();
+  }
+
+  /// Oyun başlatmadan önce çağrılır: onay akışı (bilgi güncellemesi / form) sürüyorsa en çok 8 sn bekler.
+  Future<void> waitConsentIdle() => platform.waitConsentIdle();
 
   @override
   void dispose() {

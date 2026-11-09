@@ -29,6 +29,9 @@ fail() {
   dump "$OUT/fail.xml"; shot fail
   $UI texts "$OUT/fail.xml" | head -60 || true
   adb logcat -d -v brief > "$OUT/logcat-full.txt" 2>/dev/null || true
+  echo "--- odak penceresi:"; adb shell dumpsys window 2>/dev/null | grep -E "mCurrentFocus|mFocusedApp" | head -3 || true
+  echo "--- logcat (flutter/Ads/UMP/AndroidRuntime), son 60:"
+  grep -E " (flutter|Ads|AndroidRuntime)|UMP|onsent" "$OUT/logcat-full.txt" | tail -60 | cut -c1-260 || true
   exit 1
 }
 
@@ -61,25 +64,47 @@ launch
 log "uygulama açıldı"
 
 # ---- 1) menü (UMP formu çıkarsa onaylanır)
+# form_dismiss: ekranda UMP onay formu varsa "Consent"e dokunur (dönüş 0 = dokunuldu)
+form_dismiss() {
+  local xy
+  if xy=$($UI find "$OUT/cur.xml" '^(Consent|Accept all|I agree|Agree|Accept)$'); then
+    FORM_SEEN=$((FORM_SEEN+1)); log "UMP onay formu görüldü, 'Consent' dokunuluyor @ $xy"; shot "ump-form-$FORM_SEEN"; adb shell input tap $xy
+    return 0
+  fi
+  return 1
+}
 FORM_SEEN=0
 for i in $(seq 1 90); do
   dump "$OUT/cur.xml"
+  if form_dismiss; then sleep 2; continue; fi
   if $UI has "$OUT/cur.xml" '^(Play|Continue: Level [0-9]+)$'; then break; fi
-  if xy=$($UI find "$OUT/cur.xml" '^(Consent|Accept all|I agree|Agree|Accept)$'); then
-    FORM_SEEN=1; log "UMP onay formu görüldü, 'Consent' dokunuluyor @ $xy"; shot ump-form; adb shell input tap $xy
-  fi
   sleep 1
 done
 $UI has "$OUT/cur.xml" '^(Play|Continue: Level [0-9]+)$' || fail "ana menü (Play) görünmedi"
+# EEA geçişinde form, menü görünür görünmez gelmeyebilir (ağdan yüklenir): kısa süre daha bekle
+if [ "$EXPECT_FORM" = "1" ] && [ "$FORM_SEEN" = "0" ]; then
+  for i in $(seq 1 30); do
+    dump "$OUT/cur.xml"
+    if form_dismiss; then sleep 3; break; fi
+    sleep 1
+  done
+fi
 shot menu
-log "ana menü hazır (UMP formu görüldü mü: $FORM_SEEN)"
+log "ana menü hazır (görülen UMP formu sayısı: $FORM_SEEN)"
 if [ "$EXPECT_FORM" = "1" ] && [ "$FORM_SEEN" = "0" ]; then log "UYARI: EEA hata ayıklama coğrafyasında form beklenirdi ama görülmedi"; fi
 echo "$FORM_SEEN" > "$OUT/ump-form-seen.txt"
 sleep 2
 
 # ---- 2) oyunu başlat
 tap_label '^(Play|Continue: Level [0-9]+)$'
-wait_for '^Pause$' 20 || fail "oyun ekranı açılmadı (Pause düğmesi yok)"
+GAME_UP=0
+for i in $(seq 1 30); do
+  dump "$OUT/cur.xml"
+  if form_dismiss; then log "UYARI: onay formu OYUN başlarken çıktı"; sleep 2; continue; fi
+  if $UI has "$OUT/cur.xml" '^Pause$'; then GAME_UP=1; break; fi
+  sleep 1
+done
+[ "$GAME_UP" = "1" ] || fail "oyun ekranı açılmadı (Pause düğmesi yok)"
 sleep 2
 shot game-before
 adb exec-out screencap > "$OUT/game-before.raw" 2>/dev/null || true
@@ -94,7 +119,10 @@ cycle() { # $1 = tur adı, $2 = 1: HOME'dan önce duraklatma penceresi zaten aç
   sleep 4
   launch
   sleep 3
-  wait_for '^Paused$' 15 || fail "[$name] geri dönünce 'Paused' penceresi yok"
+  wait_for '^Paused$' 15 || {
+    if form_dismiss; then fail "[$name] geri dönünce OYUNUN ÜSTÜNDE UMP onay formu çıktı (form oyun sırasında gösterilmemeli)"; fi
+    fail "[$name] geri dönünce 'Paused' penceresi yok"
+  }
   shot "$name-sheet"
   for b in '^Resume$' '^Restart$' '^Back to map$'; do
     $UI has "$OUT/cur.xml" "$b" || fail "[$name] pencere düğmesi yok: $b"
@@ -140,4 +168,5 @@ if grep -E "EXCEPTION CAUGHT BY|Unhandled Exception|ANR in $PKG" "$OUT/logcat-fu
   fail "logcat'te Flutter istisnası / ANR var"
 fi
 grep -iE "UMP|consent|FormActivity|Ads:" "$OUT/logcat-full.txt" > "$OUT/consent-logcat.txt" || true
-log "TAMAM: geri dönüşte duraklatma penceresi tek, yanıt veriyor, tahta çiziliyor (UMP formu görüldü: $FORM_SEEN)"
+echo "=== UMP / onay satırları ==="; head -40 "$OUT/consent-logcat.txt" || true
+log "TAMAM: geri dönüşte duraklatma penceresi tek, yanıt veriyor, tahta çiziliyor (görülen UMP formu: $FORM_SEEN)"

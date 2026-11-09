@@ -8,6 +8,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -88,6 +89,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   void initState() {
     super.initState();
     app = AppScope.read(context);
+    app.gameEntered();
     WidgetsBinding.instance.addObserver(this);
     _ticker = createTicker(_onTick);
     _heartCtl = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
@@ -111,15 +113,47 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     _ticker.dispose();
     _heartCtl.dispose();
     _repaint.dispose();
+    app.gameLeft();
     super.dispose();
   }
 
+  /// Arka plana giderken duraklatma istendi (web: visibilitychange → document.hidden). Pencere ARKA PLANDA açılmaz:
+  /// çerçeveler durdurulmuşken (hidden/paused) rota eklemek, yüzey yeniden oluşunca boş/yanıtsız pencereye yol açabiliyordu
+  /// (docs/16). İstek bu bayrakta bekler, uygulama öne gelince (resumed) tek bir pencere açılır.
+  bool _pausePending = false;
+
+  /// Duraklatma penceresi şu an açık (aynı anda en fazla bir tane; her yolda sıfırlanır).
+  bool _pauseOpen = false;
+
+  /// Test için: bekleyen ya da açık duraklatma var mı.
+  @visibleForTesting
+  bool get pauseRequested => _pausePending || _pauseOpen;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // visibilitychange: uygulama arka plana giderken oyun duraklatılır (açık pencere yoksa)
-    if ((state == AppLifecycleState.paused || state == AppLifecycleState.hidden) && mounted && !busy && !_modalOpen) {
-      _openPause();
+    if (!mounted) return;
+    switch (state) {
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+        // açık pencere / meşgul durum yoksa duraklatma iste (web ile aynı koşul)
+        if (!busy && !_modalOpen && !_pauseOpen) _pausePending = true;
+      case AppLifecycleState.resumed:
+        _onForeground();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.detached:
+        break; // inactive: bildirim çubuğu, reklam/izin penceresi vb. — duraklatma tetiklenmez
     }
+  }
+
+  /// Uygulama öne geldi: yüzey yeniden oluşmuş olabilir → tahtayı yeniden çiz, animasyon döngüsünü canlandır,
+  /// bekleyen duraklatmayı (varsa) şimdi aç.
+  void _onForeground() {
+    _repaint.ping();
+    if (model.anims.isNotEmpty || model.shake != null || model.hintIdx >= 0 || model.flashIds.isNotEmpty) _kick();
+    setState(() {});
+    if (!_pausePending) return;
+    _pausePending = false;
+    if (!busy && !_modalOpen && !_pauseOpen) unawaited(_openPause());
   }
 
   bool get _modalOpen => ModalRoute.of(context)?.isCurrent != true;
@@ -651,24 +685,30 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
 
   // ---------------------------------------------------------------- araç çubuğu
   Future<void> _openPause() async {
-    if (busy || !mounted || _modalOpen) return;
+    if (busy || !mounted || _modalOpen || _pauseOpen) return;
+    _pausePending = false;
+    _pauseOpen = true;
     final AppLocalizations loc = AppLocalizations.of(context);
-    await showSheet<void>(context, builder: (BuildContext ctx) {
-      return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        sheetTitle(ctx, loc.gamePaused),
-        actionsColumn(<Widget>[
-          AppButton(loc.gameResume, kind: BtnKind.primary, onTap: () => Navigator.of(ctx).pop()),
-          AppButton(loc.gameRestart, onTap: () {
-            Navigator.of(ctx).pop();
-            _restartLevel();
-          }),
-          AppButton(daily ? loc.commonBack : loc.gameToMap, onTap: () {
-            Navigator.of(ctx).pop();
-            if (mounted) daily ? goToMenu(context) : goToMap(context);
-          }),
-        ]),
-      ]);
-    });
+    try {
+      await showSheet<void>(context, builder: (BuildContext ctx) {
+        return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          sheetTitle(ctx, loc.gamePaused),
+          actionsColumn(<Widget>[
+            AppButton(loc.gameResume, kind: BtnKind.primary, onTap: () => Navigator.of(ctx).pop()),
+            AppButton(loc.gameRestart, onTap: () {
+              Navigator.of(ctx).pop();
+              _restartLevel();
+            }),
+            AppButton(daily ? loc.commonBack : loc.gameToMap, onTap: () {
+              Navigator.of(ctx).pop();
+              if (mounted) daily ? goToMenu(context) : goToMap(context);
+            }),
+          ]),
+        ]);
+      });
+    } finally {
+      _pauseOpen = false;
+    }
   }
 
   void _useHint() {

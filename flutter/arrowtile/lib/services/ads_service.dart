@@ -12,19 +12,24 @@ import 'dart:io' show InternetAddress;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding;
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../config/ads_config.dart';
 import '../core/ads_rules.dart';
+import '../core/consent_gate.dart';
 import 'billing_service.dart';
 
 class FlutterAdsPlatform implements AdsPlatform {
-  FlutterAdsPlatform({required this.billing, this.onChanged});
+  FlutterAdsPlatform({required this.billing, this.onChanged, this.inGame});
 
   final BillingService billing;
 
   /// Gizlilik seçenekleri gerekliliği değişince (Ayarlar yenilensin).
   final VoidCallback? onChanged;
+
+  /// Oyuncu şu an bir oyun ekranında mı (onay formu oyunun üstüne açılmaz).
+  final bool Function()? inGame;
 
   static const int _maxAgeMs = 55 * 60 * 1000;
   static const int _retryMinMs = 15000;
@@ -39,6 +44,7 @@ class FlutterAdsPlatform implements AdsPlatform {
   bool _privacyRequired = false;
   bool _showing = false;
   bool _disposed = false;
+  final ConsentFormGate _gate = ConsentFormGate(); // form ne zaman gösterilebilir (core/consent_gate.dart)
 
   InterstitialAd? _interstitial;
   int _interstitialAt = 0;
@@ -89,8 +95,12 @@ class FlutterAdsPlatform implements AdsPlatform {
   static bool _expired(int at) => at > 0 && _now() - at > _maxAgeMs;
 
   // ------------------------------------------------------------------ UMP onayı
-  /// Uygulama açılışında çağrılır: onay bilgisi güncellenir, gerekiyorsa form gösterilir, sonra SDK başlatılır.
+  /// Uygulama açılışında BİR kez çağrılır (yeniden çağrılırsa yok sayılır): onay bilgisi güncellenir, gerekiyorsa form
+  /// gösterilir, sonra SDK başlatılır. Google'ın belgelenmiş deseni: bilgi güncellemesi her uygulama açılışında; form yalnızca
+  /// gerekiyorsa ve yalnızca ÖN PLANDAKİ etkinlikten; uygulama öne her gelişte kendiliğinden yeniden gösterilmez
+  /// (arka plandayken gösterilmek istenen form ön plana dönünce en çok bir kez gösterilir).
   Future<void> gatherConsent() async {
+    if (_disposed || !_gate.beginSession()) return;
     try {
       ConsentDebugSettings? dbg;
       if (kDebugMode && (AdsConfig.umpDebugGeographyEea || AdsConfig.umpTestDeviceId.isNotEmpty)) {
@@ -104,21 +114,66 @@ class FlutterAdsPlatform implements AdsPlatform {
       ConsentInformation.instance.requestConsentInfoUpdate(
         params,
         () {
-          ConsentForm.loadAndShowConsentFormIfRequired((FormError? formError) {
-            if (formError != null && kDebugMode) debugPrint('UMP form: ${formError.message}');
-            unawaited(_afterConsentUpdate());
-          });
+          _log('UMP: onay bilgisi güncellendi');
+          _showConsentFormIfForeground();
         },
         (FormError error) {
-          if (kDebugMode) debugPrint('UMP update: ${error.message}');
+          _log('UMP update: ${error.message}');
+          _gate.updateFailed();
           unawaited(_afterConsentUpdate());
         },
       );
     } catch (e) {
-      if (kDebugMode) debugPrint('gatherConsent: $e');
+      _gate.updateFailed();
+      _log('gatherConsent: $e');
     }
     // Önceki oturumda alınmış onay varsa reklamlar beklemeden başlayabilir.
     await _afterConsentUpdate();
+  }
+
+  /// Formu yalnızca uygulama ön plandayken (resumed) yükleyip gösterir; değilse [onResume] bir kez dener.
+  void _showConsentFormIfForeground() {
+    if (_disposed) return;
+    final bool fg = _foreground;
+    final bool free = !(inGame?.call() ?? false);
+    if (!_gate.tryShow(foreground: fg, interruptible: free)) {
+      if (_gate.pending) _log('UMP: form ertelendi (ön plan=$fg, oyunda değil=$free); uygun olunca bir kez gösterilecek');
+      return;
+    }
+    _loadAndShowForm();
+  }
+
+  bool get _foreground {
+    final AppLifecycleState? st = WidgetsBinding.instance.lifecycleState;
+    return st == null || st == AppLifecycleState.resumed;
+  }
+
+  /// Ertelenmiş form varsa ve artık uygunsa (ön plan + oyunda değil) gösterir. Öne gelince / oyundan çıkınca çağrılır.
+  void retryConsentForm() {
+    if (_disposed) return;
+    if (_gate.retryPending(foreground: _foreground, interruptible: !(inGame?.call() ?? false))) _loadAndShowForm();
+  }
+
+  /// Onay akışı sürerken (bilgi güncellemesi / form) en çok [timeout] bekler; oyun formun altında başlamasın diye.
+  Future<void> waitConsentIdle({Duration timeout = const Duration(seconds: 8)}) async {
+    final Stopwatch sw = Stopwatch()..start();
+    while (_gate.active && !_disposed && sw.elapsed < timeout) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+  }
+
+  void _loadAndShowForm() {
+    try {
+      ConsentForm.loadAndShowConsentFormIfRequired((FormError? formError) {
+        _gate.finished();
+        if (formError != null) _log('UMP form: ${formError.message}');
+        unawaited(_afterConsentUpdate());
+      });
+    } catch (e) {
+      _gate.finished();
+      _log('UMP form istisna: $e');
+      unawaited(_afterConsentUpdate());
+    }
   }
 
   Future<void> _afterConsentUpdate() async {
@@ -157,6 +212,7 @@ class FlutterAdsPlatform implements AdsPlatform {
   void onResume() {
     if (_disposed) return;
     unawaited(refreshOnline());
+    retryConsentForm(); // yalnızca ertelenmiş form; yeni form tetiklenmez
     if (!_sdkReady) {
       unawaited(_afterConsentUpdate());
       return;

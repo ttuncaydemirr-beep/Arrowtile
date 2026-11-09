@@ -28,6 +28,11 @@ Future<void> startLevel(BuildContext context, int id, {bool replace = false}) as
   final AppController app = AppScope.read(context);
   final NavigatorState nav = Navigator.of(context);
   Level? lv = app.getLevel(id);
+  if (!replace) {
+    // onay formu (UMP) sürüyorsa kısa süre bekle: form oyunun üstüne çıkmasın (replace: oyuncu zaten oyunda)
+    await app.waitConsentIdle();
+    if (!context.mounted) return;
+  }
   if (lv == null) {
     if (id <= app.prebuilt.length || id > kMaxLevel) return;
     bool open = true;
@@ -73,6 +78,8 @@ Future<void> startDaily(BuildContext context) async {
   final AppController app = AppScope.read(context);
   final NavigatorState nav = Navigator.of(context);
   final AppLocalizations loc = AppLocalizations.of(context);
+  await app.waitConsentIdle();
+  if (!context.mounted) return;
   bool open = true;
   unawaited(showSheet<void>(context, builder: (BuildContext ctx) {
     final Palette pal = Palette.of(ctx);
