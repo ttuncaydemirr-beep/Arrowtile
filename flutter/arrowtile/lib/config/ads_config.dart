@@ -28,7 +28,9 @@ class AdsConfig {
   // UMP onay formunu AEA dışında test etmek için (yalnızca debug'da kullanılır). Uygulamayı bir kez çalıştırın,
   // Logcat'te "Use new ConsentDebugSettings.Builder().addTestDeviceHashedId(...)" satırındaki kimliği yazın.
   static const String umpTestDeviceId = '';
-  static const bool umpDebugGeographyEea = false;
+  /// `--dart-define=UMP_DEBUG_EEA=true` ile (yalnızca debug derlemede) UMP'ye "AEA'dayım" dedirtir; CI'daki EEA duman testi
+  /// (docs/16) kullanır. Varsayılan false: normal/yayın derlemelerinde hiçbir hata ayıklama ayarı uygulanmaz.
+  static const bool umpDebugGeographyEea = bool.fromEnvironment('UMP_DEBUG_EEA');
 
   /// Play Billing ürün kimliği (tüketilmeyen).
   static const String removeAdsProductId = 'remove_ads';
