@@ -38,7 +38,7 @@ class AdsConfig {
 
 class AppInfo {
   AppInfo._();
-  static const String version = '1.0.0'; // pubspec.yaml version: 1.0.0+2 ile aynı
+  static const String version = '1.0.1'; // pubspec.yaml version: 1.0.1+3 ile aynı
   static const String supportEmail = 'nilkaren.tuncay.demir@gmail.com';
   static const String privacyUpdated = '2026-10-25';
   // Herkese açık gizlilik politikası adresi (Play Console'a girilen adresle aynı). GitHub Pages: .github/workflows/pages.yml
