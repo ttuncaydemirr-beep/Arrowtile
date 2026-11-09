@@ -3,11 +3,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../core/ads_rules.dart' show AdScreen;
 import '../../core/daily.dart' as daily;
 import '../../core/economy.dart' as eco;
 import '../../l10n/app_localizations.dart';
 import '../../state/app_controller.dart';
 import '../../state/app_scope.dart';
+import '../ad_banner.dart';
 import '../flow.dart';
 import '../tokens.dart';
 import '../widgets.dart';
@@ -110,6 +112,8 @@ class MenuScreen extends StatelessWidget {
               ),
             ),
           ),
+          // banner (docs/15 §3): yalnızca ana menü ve harita; reklamsızda / yüklenmediyse yer kaplamaz; içerik üstte kalır
+          const AdBannerSlot(screen: AdScreen.menu),
         ]),
       ),
     );

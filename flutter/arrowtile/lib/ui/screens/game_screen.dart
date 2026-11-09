@@ -14,7 +14,8 @@ import 'package:flutter/scheduler.dart';
 import '../../core/daily.dart' as dl;
 import '../../core/economy.dart' as eco;
 import '../../core/engine.dart';
-import '../../core/levelgen.dart' show isCurved, kPrebuilt;
+import '../../core/ads_rules.dart' show Unsubscribe;
+import '../../core/levelgen.dart' show isCurved, kDesigned;
 import '../../core/models.dart';
 import '../../core/save_data.dart' show kMaxLevel;
 import '../../l10n/app_localizations.dart';
@@ -81,6 +82,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   Size _lastSize = Size.zero;
   final List<Timer> _timers = <Timer>[];
 
+  /// Tam ekran reklam gösteriliyor (docs/15 §4): animasyon döngüsü (ticker) ve ses duraklar, reklam kapanınca devam eder.
+  bool _adPause = false;
+  Unsubscribe? _unsubAd;
+
   bool get daily => lv.isDaily;
   String get levelKey => lv.daily ?? '${lv.id}';
 
@@ -90,6 +95,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     app = AppScope.read(context);
     app.gameEntered();
     WidgetsBinding.instance.addObserver(this);
+    _adPause = app.mon.isAdShowing;
+    _unsubAd = app.mon.addAdListener(_onAdState);
     _ticker = createTicker(_onTick);
     _heartCtl = AnimationController(vsync: this, duration: const Duration(milliseconds: 400));
     lv = widget.level;
@@ -101,10 +108,28 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     if (!lv.isDaily) app.prefetchNext(lv.id);
     // v1.3: ilk kıvrımlı ok (seviye 4) tek cümlelik baloncukla tanıtılır; bir kez
     if (tut == null && !lv.isDaily && !app.hasTip('curve_tip') && lv.arrows.any(isCurved)) curveTip = true;
+    // oyun ekranı açılınca ödüllü reklam önceden yüklenir (docs/15 §4); hazırsa/yükleniyorsa yenisi başlatılmaz
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) app.mon.preloadRewarded();
+    });
+  }
+
+  /// Reklam açılınca ticker durur (ses AppController'da tutulur); kapanınca tahta yeniden çizilir ve döngü sürer.
+  void _onAdState(bool active) {
+    _adPause = active;
+    if (!mounted) return;
+    if (active) {
+      if (_ticker.isActive) _ticker.stop();
+    } else {
+      _repaint.ping();
+      if (model.anims.isNotEmpty || model.shake != null || model.hintIdx >= 0 || model.flashIds.isNotEmpty) _kick();
+    }
   }
 
   @override
   void dispose() {
+    _unsubAd?.call();
+    _unsubAd = null;
     WidgetsBinding.instance.removeObserver(this);
     for (final Timer t in _timers) {
       t.cancel();
@@ -183,6 +208,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   }
 
   void _kick() {
+    if (_adPause) return; // reklam gösteriliyor: döngü duraklar, reklam kapanınca _onAdState sürdürür
     if (!_ticker.isActive) _ticker.start();
   }
 
@@ -455,7 +481,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     final TapResult? r = g.tap(i);
     if (r == null) return null;
     model.aimSel = -1;
-    app.sfx.tap();
+    // v1.1 (docs/15 §1): ok hareketi başına YALNIZCA tek ses (çıkışta slideOut, çarpmada bump) — ayrıca "tık" (tap) çalmaz.
+    // "tap" yalnızca "önce seç" kipinde ok seçilirken çalar (_onBoardTap; hareket yok). Titreşim eskisi gibi.
     app.buzz('tap');
     model.hintIdx = -1;
     final Arrow a = lv.arrows[i];
@@ -483,9 +510,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       app.sfx.slideOut(math.min(1.0, exitStreak / 6));
       exitStreak++;
       app.buzz('slideOut');
+      if (!daily && g.remaining() <= 2) app.mon.preloadInterstitial(lv.id); // geçiş reklamı seviye bitmeden hazır olsun (docs/15 §4)
       busy = g.isWon; // son ok: kazanma ekranına kadar girdi kapalı
     } else {
       exitStreak = 0;
+      if (r.lifeLost && g.lives <= 1) app.mon.preloadRewarded(); // can 1'e düştü: "+1 can" reklamı önceden yüklensin (docs/15 §4)
       final double fwd = _reduced ? 60 : Anim.bumpForward;
       final double back = _reduced ? 120 : Anim.bumpBack;
       busy = true;
@@ -567,7 +596,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         relaxed: relaxed,
         reduced: _reduced,
         levelId: id,
-        allDone: id == kPrebuilt,
+        allDone: id == kDesigned, // 5.000 seviye bitti: sonsuz bölümler başlıyor
         onNext: () async {
           await app.mon.continueAfterLevel(id);
           if (ctx.mounted) Navigator.of(ctx).pop();

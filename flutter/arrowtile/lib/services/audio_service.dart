@@ -6,6 +6,11 @@ import 'package:flutter/foundation.dart';
 class AudioService {
   bool enabled = true;
   bool _ready = false;
+
+  /// Tam ekran reklam gösterilirken (docs/15 §4) yeni ses çalınmaz; reklam kapanınca [setHeld](false) ile devam eder.
+  bool _held = false;
+  bool get held => _held;
+  void setHeld(bool v) => _held = v;
   final Map<String, AudioPool> _pools = <String, AudioPool>{};
   final Map<String, int> _lastPlay = <String, int>{};
 
@@ -59,7 +64,7 @@ class AudioService {
   }
 
   bool _gate(String gapName) {
-    if (!enabled || !_ready) return false;
+    if (!enabled || !_ready || _held) return false;
     final int now = DateTime.now().millisecondsSinceEpoch;
     final int gap = _gap[gapName] ?? 0;
     final int? last = _lastPlay[gapName];

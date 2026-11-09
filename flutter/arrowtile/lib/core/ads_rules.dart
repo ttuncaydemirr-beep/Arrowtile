@@ -13,9 +13,19 @@
 //  - "Reklamları kaldır" (tüketilmeyen `remove_ads`): geçiş reklamları kalıcı kapanır, ödüllü reklamlar isteğe bağlı kalır.
 //    Platform yoksa (testler) satın alma TEST MODUNDA taklit edilir.
 //  - Bu katman hiçbir zaman oyunu bekletmez: platform yanıt vermezse [nativeTimeout] sonra oyun devam eder.
+//  - Banner (v1.1, docs/15 §3): yalnızca Ana menü ve Harita ekranlarında ([kBannerScreens]); oyun, seviye sonu, mağaza, ayarlar ve
+//    günlük bulmacada yok; "Reklamları kaldır" alınmışsa yok ([Monetization.bannerVisible]).
+//  - Önceden yükleme (docs/15 §4): ödüllü reklam oyun ekranı açılınca ve can 1'e düşünce ([Monetization.preloadRewarded]), geçiş
+//    reklamı seviye bitmeden, son oklar çıkarken ([Monetization.preloadInterstitial]); zaten yükleniyor/hazırsa tekrar başlatılmaz.
+//  - Reklam gösterilirken oyun animasyon döngüsü ve ses duraklar ([Monetization.addAdListener]): reklam açılmadan ÖNCE true,
+//    kapanınca false (iç içe çağrılara dayanıklı).
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'save_data.dart';
+
+/// Dinleyiciyi kaldıran işlev.
+typedef Unsubscribe = void Function();
 
 const int kFreeUntilLevel = 12;
 const int kEveryLevels = 3;
@@ -23,6 +33,32 @@ const int kMinGapMs = 3 * 60 * 1000;
 const Duration kNativeTimeout = Duration(seconds: 90);
 const Duration kRewardedLoadTimeout = Duration(seconds: 10); // dokunuşta ödüllü reklam yükleme bekleme sınırı
 const String kProductRemoveAds = 'remove_ads';
+
+/// "Reklam yükleniyor…" kaplaması yalnızca bekleme bu süreden uzun sürerse görünür (docs/15 §4).
+const Duration kLoadingOverlayDelay = Duration(milliseconds: 300);
+
+/// Banner'ın görüneceği ekranlar (docs/15 §3).
+enum AdScreen { menu, map, game, levelEnd, shop, settings, daily, privacy }
+
+const Set<AdScreen> kBannerScreens = <AdScreen>{AdScreen.menu, AdScreen.map};
+
+/// Önceden yükleme sonucu (ads.js preloadRewarded/preloadInterstitial ile aynı sözlük).
+enum PreloadState {
+  /// Gerekmiyor / destek yok / çevrimdışı / SDK hazır değil.
+  skip,
+
+  /// Zaten hazır.
+  ready,
+
+  /// Yükleme sürüyor (ikinci yükleme başlatılmadı).
+  loading,
+
+  /// Yükleme şimdi başlatıldı.
+  started,
+
+  /// Yakın zamanda başarısız oldu; bekleme süresi dolana dek yeniden denenmez.
+  wait,
+}
 
 enum PurchaseOutcome { purchased, pending, cancelled, failed, unavailable }
 
@@ -39,6 +75,18 @@ abstract class AdsPlatform {
 
   bool get interstitialReady;
   bool get rewardedReady;
+
+  /// Reklam SDK'sı başlatıldı mı (UMP onayı alındı, MobileAds.initialize bitti). Banner yalnızca SDK hazırken istenir.
+  bool get sdkReady;
+
+  /// Ödüllü reklam şu an yükleniyor mu (önceden yükleme dahil).
+  bool get rewardedLoading;
+
+  /// Sessiz önceden yükleme (oyun ekranı açılınca / can 1'e düşünce). Hazırsa ya da yükleniyorsa YENİ yükleme başlatmaz.
+  PreloadState preloadRewarded();
+
+  /// Geçiş reklamı için sessiz önceden yükleme (seviye bitmeden). Hazırsa ya da yükleniyorsa yeni yükleme başlatmaz.
+  PreloadState preloadInterstitial();
 
   /// Dokunuşta: ödüllü reklam hazır değilse yüklemeyi BAŞLATIR (başarısız yükleme sonrası bekleme süresi yok sayılır) ve
   /// yüklenince true, başarısız olunca ya da [timeout] dolunca false ile tamamlanır. Her durumda tamamlanır.
@@ -133,6 +181,62 @@ class Monetization {
 
   bool get isTestMode => !_bridge;
 
+  // ---- banner (docs/15 §3) ----
+  /// Bu ekranda banner gösterilir mi? Yalnızca Ana menü ve Harita; "Reklamları kaldır" alınmışsa asla.
+  /// (Reklamın yüklenip yüklenmediği ayrıca bakılır: yüklenmezse banner yer kaplamaz.)
+  bool bannerVisible(AdScreen screen) => kBannerScreens.contains(screen) && !isAdFree();
+
+  // ---- reklam gösterimi dinleyicisi (docs/15 §4: oyun döngüsü + ses duraklar) ----
+  final List<void Function(bool active)> _adListeners = <void Function(bool active)>[];
+  int _adActive = 0;
+
+  /// Reklam gösterimi başlayınca true, bitince false ile çağrılır (yalnızca durum DEĞİŞİNCE). Dönen işlev dinleyiciyi kaldırır.
+  Unsubscribe addAdListener(void Function(bool active) fn) {
+    _adListeners.add(fn);
+    return () => _adListeners.remove(fn);
+  }
+
+  /// Şu an tam ekran reklam gösteriliyor mu.
+  bool get isAdShowing => _adActive > 0;
+
+  void _adState(bool on) {
+    final bool was = _adActive > 0;
+    _adActive = math.max(0, _adActive + (on ? 1 : -1));
+    final bool now = _adActive > 0;
+    if (was == now) return;
+    for (final void Function(bool) f in List<void Function(bool)>.of(_adListeners)) {
+      try {
+        f(now);
+      } catch (_) {}
+    }
+  }
+
+  // ---- önceden yükleme (docs/15 §4) ----
+  /// Bu seviye bitince geçiş reklamı gösterilecek mi (sayaç + bölüm + reklamsızlık + bağlantı; 3 dk aralığı gösterim anında bakılır)?
+  bool interstitialWillBeDue(int levelId) {
+    final AdsState a = getAds();
+    if (!(levelId > kFreeUntilLevel)) return false;
+    if (isAdFree()) return false;
+    if (a.since + 1 < kEveryLevels) return false;
+    if (!_bridge || !_online) return false;
+    return true;
+  }
+
+  /// Seviye bitmeden (son oklar çıkarken) çağrılır: reklam gerekecekse ve hazır/yükleniyor değilse yüklemeyi başlatır.
+  PreloadState preloadInterstitial(int levelId) {
+    if (!interstitialWillBeDue(levelId)) return PreloadState.skip;
+    return platform.preloadInterstitial();
+  }
+
+  /// Oyun ekranı açılınca ve can 1'e düşünce çağrılır: hazır değilse ve yüklenmiyorsa yüklemeyi sessizce başlatır.
+  PreloadState preloadRewarded() {
+    if (!_bridge || !_online) return PreloadState.skip;
+    return platform.preloadRewarded();
+  }
+
+  /// Ödüllü reklam şu an yükleniyor mu? "Reklam yükleniyor…" kaplaması yalnızca gerçekten bekleniyorsa gösterilir.
+  bool get rewardedLoading => _bridge && platform.rewardedLoading;
+
   // ---- geçiş reklamı ----
   /// Bir seviye başarıyla tamamlandı (yalnızca 13+ sayılır).
   void onLevelComplete(int levelId) {
@@ -161,10 +265,13 @@ class Monetization {
     a.since = 0;
     a.lastAt = now();
     persist();
+    _adState(true); // yerel çağrıdan ÖNCE duraklat: reklam açılırken oyun döngüsü/ses çalışmaya devam etmesin
     try {
       return await platform.showInterstitial().timeout(nativeTimeout, onTimeout: () => false);
     } catch (_) {
       return false;
+    } finally {
+      _adState(false);
     }
   }
 
@@ -224,6 +331,7 @@ class Monetization {
   Future<bool> showRewarded(String placement, {void Function()? onReward}) async {
     if (!rewardedAvailable()) return false;
     bool rewarded = false;
+    _adState(true); // yerel çağrıdan önce duraklat
     try {
       await platform.showRewarded(placement, () {
         if (rewarded) return;
@@ -232,6 +340,8 @@ class Monetization {
       }).timeout(nativeTimeout, onTimeout: () {});
     } catch (_) {
       // yut: oyun devam eder
+    } finally {
+      _adState(false);
     }
     return rewarded;
   }

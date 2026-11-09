@@ -34,6 +34,12 @@ Depoda **Settings > Secrets and variables > Actions > New repository secret**:
 | `ADMOB_APP_ID` | AdMob uygulama kimliği, `ca-app-pub-…~…` |
 | `ADMOB_INTERSTITIAL_ID` | geçiş reklamı birimi, `ca-app-pub-…/…` |
 | `ADMOB_REWARDED_ID` | ödüllü reklam birimi, `ca-app-pub-…/…` |
+| `ADMOB_BANNER_ID` | banner reklam birimi (v1.1; yalnızca ana menü ve haritada gösterilir), `ca-app-pub-…/…` |
+
+Toplam **8 secret**. AdMob'da (uygulamayı bir kez oluşturduktan sonra) 3 reklam birimi gerekir: geçiş, ödüllü, **banner**. Banner birimi
+için "Banner" biçimi seçilir (uygulama uyarlanabilir/adaptive boyutla ister). Workflow üç birim kimliğini de derleme kopyasında
+`lib/config/ads_config.dart` içine yazar (`releaseInterstitialId`, `releaseRewardedId`, `releaseBannerId`); depoya hiçbir gerçek kimlik yazılmaz.
+Banner kimliği de diğerleri gibi biçim denetiminden (`ca-app-pub-XXXX/YYYY`, `/` içerir) ve test-kimliği reddinden geçer.
 
 Herhangi biri eksikse veya Google test kimliği (`3940256099942544`) girilmişse workflow açıklayıcı bir hatayla durur.
 

@@ -40,7 +40,7 @@ Kaynaklar sayfanın sonunda.
 4. Kimlik doğrulamasını tamamlayın: kimlik belgesi, adres ve telefon. Onay birkaç gün sürebilir.
 5. **Geliştirici adı** mağazada görünür (ör. "Arrowtile Games"). İletişim e-postası olarak `nilkaren.tuncay.demir@gmail.com` adresini kullanın.
 
-## 2. AdMob hesabı, uygulama ve 2 reklam birimi
+## 2. AdMob hesabı, uygulama ve 3 reklam birimi
 
 1. <https://admob.google.com> adresinde aynı Google hesabıyla kaydolun. Ödeme ve vergi bilgilerini girin.
 2. **Uygulamalar > Uygulama ekle**: Platform **Android**. "Uygulama mağazada listeleniyor mu?" sorusuna şimdilik **Hayır** deyin
@@ -49,6 +49,7 @@ Kaynaklar sayfanın sonunda.
 4. **Reklam birimleri > Reklam birimi ekle**:
    - **Geçiş reklamı (Interstitial)**, ad: `seviye_sonu`. Kimliği (`/` içerir) not alın.
    - **Ödüllü (Rewarded)**, ad: `odul_can_ipucu`. Ödül: 1 adet, "odul". Kimliği not alın.
+   - **Banner**, ad: `menu_harita_banner` (v1.1; yalnızca ana menü ve haritada, uyarlanabilir boyut). Kimliği not alın.
 5. `android/app/src/main/res/values/ads.xml` dosyasını açın ve üç test kimliğini kendi kimliklerinizle değiştirin:
    `admob_app_id`, `admob_interstitial_id`, `admob_rewarded_id`. (`src/debug/...` dosyasına dokunmayın.)
 6. **Gizlilik ve mesajlaşma > Avrupa düzenlemeleri (GDPR)**: bir **GDPR mesajı** oluşturun, uygulamaya bağlayın ve yayınlayın.
@@ -88,7 +89,7 @@ WebView projesi (`legacy/android-native/`, artık güncellenmez) içindir; Play 
 |---|---|
 | `android/` klasörünü Android Studio'da aç, Gradle sync | Flutter kur → `cd flutter/arrowtile` → `flutter pub get` (+ `flutter gen-l10n`) |
 | Debug sürümünü telefonda çalıştır (▶) | `flutter run` (debug/profile **her zaman Google test reklamları**) |
-| `android/app/src/main/res/values/ads.xml` içinde 3 AdMob kimliği | **Uygulama** kimliği: `android/app/src/main/res/values/ads.xml` (`admob_app_id`). **Reklam birimi** kimlikleri: `lib/config/ads_config.dart` (`releaseInterstitialId`, `releaseRewardedId`). Debug test kimliği: `src/debug/res/values/ads.xml` (değiştirmeyin). |
+| `android/app/src/main/res/values/ads.xml` içinde 3 AdMob kimliği | **Uygulama** kimliği: `android/app/src/main/res/values/ads.xml` (`admob_app_id`). **Reklam birimi** kimlikleri: `lib/config/ads_config.dart` (`releaseInterstitialId`, `releaseRewardedId`, `releaseBannerId`). Debug test kimliği: `src/debug/res/values/ads.xml` (değiştirmeyin). |
 | `versionCode` → `android/app/build.gradle.kts` | `flutter/arrowtile/pubspec.yaml` → `version: 1.0.0+2` (`+2` = versionCode; ilk Play yüklemesi için 1 de olabilir — native proje Play'e hiç yüklenmediyse `+1` kullanabilirsiniz; sonraki her yüklemede 1 artırın) |
 | `targetSdk = 36` | aynı (`android/app/build.gradle.kts`: compileSdk/targetSdk 36, minSdk 24) |
 | Build > Generate Signed App Bundle (`keystore.properties`) | `android/key.properties` (örnek: `key.properties.example`) + `flutter build appbundle --release` |
@@ -100,7 +101,7 @@ WebView projesi (`legacy/android-native/`, artık güncellenmez) içindir; Play 
 Adım adım:
 1. `cd flutter/arrowtile && flutter pub get && flutter gen-l10n && flutter test` (testler hata verirse yayına çıkmayın; ilk fark metnini iletin).
 2. Telefonda `flutter run` — menü, harita, seviye 1–3 öğretici, günlük bulmaca, Ayarlar (dil/RTL), mağaza görünüyor mu.
-3. AdMob'da uygulama + 2 reklam birimi + GDPR mesajı (§2); kimlikleri `ads.xml` ve `ads_config.dart` içine yazın.
+3. AdMob'da uygulama + 3 reklam birimi (geçiş, ödüllü, banner) + GDPR mesajı (§2); kimlikleri `ads.xml` ve `ads_config.dart` içine yazın.
 4. Yükleme anahtarını oluşturup `android/key.properties` doldurun (README §2).
 5. `flutter build appbundle --release` → `app-release.aab` → Play Console dahili test (§4) → `remove_ads` (§5) → kapalı test (§6).
 6. Release (dahili test parçasından kurulu) sürümde §11 kontrol listesini uygulayın; "WebView/`?debug=1`" maddeleri Flutter'da geçerli değildir

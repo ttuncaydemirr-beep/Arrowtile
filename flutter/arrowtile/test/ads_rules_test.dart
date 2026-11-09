@@ -38,6 +38,38 @@ class FakePlatform implements AdsPlatform {
   bool get interstitialReady => interstitialOk;
   @override
   bool get rewardedReady => rewardedOk;
+  @override
+  bool get sdkReady => sdk;
+  @override
+  bool get rewardedLoading => rLoading;
+
+  // v1.1 (docs/15 §4): önceden yükleme — sahte platform "hazırsa/yükleniyorsa yenisini başlatma" kuralını uygular
+  bool sdk = true;
+  bool rLoading = false;
+  bool iLoading = false;
+  int rStarts = 0;
+  int iStarts = 0;
+  @override
+  PreloadState preloadRewarded() {
+    calls.add('preloadR');
+    if (!sdk) return PreloadState.skip;
+    if (rewardedOk) return PreloadState.ready;
+    if (rLoading) return PreloadState.loading;
+    rLoading = true;
+    rStarts++;
+    return PreloadState.started;
+  }
+
+  @override
+  PreloadState preloadInterstitial() {
+    calls.add('preloadI');
+    if (!sdk) return PreloadState.skip;
+    if (interstitialOk) return PreloadState.ready;
+    if (iLoading) return PreloadState.loading;
+    iLoading = true;
+    iStarts++;
+    return PreloadState.started;
+  }
 
   @override
   Future<bool> ensureRewardedLoaded({Duration timeout = kRewardedLoadTimeout}) async {
@@ -392,6 +424,218 @@ void main() {
         ..p.rewardedOk = false
         ..p.loadOk = false;
       expect(await r.m.ensureRewarded(loadTimeout: lt), isFalse);
+    });
+  });
+
+  // ------------------------------------------------------------------ v1.1: banner (docs/15 §3)
+  group('banner: yalnızca menü ve harita, reklamsızda asla', () {
+    test('görünür ekranlar kümesi tam olarak {menu, map}', () {
+      expect(kBannerScreens, <AdScreen>{AdScreen.menu, AdScreen.map});
+    });
+
+    test('her ekran için: yalnızca menü ve harita görünür', () {
+      final Rig r = Rig();
+      for (final AdScreen sc in AdScreen.values) {
+        expect(r.m.bannerVisible(sc), sc == AdScreen.menu || sc == AdScreen.map, reason: '$sc');
+      }
+      // oyun, seviye sonu, mağaza, ayarlar, günlük bulmaca, gizlilik: asla
+      for (final AdScreen sc in <AdScreen>[AdScreen.game, AdScreen.levelEnd, AdScreen.shop, AdScreen.settings, AdScreen.daily, AdScreen.privacy]) {
+        expect(r.m.bannerVisible(sc), isFalse, reason: '$sc');
+      }
+    });
+
+    test('"Reklamları kaldır" satın alınmışsa hiçbir ekranda banner yok', () async {
+      final Rig r = Rig();
+      expect(r.m.bannerVisible(AdScreen.menu), isTrue);
+      final PurchaseResult pr = await r.m.purchaseRemoveAds();
+      expect(pr.ok, isTrue);
+      expect(r.ads.adFree, isTrue);
+      for (final AdScreen sc in AdScreen.values) {
+        expect(r.m.bannerVisible(sc), isFalse, reason: 'adFree: $sc');
+      }
+    });
+
+    test('kayıttaki adFree (gerçek satın alma) ve Play sahipliği banner\'ı kapatır', () {
+      final Rig a = Rig();
+      a.ads
+        ..adFree = true
+        ..test = false;
+      expect(a.m.bannerVisible(AdScreen.menu), isFalse);
+      expect(a.m.bannerVisible(AdScreen.map), isFalse);
+      final Rig b = Rig()..p.owns = true; // yeniden kurulum: Play'de sahiplik var
+      expect(b.m.bannerVisible(AdScreen.map), isFalse);
+      expect(b.ads.adFree, isTrue); // kayda işlenir
+    });
+
+    test('test modu "satın alma" gerçek platformda geçerli sayılmaz: banner görünür', () {
+      final Rig r = Rig();
+      r.ads
+        ..adFree = true
+        ..test = true;
+      expect(r.m.bannerVisible(AdScreen.menu), isTrue);
+    });
+
+    test('banner kuralı geçiş reklamı sıklığına dokunmaz (sayaç/zaman değişmez)', () {
+      final Rig r = Rig();
+      r.m.bannerVisible(AdScreen.menu);
+      r.m.bannerVisible(AdScreen.map);
+      expect(r.ads.since, 0);
+      expect(r.ads.lastAt, 0);
+      expect(r.p.calls, isEmpty);
+    });
+  });
+
+  // ------------------------------------------------------------------ v1.1: önceden yükleme (docs/15 §4)
+  group('önceden yükleme', () {
+    test('ödüllü: oyun açılınca yüklenir; hazır/yükleniyorsa ikinci yükleme başlamaz', () {
+      final Rig r = Rig()..p.rewardedOk = false;
+      expect(r.m.preloadRewarded(), PreloadState.started);
+      expect(r.m.preloadRewarded(), PreloadState.loading); // can 1'e düşünce tekrar çağrılsa da
+      expect(r.p.rStarts, 1);
+      r.p.rLoading = false;
+      r.p.rewardedOk = true;
+      expect(r.m.preloadRewarded(), PreloadState.ready);
+      expect(r.p.rStarts, 1);
+    });
+
+    test('ödüllü: çevrimdışı / platform yok / SDK hazır değil → atlanır', () {
+      expect((Rig()..p.isOnline = false).m.preloadRewarded(), PreloadState.skip);
+      final Rig n = Rig()..p.isAvailable = false;
+      expect(n.m.preloadRewarded(), PreloadState.skip);
+      expect(n.p.calls, isEmpty);
+      final Rig s = Rig()
+        ..p.sdk = false
+        ..p.rewardedOk = false;
+      expect(s.m.preloadRewarded(), PreloadState.skip);
+    });
+
+    test('geçiş: yalnızca bu seviye bitince reklam gösterilecekse (13+, sayaç, reklamsız değil, çevrimiçi) yüklenir', () {
+      final Rig r = Rig()..p.interstitialOk = false;
+      // seviye 12 ve öncesi: asla
+      expect(r.m.preloadInterstitial(12), PreloadState.skip);
+      expect(r.p.calls, isEmpty);
+      // sayaç: since + 1 < 3 → henüz değil
+      r.ads.since = 0;
+      expect(r.m.interstitialWillBeDue(13), isFalse);
+      r.ads.since = 1;
+      expect(r.m.interstitialWillBeDue(13), isFalse);
+      expect(r.m.preloadInterstitial(13), PreloadState.skip);
+      // since = 2: bu seviye bitince 3. tamamlanan olacak → yükle
+      r.ads.since = 2;
+      expect(r.m.interstitialWillBeDue(13), isTrue);
+      expect(r.m.preloadInterstitial(13), PreloadState.started);
+      expect(r.m.preloadInterstitial(13), PreloadState.loading); // son iki okta iki kez çağrılsa da tek yükleme
+      expect(r.p.iStarts, 1);
+      r.p.iLoading = false;
+      r.p.interstitialOk = true;
+      expect(r.m.preloadInterstitial(13), PreloadState.ready);
+      expect(r.p.iStarts, 1);
+    });
+
+    test('geçiş: reklamsız / çevrimdışı / platform yok → atlanır; 3 dk aralığı gösterim anında bakılır', () async {
+      final Rig a = Rig()..ads.since = 2;
+      a.ads
+        ..adFree = true
+        ..test = false;
+      expect(a.m.preloadInterstitial(20), PreloadState.skip);
+      final Rig o = Rig()
+        ..ads.since = 2
+        ..p.isOnline = false;
+      expect(o.m.preloadInterstitial(20), PreloadState.skip);
+      final Rig n = Rig()
+        ..ads.since = 2
+        ..p.isAvailable = false;
+      expect(n.m.preloadInterstitial(20), PreloadState.skip);
+      // son reklamdan 1 dk sonra: yine de yüklenir (süre dolunca gösterilebilsin); gösterim kuralı değişmez
+      final Rig g = Rig()
+        ..ads.since = 2
+        ..p.interstitialOk = false;
+      g.ads.lastAt = g.t - min;
+      expect(g.m.preloadInterstitial(20), PreloadState.started);
+      g.m.onLevelComplete(20);
+      expect(g.m.interstitialDue(20), isFalse); // 3 dk dolmadı
+    });
+
+    test('yükleme önceden başlatma sayaç ve zamanı değiştirmez (reklam kuralı aynı)', () {
+      final Rig r = Rig()
+        ..ads.since = 2
+        ..p.interstitialOk = false;
+      r.m.preloadInterstitial(13);
+      r.m.preloadRewarded();
+      expect(r.ads.since, 2);
+      expect(r.ads.lastAt, 0);
+      expect(r.saves, 0);
+    });
+
+    test('rewardedLoading platformu yansıtır', () {
+      final Rig r = Rig();
+      expect(r.m.rewardedLoading, isFalse);
+      r.p.rLoading = true;
+      expect(r.m.rewardedLoading, isTrue);
+      expect((Rig()..p.isAvailable = false).m.rewardedLoading, isFalse);
+    });
+  });
+
+  // ------------------------------------------------------------------ v1.1: reklam gösterilirken duraklat (docs/15 §4)
+  group('reklam dinleyicisi (oyun döngüsü + ses duraklatma)', () {
+    test('geçiş reklamı: gösterimden ÖNCE true, kapanınca false; yalnızca durum değişince', () async {
+      final Rig r = Rig();
+      final List<bool> ev = <bool>[];
+      final List<bool> nativeCalledAtEvent = <bool>[];
+      r.m.addAdListener((bool a) {
+        ev.add(a);
+        nativeCalledAtEvent.add(r.p.calls.contains('interstitial'));
+      });
+      expect(r.m.isAdShowing, isFalse);
+      r.ads.since = 3;
+      expect(await r.m.continueAfterLevel(15), isTrue);
+      expect(ev, <bool>[true, false]);
+      // duraklatma yerel gösterim çağrısından ÖNCE; kapanış bildirimi ondan SONRA
+      expect(nativeCalledAtEvent, <bool>[false, true]);
+      expect(r.m.isAdShowing, isFalse);
+    });
+
+    test('reklam gösterilmezse (kural dışı) dinleyici çağrılmaz', () async {
+      final Rig r = Rig();
+      final List<bool> ev = <bool>[];
+      r.m.addAdListener(ev.add);
+      expect(await r.m.continueAfterLevel(5), isFalse); // seviye ≤ 12
+      r.p.interstitialOk = false;
+      r.ads.since = 3;
+      expect(await r.m.continueAfterLevel(15), isFalse); // hazır değil
+      expect(ev, isEmpty);
+    });
+
+    test('ödüllü reklam: true → false; ödül verilmese de takılı kalmaz', () async {
+      final Rig r = Rig();
+      final List<bool> ev = <bool>[];
+      r.m.addAdListener(ev.add);
+      expect(await r.m.showRewarded('life'), isTrue);
+      expect(ev, <bool>[true, false]);
+      r.p.rewardGiven = false;
+      expect(await r.m.showRewarded('life'), isFalse);
+      expect(ev, <bool>[true, false, true, false]);
+      expect(r.m.isAdShowing, isFalse);
+    });
+
+    test('gösterim hiç bitmezse nativeTimeout sonunda false (oyun donmaz)', () async {
+      final Rig r = Rig()..p.hangInterstitial = true;
+      final List<bool> ev = <bool>[];
+      r.m.addAdListener(ev.add);
+      r.ads.since = 3;
+      await r.m.continueAfterLevel(15);
+      expect(ev, <bool>[true, false]);
+      expect(r.m.isAdShowing, isFalse);
+    });
+
+    test('dinleyici kaldırılabilir; istisna atan dinleyici akışı bozmaz', () async {
+      final Rig r = Rig();
+      final List<bool> ev = <bool>[];
+      final Unsubscribe off = r.m.addAdListener(ev.add);
+      r.m.addAdListener((bool a) => throw StateError('boom'));
+      off();
+      expect(await r.m.showRewarded('life'), isTrue);
+      expect(ev, isEmpty);
     });
   });
 }

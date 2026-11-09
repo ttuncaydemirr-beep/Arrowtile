@@ -2,6 +2,8 @@
 // Düğmeler reklamın önceden yüklenmiş olmasına bağlı değildir; hazır değilse "Reklam yükleniyor…" penceresi açılır,
 // Monetization.watchRewarded yüklemeyi başlatır. Reklam yoksa yerelleştirilmiş toast gösterilir; test kimlikli/debug
 // derlemelerde AdMob hata kodu parantez içinde eklenir (neden yüklenmediğini görmek için).
+// v1.1 (docs/15 §4): ödüllü reklam oyun açılınca / can 1'e düşünce önceden yüklenir; "Reklam yükleniyor…" penceresi yalnızca gerçekten
+// bekleniyorsa ve bekleme [kLoadingOverlayDelay] (300 ms) süresini aşarsa görünür (hazır ya da çabuk gelen reklamda hiç açılmaz).
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
@@ -34,8 +36,11 @@ Future<bool> playRewarded(BuildContext context, String placement, {required void
   bool loadingDone = false;
   bool popQueued = false; // yükleme penceresi en fazla BİR kez kapatılır (ikinci pop alttaki ekranı kapatırdı)
   BuildContext? loadingCtx;
+  Timer? overlayTimer; // 300 ms eşiği: pencere yalnızca bekleme uzarsa açılır
   void closeLoading() {
     loadingDone = true;
+    overlayTimer?.cancel();
+    overlayTimer = null;
     final BuildContext? c = loadingCtx;
     loadingCtx = null;
     if (c != null && c.mounted && !popQueued) {
@@ -50,23 +55,27 @@ Future<bool> playRewarded(BuildContext context, String placement, {required void
       placement,
       onReward: onReward,
       onLoading: () {
-        if (!context.mounted) return;
-        unawaited(showSheet<void>(context, dismissible: false, builder: (BuildContext ctx) {
-          loadingCtx = ctx;
-          if (loadingDone && !popQueued) {
-            // yükleme pencere çizilmeden bitti: ilk karede kapat
-            popQueued = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (ctx.mounted) Navigator.of(ctx).pop();
-            });
-          }
-          final Palette pal = Palette.of(ctx);
-          return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-            const SizedBox(height: 4),
-            SizedBox(width: 36, height: 36, child: CircularProgressIndicator(strokeWidth: 4, color: pal.inkC)),
-            sheetText(ctx, loc.adsLoading, weight: FontWeight.w700),
-          ]);
-        }));
+        overlayTimer?.cancel();
+        overlayTimer = Timer(kLoadingOverlayDelay, () {
+          overlayTimer = null;
+          if (loadingDone || !context.mounted) return; // 300 ms içinde yüklendi / bitti: pencere hiç açılmaz
+          unawaited(showSheet<void>(context, dismissible: false, builder: (BuildContext ctx) {
+            loadingCtx = ctx;
+            if (loadingDone && !popQueued) {
+              // yükleme pencere çizilmeden bitti: ilk karede kapat
+              popQueued = true;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (ctx.mounted) Navigator.of(ctx).pop();
+              });
+            }
+            final Palette pal = Palette.of(ctx);
+            return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+              const SizedBox(height: 4),
+              SizedBox(width: 36, height: 36, child: CircularProgressIndicator(strokeWidth: 4, color: pal.inkC)),
+              sheetText(ctx, loc.adsLoading, weight: FontWeight.w700),
+            ]);
+          }));
+        });
       },
       onLoadingDone: closeLoading,
     );

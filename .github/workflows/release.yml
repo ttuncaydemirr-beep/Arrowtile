@@ -3,7 +3,7 @@ name: Release AAB (imzalı)
 # Yalnızca elle çalışır. Play Store'a yüklenecek imzalı AAB üretir.
 # Gerekli GitHub secrets (Ayarlar > Secrets and variables > Actions): docs/14-ci-imzali-derleme.md
 #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
-#   ADMOB_APP_ID, ADMOB_INTERSTITIAL_ID, ADMOB_REWARDED_ID
+#   ADMOB_APP_ID, ADMOB_INTERSTITIAL_ID, ADMOB_REWARDED_ID, ADMOB_BANNER_ID
 # Hiçbiri yoksa derleme bilerek durur: release'te test kimliğiyle/debug anahtarıyla paket üretilmez.
 
 on:
@@ -27,13 +27,14 @@ jobs:
       ADMOB_APP_ID: ${{ secrets.ADMOB_APP_ID }}
       ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
       ADMOB_REWARDED_ID: ${{ secrets.ADMOB_REWARDED_ID }}
+      ADMOB_BANNER_ID: ${{ secrets.ADMOB_BANNER_ID }}
     steps:
       - name: Secrets denetimi
         working-directory: ${{ github.workspace }}
         run: |
           missing=""
           for n in KS_B64:ANDROID_KEYSTORE_BASE64 KS_PASS:ANDROID_KEYSTORE_PASSWORD KEY_ALIAS:ANDROID_KEY_ALIAS KEY_PASS:ANDROID_KEY_PASSWORD \
-                   ADMOB_APP_ID:ADMOB_APP_ID ADMOB_INTERSTITIAL_ID:ADMOB_INTERSTITIAL_ID ADMOB_REWARDED_ID:ADMOB_REWARDED_ID; do
+                   ADMOB_APP_ID:ADMOB_APP_ID ADMOB_INTERSTITIAL_ID:ADMOB_INTERSTITIAL_ID ADMOB_REWARDED_ID:ADMOB_REWARDED_ID ADMOB_BANNER_ID:ADMOB_BANNER_ID; do
             var="${n%%:*}"; secret="${n##*:}"
             if [ -z "${!var}" ]; then missing="$missing $secret"; fi
           done
@@ -45,7 +46,8 @@ jobs:
           case "$ADMOB_APP_ID" in ca-app-pub-[0-9]*~[0-9]*) ;; *) echo "::error::ADMOB_APP_ID biçimi ca-app-pub-XXXX~YYYY olmalı (~ içerir)."; exit 1;; esac
           case "$ADMOB_INTERSTITIAL_ID" in ca-app-pub-[0-9]*/[0-9]*) ;; *) echo "::error::ADMOB_INTERSTITIAL_ID biçimi ca-app-pub-XXXX/YYYY olmalı (/ içerir)."; exit 1;; esac
           case "$ADMOB_REWARDED_ID" in ca-app-pub-[0-9]*/[0-9]*) ;; *) echo "::error::ADMOB_REWARDED_ID biçimi ca-app-pub-XXXX/YYYY olmalı (/ içerir)."; exit 1;; esac
-          for v in "$ADMOB_APP_ID" "$ADMOB_INTERSTITIAL_ID" "$ADMOB_REWARDED_ID"; do
+          case "$ADMOB_BANNER_ID" in ca-app-pub-[0-9]*/[0-9]*) ;; *) echo "::error::ADMOB_BANNER_ID biçimi ca-app-pub-XXXX/YYYY olmalı (/ içerir)."; exit 1;; esac
+          for v in "$ADMOB_APP_ID" "$ADMOB_INTERSTITIAL_ID" "$ADMOB_REWARDED_ID" "$ADMOB_BANNER_ID"; do
             case "$v" in ca-app-pub-3940256099942544*) echo "::error::Google TEST kimliği verilmiş (3940256099942544). Kendi AdMob kimliğinizi girin."; exit 1;; esac
           done
           case "$KEY_PASS$KS_PASS$KEY_ALIAS" in *\\*) echo "::error::Şifre/alias içinde ters eğik çizgi (\\) olmamalı (key.properties bozulur)."; exit 1;; esac
@@ -94,6 +96,9 @@ jobs:
           sub('lib/config/ads_config.dart',
               r"(static const String releaseRewardedId = ')[^']*(';)",
               os.environ['ADMOB_REWARDED_ID'], 'releaseRewardedId')
+          sub('lib/config/ads_config.dart',
+              r"(static const String releaseBannerId = ')[^']*(';)",
+              os.environ['ADMOB_BANNER_ID'], 'releaseBannerId')
           PY
 
       - run: flutter pub get

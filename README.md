@@ -57,8 +57,8 @@ Her başarılı `main` derlemesinden sonra **Releases → Deneme APK** altında 
 
 ### Play Store paketi (imzalı AAB)
 
-1. Yükleme anahtarını oluştur ve 7 secret'ı gir: [docs/14-ci-imzali-derleme.md](docs/14-ci-imzali-derleme.md)
-2. Her yüklemeden önce `flutter/arrowtile/pubspec.yaml` içindeki `version: 1.0.0+N` değerinde `N`'i (versionCode) bir artır.
+1. Yükleme anahtarını oluştur ve 8 secret'ı gir: [docs/14-ci-imzali-derleme.md](docs/14-ci-imzali-derleme.md)
+2. Her yüklemeden önce `flutter/arrowtile/pubspec.yaml` içindeki `version: 1.1.0+N` değerinde `N`'i (versionCode) bir artır.
 3. **Actions → Release AAB (imzalı) → Run workflow** → bitince **Artifacts → arrowtile-release-aab**.
 4. Play Console'a yükleme adımları ve form yanıtları: [docs/10-play-store-yukleme.md](docs/10-play-store-yukleme.md)
 
@@ -71,7 +71,7 @@ Her başarılı `main` derlemesinden sonra **Releases → Deneme APK** altında 
 
 - [ ] Settings → Pages kaynağını "GitHub Actions" yap ve gizlilik sayfası workflow'unu çalıştır
 - [ ] AdMob'da uygulama + 2 reklam birimi (geçiş, ödüllü) oluştur
-- [ ] Yükleme anahtarını oluştur, yedekle ve 7 secret'ı gir ([docs/14](docs/14-ci-imzali-derleme.md))
+- [ ] Yükleme anahtarını oluştur, yedekle ve 8 secret'ı gir ([docs/14](docs/14-ci-imzali-derleme.md))
 - [ ] İmzalı AAB'yi derle, Play Console'da uygulamayı oluştur, `remove_ads` ürününü tanımla
 - [ ] Kapalı test: 12 test kullanıcısı, 14 gün; ardından üretime yayın
 

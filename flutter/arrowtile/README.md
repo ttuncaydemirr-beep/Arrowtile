@@ -1,7 +1,7 @@
 # Arrowtile (Flutter)
 
 Süre yok, internetsiz ok bulmacası. Bu proje, web sürümünün (`../../game/`) **birebir aynı davranışlı** Flutter karşılığıdır:
-aynı kurallar, aynı 216 hazır seviye, aynı sonsuz seviye üretici (aynı tohum → aynı seviye), aynı günlük bulmaca, aynı ekonomi,
+aynı kurallar, aynı 200 hazır seviye (5.000 seviyeye kadar tasarlanmış, sonrası sonsuz), aynı belirlenimli seviye üretici (aynı tohum → aynı seviye), aynı günlük bulmaca, aynı ekonomi,
 aynı reklam kuralları, dört dil (Türkçe, İngilizce, Almanca, Arapça/RTL). Android uygulama kimliği: `com.arrowtile.puzzle`.
 
 > **Önemli — bu kod henüz hiç derlenmedi.** Teslimin hazırlandığı ortamda Flutter/Dart SDK yoktu ve indirilemiyordu.
@@ -25,8 +25,8 @@ flutter run              # bağlı telefonda / emülatörde debug (test reklamla
 flutter build appbundle --release   # Play'e yüklenecek imzalı AAB (önce §2)
 ```
 
-Çıktı: `build/app/outputs/bundle/release/app-release.aab`. Sürüm numarası `pubspec.yaml` içindeki `version: 1.0.0+2` satırındadır
-(`1.0.0` = versionName, `+2` = versionCode). Play'e her yüklemede `+N` kısmını 1 artırın.
+Çıktı: `build/app/outputs/bundle/release/app-release.aab`. Sürüm numarası `pubspec.yaml` içindeki `version: 1.1.0+4` satırındadır
+(`1.1.0` = versionName, `+4` = versionCode). Play'e her yüklemede `+N` kısmını 1 artırın.
 
 ### Android klasörü
 `android/` el ile hazırlandı (Flutter şablonuyla aynı yapı: AGP 9.3.1, Kotlin 2.4.20, Gradle 9.5.0, compileSdk/targetSdk 36,
@@ -65,7 +65,7 @@ imzalanır (`flutter run --release` çalışır) ama Play bu paketi **reddeder**
 | Ne | Nerede | Not |
 |---|---|---|
 | AdMob **uygulama** kimliği (`ca-app-pub-…~…`) | `android/app/src/main/res/values/ads.xml` → `admob_app_id` | release için. Debug, `src/debug/res/values/ads.xml` içindeki **test** kimliğini kullanır (değiştirmeyin). |
-| Geçiş + ödüllü **reklam birimi** kimlikleri (`ca-app-pub-…/…`) | `lib/config/ads_config.dart` → `releaseInterstitialId`, `releaseRewardedId` | yalnız release derlemesinde kullanılır; debug/profile her zaman Google test birimleridir. |
+| Geçiş + ödüllü + banner **reklam birimi** kimlikleri (`ca-app-pub-…/…`) | `lib/config/ads_config.dart` → `releaseInterstitialId`, `releaseRewardedId`, `releaseBannerId` | yalnız release derlemesinde kullanılır; debug/profile her zaman Google test birimleridir. |
 | Satın alma ürünü | Play Console'da `remove_ads` (tüketilmeyen); kod: `AdsConfig.removeAdsProductId` | kimlik koddakiyle birebir aynı olmalı. |
 | UMP (AB/BK onay formu) | AdMob > Gizlilik ve mesajlaşma'da GDPR mesajı oluşturup yayınlayın | emülatörde AEA'yı taklit için `ads_config.dart` → `umpDebugGeographyEea`, `umpTestDeviceId` (yalnız debug). |
 | Gizlilik politikası adresi | `lib/config/ads_config.dart` → `AppInfo.privacyPolicyUrl` | Play Console'a girilen adresle aynı olmalı. |
@@ -80,12 +80,13 @@ Ayrıntılı Play Console adımları: `../../docs/10-play-store-yukleme.md` ("Fl
 | Dosya | Ne doğrular |
 |---|---|
 | `rng_test.dart` | RNG ve FNV özeti, **JS çıktısıyla bit bit aynı** (`test/golden/rng_golden.json`) |
-| `levelgen_golden_test.dart` | seviye **217, 229, 300, 313**: ok listesi JS ile birebir; `specFor/seedFor` |
-| `daily_test.dart` | **5 tarih** için günlük bulmaca JS ile birebir; seri/kupa kuralları |
+| `levelgen_golden_test.dart` | v1.1: `specFor/seedFor/sizeOfChapter`; seviye **4, 7, 9, 38, 201, 204, 207, 209** ok listesi JS ile birebir; rastgele örneklenmiş + sabit seçilmiş seviyelerde (1, 200, 201, her kademe, 1619, 5000) **`levelHash` == `tools/level-hashes.json`**; 5001+ altın özet; paket (200) özetleri |
+| `chapter_name_test.dart` | bölüm adları: 18 ad döngü + Roma rakamı, 4 dil (Arapça LRI/PDI) |
+| `daily_test.dart` | **7 tarih** için günlük bulmaca JS ile birebir; seri/kupa kuralları |
 | `engine_test.dart` | çözüm sırası, ipucu, renklendirme, dokunuş sonuçları (5 seviye × 5 oyun senaryosu) |
-| `solvable_test.dart` | 216 hazır seviyenin hepsi: yapı + çözülebilirlik + par + kademe |
+| `solvable_test.dart` | 200 hazır seviyenin hepsi: yapı + çözülebilirlik + par + kademe |
 | `economy_test.dart` | jeton ödülü, bölüm bonusu, günlük ödül, ipucu harcama, **kayıt onarımı/göçü** (`freeUndos`), yedek kodu (JS ile birebir) |
-| `ads_rules_test.dart` | reklam sıklığı, bölüm 1 reklamsız, 3 dk aralık, çevrimdışı, satın alma/geri yükleme, ödüllü, UMP (sahte saat + sahte platform) |
+| `ads_rules_test.dart` | reklam sıklığı, bölüm 1 reklamsız, 3 dk aralık, çevrimdışı, satın alma/geri yükleme, ödüllü, UMP (sahte saat + sahte platform); v1.1: **banner yalnızca menü/harita, adFree'de asla**, önceden yükleme (yinelenen yükleme yok), reklamda duraklatma dinleyicisi |
 | `l10n_test.dart` | ARB anahtar ve yer tutucu eşitliği (4 dil) |
 
 Altın dosyaları yeniden üretmek (web sürümü değişirse): proje kökünden `node tools/flutter/make-goldens.js`.
@@ -108,7 +109,7 @@ lib/
   state/                       AppController (ChangeNotifier), AppScope
   ui/                          tokens, board_painter (CustomPainter), widgets, screens/
   l10n/                        app_{tr,en,de,ar}.arb  (+ gen-l10n çıktısı)
-  data/levels.json             216 hazır seviye
+  data/levels.json             200 hazır seviye
 assets/sfx/*.wav               audio.js sentezinden render edilmiş sesler
 assets/images/icon.png         menü logosu
 android/                       Android projesi (com.arrowtile.puzzle)

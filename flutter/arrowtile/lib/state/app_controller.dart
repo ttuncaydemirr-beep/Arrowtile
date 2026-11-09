@@ -43,6 +43,8 @@ class AppController extends ChangeNotifier {
     haptics.enabled = save.vibration;
     platform = FlutterAdsPlatform(billing: billing, onChanged: notifyListeners, inGame: () => _gameDepth > 0);
     mon = Monetization(platform: platform, getAds: () => save.ads, persist: persist);
+    // docs/15 §4: tam ekran reklam gösterilirken ses duraklar (oyun ekranı ayrıca animasyon döngüsünü duraklatır)
+    mon.addAdListener((bool active) => sfx.setHeld(active));
     billing.onOwnedChanged = (bool owned) {
       if (owned) {
         save.ads.adFree = true;

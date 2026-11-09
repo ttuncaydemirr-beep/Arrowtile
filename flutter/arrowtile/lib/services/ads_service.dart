@@ -6,6 +6,9 @@
 //  - Ödüllü reklam DOKUNUŞTA da yüklenebilir ([ensureRewardedLoaded]): hazır değilse yükleme (bekleme süresi yok sayılarak)
 //    başlatılır; yüklendi/başarısız/zaman aşımında tamamlanır. Son hata kodu [lastRewardedErrorCode] ile okunur.
 //  - `_showing` her yolda (kapanış, hata, istisna, bekçi zamanlayıcısı) sıfırlanır; Completer'lar her zaman tamamlanır.
+//  - Önceden yükleme (docs/15 §4): [preloadRewarded] / [preloadInterstitial] hazırsa ya da yükleniyorsa YENİ yükleme başlatmaz;
+//    ödüllü reklam dokunuşta istenirse sürmekte olan yüklemeye katılır ([ensureRewardedLoaded] → [_loadRewarded] yüklüyorsa çıkar).
+//  - Banner (docs/15 §3): bu sınıf yalnızca "SDK hazır mı" ([sdkReady]) bilgisini verir; banner widget'ı ui/ad_banner.dart içindedir.
 //  - İçerik derecesi PG (genel kitle; çocuklara yönelik değil — docs/10 "Hedef kitle").
 import 'dart:async';
 import 'dart:io' show InternetAddress;
@@ -202,6 +205,7 @@ class FlutterAdsPlatform implements AdsPlatform {
       _log('MobileAds initialized');
       _loadInterstitial();
       _loadRewarded();
+      onChanged?.call(); // banner (menü/harita) artık istenebilir
     } catch (e) {
       _log('MobileAds.initialize: $e');
       _started = false;
@@ -267,6 +271,32 @@ class FlutterAdsPlatform implements AdsPlatform {
     final bool ok = _sdkReady && _rewarded != null && !_expired(_rewardedAt);
     if (!ok && _sdkReady) _loadRewarded();
     return ok;
+  }
+
+  @override
+  bool get sdkReady => _sdkReady && !_disposed;
+
+  @override
+  bool get rewardedLoading => _loadingR && _now() - _loadStartR < _loadStaleMs;
+
+  @override
+  PreloadState preloadRewarded() {
+    if (!_sdkReady || _disposed) return PreloadState.skip;
+    if (_rewarded != null && !_expired(_rewardedAt)) return PreloadState.ready;
+    if (rewardedLoading) return PreloadState.loading; // zaten yükleniyor: ikinci yükleme başlatılmaz
+    if (_now() < _nextR) return PreloadState.wait; // yakın zamanda başarısız oldu
+    _loadRewarded();
+    return _loadingR ? PreloadState.started : PreloadState.wait;
+  }
+
+  @override
+  PreloadState preloadInterstitial() {
+    if (!_sdkReady || _disposed) return PreloadState.skip;
+    if (_interstitial != null && !_expired(_interstitialAt)) return PreloadState.ready;
+    if (_loadingI) return PreloadState.loading;
+    if (_now() < _nextI) return PreloadState.wait;
+    _loadInterstitial();
+    return _loadingI ? PreloadState.started : PreloadState.wait;
   }
 
   @override
