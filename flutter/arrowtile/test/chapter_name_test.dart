@@ -20,11 +20,11 @@ void main() {
       for (final int c in <int>[1, 2, 17, 18, 19, 20, 36, 37, 54, 55, 500, 501, 10000]) {
         final String base = arb['mapChapter${(c - 1) % 18 + 1}'] as String;
         final int cyc = (c - 1) ~/ 18 + 1;
-        final String want = cyc > 1 ? '$base ⁦${roman(cyc)}⁩' : base;
+        final String want = cyc > 1 ? '$base \u2066${roman(cyc)}\u2069' : base;
         expect(chapterName(loc, c), want, reason: 'bölüm $c');
       }
-      expect(chapterName(loc, 18).contains('⁦'), isFalse); // ilk turda rakam yok
-      expect(chapterName(loc, 19).endsWith('II⁩'), isTrue);
+      expect(chapterName(loc, 18).contains('\u2066'), isFalse); // ilk turda rakam yok
+      expect(chapterName(loc, 19).endsWith('II\u2069'), isTrue);
       expect(chapterName(loc, 1) != chapterName(loc, 2), isTrue);
     });
   }
