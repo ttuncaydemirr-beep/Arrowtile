@@ -6,123 +6,8 @@ import 'package:arrowtile/core/ads_rules.dart';
 import 'package:arrowtile/core/save_data.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'fake_ads_platform.dart';
 import 'helpers.dart';
-
-class FakePlatform implements AdsPlatform {
-  bool isAvailable = true;
-  bool isOnline = true;
-  bool owns = false;
-  bool interstitialOk = true;
-  bool rewardedOk = true;
-  bool rewardGiven = true; // false: ödül hak edilmeden kapanır
-  bool hangInterstitial = false;
-  bool hangRewardedShow = false;
-  bool hangLoad = false; // ensureRewardedLoaded hiç tamamlanmaz (platform da takılırsa Monetization takılmamalı)
-  bool loadOk = true; // ensureRewardedLoaded sonucu
-  bool throwOnLoad = false;
-  bool expireAfterLoad = false; // yükleme başarılı ama gösterimden önce süresi doldu
-  String? errCode;
-  bool hangPurchase = false;
-  PurchaseOutcome purchaseOutcome = PurchaseOutcome.purchased;
-  bool? restoreOwned = false;
-  bool privacyRequired = false;
-  final List<String> calls = <String>[];
-
-  @override
-  bool get available => isAvailable;
-  @override
-  bool get online => isOnline;
-  @override
-  bool get ownsRemoveAds => owns;
-  @override
-  bool get interstitialReady => interstitialOk;
-  @override
-  bool get rewardedReady => rewardedOk;
-  @override
-  bool get sdkReady => sdk;
-  @override
-  bool get rewardedLoading => rLoading;
-
-  // v1.1 (docs/15 §4): önceden yükleme — sahte platform "hazırsa/yükleniyorsa yenisini başlatma" kuralını uygular
-  bool sdk = true;
-  bool rLoading = false;
-  bool iLoading = false;
-  int rStarts = 0;
-  int iStarts = 0;
-  @override
-  PreloadState preloadRewarded() {
-    calls.add('preloadR');
-    if (!sdk) return PreloadState.skip;
-    if (rewardedOk) return PreloadState.ready;
-    if (rLoading) return PreloadState.loading;
-    rLoading = true;
-    rStarts++;
-    return PreloadState.started;
-  }
-
-  @override
-  PreloadState preloadInterstitial() {
-    calls.add('preloadI');
-    if (!sdk) return PreloadState.skip;
-    if (interstitialOk) return PreloadState.ready;
-    if (iLoading) return PreloadState.loading;
-    iLoading = true;
-    iStarts++;
-    return PreloadState.started;
-  }
-
-  @override
-  Future<bool> ensureRewardedLoaded({Duration timeout = kRewardedLoadTimeout}) async {
-    calls.add('ensure');
-    if (throwOnLoad) throw StateError('boom');
-    if (hangLoad) return Completer<bool>().future;
-    if (loadOk) {
-      rewardedOk = !expireAfterLoad;
-      return true;
-    }
-    errCode = '3';
-    return false;
-  }
-
-  @override
-  String? get lastRewardedErrorCode => errCode;
-  @override
-  String? get lastRewardedErrorMessage => errCode == null ? null : 'Ad failed to load';
-
-  @override
-  Future<bool> showInterstitial() {
-    calls.add('interstitial');
-    if (hangInterstitial) return Completer<bool>().future;
-    return Future<bool>.value(true);
-  }
-
-  @override
-  Future<void> showRewarded(String placement, void Function() onReward) async {
-    calls.add('rewarded:$placement');
-    if (hangRewardedShow) return Completer<void>().future;
-    if (rewardGiven) onReward();
-  }
-
-  @override
-  Future<PurchaseOutcome> purchaseRemoveAds() {
-    calls.add('purchase');
-    if (hangPurchase) return Completer<PurchaseOutcome>().future;
-    return Future<PurchaseOutcome>.value(purchaseOutcome);
-  }
-
-  @override
-  Future<bool?> restorePurchases() {
-    calls.add('restore');
-    return Future<bool?>.value(restoreOwned);
-  }
-
-  @override
-  bool get privacyOptionsRequired => privacyRequired;
-  @override
-  Future<void> showPrivacyOptions() async {
-    calls.add('privacy');
-  }
-}
 
 class Rig {
   final FakePlatform p = FakePlatform();
@@ -130,8 +15,14 @@ class Rig {
   int t = 1000000;
   int saves = 0;
   late final Monetization m;
-  Rig({Duration timeout = const Duration(milliseconds: 40)}) {
-    m = Monetization(platform: p, getAds: () => ads, persist: () => saves++, now: () => t, nativeTimeout: timeout);
+  Rig({Duration timeout = const Duration(milliseconds: 40), Duration? showTimeout}) {
+    m = Monetization(
+        platform: p,
+        getAds: () => ads,
+        persist: () => saves++,
+        now: () => t,
+        nativeTimeout: timeout,
+        showTimeout: showTimeout ?? timeout);
   }
   Future<bool> complete(int id) async {
     m.onLevelComplete(id);
@@ -636,6 +527,114 @@ void main() {
       off();
       expect(await r.m.showRewarded('life'), isTrue);
       expect(ev, isEmpty);
+    });
+  });
+
+  // docs/18 (1.1.1): seviye 15/16 → 17 geçişinde ilk geçiş reklamı denemesi ASLA oyunu tutmamalı.
+  group('geçiş reklamı denemesi sınırlı ve geri alınabilir (1.1.1)', () {
+    // seviye 13, 14, 15 tamamlandı → sayaç 3: ilk deneme
+    Rig armed({Duration native = const Duration(seconds: 5), Duration show = const Duration(milliseconds: 150)}) {
+      final Rig r = Rig(timeout: native, showTimeout: show);
+      r.m.onLevelComplete(13);
+      r.m.onLevelComplete(14);
+      r.m.onLevelComplete(15);
+      return r;
+    }
+
+    Future<(bool, int)> timed(Rig r) async {
+      final Stopwatch sw = Stopwatch()..start();
+      final bool shown = await r.m.continueAfterLevel(15);
+      return (shown, sw.elapsedMilliseconds);
+    }
+
+    List<bool> listen(Rig r) {
+      final List<bool> ev = <bool>[];
+      r.m.addAdListener(ev.add);
+      return ev;
+    }
+
+    test('doldurulamadı (no fill): anında false, platform gösterilmez, duraklatma hiç açılmaz, sayaç korunur', () async {
+      final Rig r = armed()..p.interstitialOk = false;
+      final List<bool> ev = listen(r);
+      final (bool shown, int ms) = await timed(r);
+      expect(shown, isFalse);
+      expect(ms, lessThan(100));
+      expect(r.p.calls, isNot(contains('interstitial')));
+      expect(ev, isEmpty);
+      expect(r.ads.since, 3);
+    });
+
+    test('geri çağrı HİÇ gelmez: gösterim süresi içinde false, duraklatma geri alınır', () async {
+      final Rig r = armed()..p.hangInterstitial = true;
+      final List<bool> ev = listen(r);
+      final (bool shown, int ms) = await timed(r);
+      expect(shown, isFalse);
+      expect(ms, lessThan(1500), reason: '90 sn beklememeli');
+      expect(ev, <bool>[true, false]);
+      expect(r.m.isAdShowing, isFalse);
+    });
+
+    test('gösterilemedi (onAdFailedToShow): false, duraklatma geri alınır', () async {
+      final Rig r = armed()..p.failToShow = true;
+      final List<bool> ev = listen(r);
+      final (bool shown, int ms) = await timed(r);
+      expect(shown, isFalse);
+      expect(ms, lessThan(500));
+      expect(ev, <bool>[true, false]);
+    });
+
+    test('platform senkron istisna fırlatır: false, duraklatma geri alınır', () async {
+      final Rig r = armed()..p.throwOnShow = true;
+      final List<bool> ev = listen(r);
+      expect(await r.m.continueAfterLevel(15), isFalse);
+      expect(ev, <bool>[true, false]);
+    });
+
+    test('yavaş yükleme/gösterim (süreden uzun, ekrana gelmez): atlanır; geç gelen sonuç hatasız yok sayılır', () async {
+      final Rig r = armed()..p.showAfter = const Duration(milliseconds: 600);
+      final List<bool> ev = listen(r);
+      final (bool shown, int ms) = await timed(r);
+      expect(shown, isFalse);
+      expect(ms, lessThan(450));
+      expect(ev, <bool>[true, false]);
+      await Future<void>.delayed(const Duration(milliseconds: 700)); // geç tamamlanma: ikinci tamamlama/istisna yok
+      expect(r.m.isAdShowing, isFalse);
+    });
+
+    test('reklam gerçekten ekrana geldiyse kapanışı beklenir (oyuncu izliyor), sonra true', () async {
+      final Rig r = armed()
+        ..p.showAfter = const Duration(milliseconds: 500)
+        ..p.appearsOnScreen = true;
+      final List<bool> ev = listen(r);
+      final (bool shown, int ms) = await timed(r);
+      expect(shown, isTrue);
+      expect(ms, greaterThanOrEqualTo(450), reason: 'ekrandaki reklam 150 ms gösterim süresinde kesilmemeli');
+      expect(ev, <bool>[true, false]);
+    });
+
+    test('ekrandaki reklam kapanış olayı hiç göndermezse nativeTimeout ile biter', () async {
+      final Rig r = armed(native: const Duration(milliseconds: 400))
+        ..p.hangInterstitial = true
+        ..p.onScreen = true;
+      final List<bool> ev = listen(r);
+      final (bool shown, int ms) = await timed(r);
+      expect(shown, isFalse);
+      expect(ms, greaterThanOrEqualTo(350));
+      expect(ms, lessThan(1500));
+      expect(ev, <bool>[true, false]);
+    });
+
+    test('art arda iki seviye sonu denemesi: sayaç ve duraklatma dengeli kalır', () async {
+      final Rig r = armed()..p.hangInterstitial = true;
+      final List<bool> ev = listen(r);
+      expect(await r.m.continueAfterLevel(15), isFalse);
+      r.t += 4 * min;
+      r.m.onLevelComplete(16);
+      r.m.onLevelComplete(17);
+      r.m.onLevelComplete(18);
+      expect(await r.m.continueAfterLevel(18), isFalse);
+      expect(ev, <bool>[true, false, true, false]);
+      expect(r.m.isAdShowing, isFalse);
     });
   });
 }

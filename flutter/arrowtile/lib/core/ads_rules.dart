@@ -30,7 +30,10 @@ typedef Unsubscribe = void Function();
 const int kFreeUntilLevel = 12;
 const int kEveryLevels = 3;
 const int kMinGapMs = 3 * 60 * 1000;
-const Duration kNativeTimeout = Duration(seconds: 90);
+const Duration kNativeTimeout = Duration(seconds: 90); // reklam EKRANDAYKEN (oyuncu izlerken) üst sınır
+/// 1.1.1 (docs/18): gösterim denemesi bu süre içinde "ekranda" olmazsa (yüklenmedi / gösterilemedi / geri çağrı gelmedi)
+/// sessizce atlanır, oyun sonraki seviyeye devam eder. 90 sn'lik bekleme donma gibi görünüyordu.
+const Duration kInterstitialShowTimeout = Duration(seconds: 3);
 const Duration kRewardedLoadTimeout = Duration(seconds: 10); // dokunuşta ödüllü reklam yükleme bekleme sınırı
 const String kProductRemoveAds = 'remove_ads';
 
@@ -99,6 +102,10 @@ abstract class AdsPlatform {
   /// Geçiş reklamını gösterir; reklam kapanınca true, gösterilemezse/başarısızsa false döner.
   Future<bool> showInterstitial();
 
+  /// Geçiş reklamı şu an gerçekten ekranda mı (SDK "gösterildi" olayı geldi, henüz kapanmadı)? [Monetization.continueAfterLevel]
+  /// bunu ancak gösterim denemesi [kInterstitialShowTimeout] içinde ekrana gelmediyse "atla" kararı için kullanır.
+  bool get interstitialOnScreen;
+
   /// Ödüllü reklamı gösterir; ödül hak edilince [onReward] çağrılır; reklam kapanınca Future tamamlanır.
   Future<void> showRewarded(String placement, void Function() onReward);
 
@@ -155,12 +162,16 @@ class Monetization {
   final int Function() now;
   final Duration nativeTimeout;
 
+  /// Geçiş reklamı gösterim denemesinin ekrana gelmesi için bekleme sınırı (docs/18).
+  final Duration showTimeout;
+
   Monetization({
     required this.platform,
     required this.getAds,
     required this.persist,
     int Function()? now,
     this.nativeTimeout = kNativeTimeout,
+    this.showTimeout = kInterstitialShowTimeout,
   }) : now = now ?? (() => DateTime.now().millisecondsSinceEpoch);
 
   bool get _bridge => platform.available;
@@ -257,20 +268,49 @@ class Monetization {
   }
 
   /// Seviye sonu ekranında oyuncu devam edince çağrılır. Reklam gösterilip kapandıysa true.
-  /// Her durumda biter (zaman aşımı korumalı); oyun asla takılmaz.
+  /// Her durumda biter; oyun asla takılmaz (docs/18):
+  ///  - Reklam hazır değilse hemen false.
+  ///  - Gösterim denemesi [showTimeout] içinde ekrana gelmezse (geri çağrı hiç gelmedi / yavaş) false: sessizce devam.
+  ///  - Reklam ekrana geldiyse kapanışı en çok [nativeTimeout] bekler.
+  ///  - [_adState] (ticker + ses duraklatma) her yolda `finally` ile geri alınır; tamamlayıcı tam bir kez tamamlanır.
   Future<bool> continueAfterLevel(int levelId) async {
     if (!interstitialDue(levelId)) return false;
-    if (!platform.interstitialReady) return false; // doldurulamadı: hemen devam, sayaç sıfırlanmaz
+    bool ready = false;
+    try {
+      ready = platform.interstitialReady;
+    } catch (_) {
+      ready = false;
+    }
+    if (!ready) return false; // doldurulamadı: hemen devam, sayaç sıfırlanmaz
     final AdsState a = getAds();
     a.since = 0;
     a.lastAt = now();
     persist();
+    final Completer<bool> done = Completer<bool>();
+    void finish(bool v) {
+      if (!done.isCompleted) done.complete(v);
+    }
+
+    Timer? preTimer;
+    Timer? capTimer;
     _adState(true); // yerel çağrıdan ÖNCE duraklat: reklam açılırken oyun döngüsü/ses çalışmaya devam etmesin
     try {
-      return await platform.showInterstitial().timeout(nativeTimeout, onTimeout: () => false);
+      final Duration pre = showTimeout < nativeTimeout ? showTimeout : nativeTimeout;
+      preTimer = Timer(pre, () {
+        if (!platform.interstitialOnScreen) finish(false); // ekrana gelmedi: atla
+      });
+      capTimer = Timer(nativeTimeout, () => finish(false));
+      try {
+        platform.showInterstitial().then<void>(finish, onError: (Object _) => finish(false));
+      } catch (_) {
+        finish(false);
+      }
+      return await done.future;
     } catch (_) {
       return false;
     } finally {
+      preTimer?.cancel();
+      capTimer?.cancel();
       _adState(false);
     }
   }
@@ -323,6 +363,11 @@ class Monetization {
     }
     final bool rewarded = await showRewarded(placement, onReward: onReward);
     if (rewarded) return const RewardedResult(RewardedOutcome.rewarded);
+    // gösterim hiç başlamadıysa (başarısız / zaman aşımı) "kapandı" değil "reklam yok" sayılır (docs/18)
+    final String? showErr = platform.lastRewardedErrorCode;
+    if (showErr != null && showErr.startsWith('show_')) {
+      return RewardedResult(RewardedOutcome.unavailable, errorCode: showErr);
+    }
     return const RewardedResult(RewardedOutcome.closed);
   }
 

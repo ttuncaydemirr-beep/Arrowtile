@@ -11,6 +11,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
+import '../../config/ads_config.dart';
 import '../../core/daily.dart' as dl;
 import '../../core/economy.dart' as eco;
 import '../../core/engine.dart';
@@ -108,15 +109,43 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     if (!lv.isDaily) app.prefetchNext(lv.id);
     // v1.3: ilk kıvrımlı ok (seviye 4) tek cümlelik baloncukla tanıtılır; bir kez
     if (tut == null && !lv.isDaily && !app.hasTip('curve_tip') && lv.arrows.any(isCurved)) curveTip = true;
+    if (AdsConfig.autoPlayOn && !lv.isDaily) _startAutoPlay();
     // oyun ekranı açılınca ödüllü reklam önceden yüklenir (docs/15 §4); hazırsa/yükleniyorsa yenisi başlatılmaz
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) app.mon.preloadRewarded();
     });
   }
 
+  // ---------------------------------------------------------------- otomatik oynatma (yalnızca debug; docs/18)
+  Timer? _autoTimer;
+
+  /// `AUTOPLAY_FROM` / test: seviyeyi kendiliğinden çözer; seviye sonunda "Sonraki"ne basılır ([_EndSheetState]).
+  void _startAutoPlay() {
+    app.markTip('aim_suggest'); // "önce seç" önerisi penceresi otomatik oyunu engellemesin
+    debugPrint('AUTOPLAY: level ${lv.id} opened');
+    _autoTimer = Timer.periodic(const Duration(milliseconds: 160), (Timer t) {
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
+      if (_lastSize == Size.zero || _locked || _modalOpen || g.isWon || g.isDead) return;
+      final int i = g.hint();
+      if (i >= 0) _tapArrow(i);
+    });
+  }
+
+  /// Test: animasyon döngüsü şu an çalışıyor mu / reklam bayrağı takılı mı.
+  @visibleForTesting
+  bool get debugTickerActive => _ticker.isActive;
+  @visibleForTesting
+  bool get debugAdPaused => _adPause;
+  @visibleForTesting
+  int get debugRemaining => g.remaining();
+
   /// Reklam açılınca ticker durur (ses AppController'da tutulur); kapanınca tahta yeniden çizilir ve döngü sürer.
   void _onAdState(bool active) {
     _adPause = active;
+    _resetPointers();
     if (!mounted) return;
     if (active) {
       if (_ticker.isActive) _ticker.stop();
@@ -128,6 +157,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
 
   @override
   void dispose() {
+    _autoTimer?.cancel();
     _unsubAd?.call();
     _unsubAd = null;
     WidgetsBinding.instance.removeObserver(this);
@@ -172,6 +202,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   /// Uygulama öne geldi: yüzey yeniden oluşmuş olabilir → tahtayı yeniden çiz, animasyon döngüsünü canlandır,
   /// bekleyen duraklatmayı (varsa) şimdi aç.
   void _onForeground() {
+    _resetPointers();
+    if (_adPause && !app.mon.isAdShowing) _adPause = false; // bayat "reklam gösteriliyor" bayrağı
     _repaint.ping();
     if (model.anims.isNotEmpty || model.shake != null || model.hintIdx >= 0 || model.flashIds.isNotEmpty) _kick();
     setState(() {});
@@ -208,8 +240,21 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   }
 
   void _kick() {
-    if (_adPause) return; // reklam gösteriliyor: döngü duraklar, reklam kapanınca _onAdState sürdürür
+    // reklam gösteriliyor: döngü duraklar, reklam kapanınca _onAdState sürdürür. 1.1.1: bayrak takılı kalmış olabilir
+    // (reklam bitti ama olay bu ekrana ulaşmadı) — gerçek durum Monetization'dan okunur; çıkış animasyonu bitişi
+    // (kazanma) ticker'a bağlı olduğundan ticker asla bayat bir bayrakla kapalı kalmamalı.
+    if (_adPause) {
+      if (app.mon.isAdShowing) return;
+      _adPause = false;
+    }
     if (!_ticker.isActive) _ticker.start();
+  }
+
+  /// Basılı işaretçi kayıtlarını sıfırlar: arka plana gitme / reklam / pencere sırasında 'up' olayı kaçarsa bayat işaretçi kalır,
+  /// sonraki tek parmak dokunuşu "iki parmak" (pinch) sanılıp yutulurdu (1.1.1, dokunma bulgusu).
+  void _resetPointers() {
+    ptrs.clear();
+    gest = null;
   }
 
   bool get _locked => busy || model.nowMs < lockUntil;
@@ -598,22 +643,32 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         levelId: id,
         allDone: id == kDesigned, // 5.000 seviye bitti: sonsuz bölümler başlıyor
         onNext: () async {
-          await app.mon.continueAfterLevel(id);
+          await _adThenContinue(id);
           if (ctx.mounted) Navigator.of(ctx).pop();
           if (mounted) unawaited(startLevel(context, id + 1, replace: true));
         },
         onReplay: () async {
-          await app.mon.continueAfterLevel(id);
+          await _adThenContinue(id);
           if (ctx.mounted) Navigator.of(ctx).pop();
           if (mounted) unawaited(startLevel(context, id, replace: true));
         },
         onMap: () async {
-          await app.mon.continueAfterLevel(id);
+          await _adThenContinue(id);
           if (ctx.mounted) Navigator.of(ctx).pop();
           if (mounted) goToMap(context);
         },
       );
     });
+  }
+
+  /// Seviye sonu "devam" adımında geçiş reklamı denemesi. HİÇBİR yolda istisna fırlatmaz ve [Monetization.continueAfterLevel]'in
+  /// sınırlarına ek olarak sert bir üst sınırla biter: reklam ne olursa olsun sonraki ekran açılır (docs/18).
+  Future<void> _adThenContinue(int id) async {
+    try {
+      await app.mon.continueAfterLevel(id).timeout(app.mon.nativeTimeout + const Duration(seconds: 2), onTimeout: () => false);
+    } catch (_) {
+      // yut: oyun devam eder
+    }
   }
 
   Future<void> _showDailyEnd(int stars, bool first) async {
@@ -1235,12 +1290,33 @@ class _EndSheet extends StatefulWidget {
 
 class _EndSheetState extends State<_EndSheet> {
   bool _going = false;
+  Timer? _autoNext;
+
+  @override
+  void initState() {
+    super.initState();
+    // docs/18 otomatik oynatma (yalnızca debug): kısa süre sonra "Sonraki"ne bas
+    if (AdsConfig.autoPlayOn && widget.levelId < kMaxLevel) {
+      _autoNext = Timer(const Duration(milliseconds: 900), () {
+        if (mounted) _go(widget.onNext);
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _autoNext?.cancel();
+    super.dispose();
+  }
 
   /// Oyuncu devam edince (ve yalnızca o zaman) geçiş reklamı kuralları değerlendirilir (core/ads_rules.dart).
   void _go(Future<void> Function() f) {
     if (_going) return;
     setState(() => _going = true);
-    unawaited(f());
+    // 1.1.1: f herhangi bir nedenle istisna fırlatırsa düğmeler kilitli kalmasın (pencere kapanmadıysa yeniden etkinleşir)
+    unawaited(f().catchError((Object _) {
+      if (mounted) setState(() => _going = false); // yalnızca hata: normal bitişte pencere zaten kapanır (çift dokunuş yok)
+    }));
   }
 
   @override

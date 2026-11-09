@@ -22,9 +22,25 @@ class AdsConfig {
   static const String releaseRewardedId = 'ca-app-pub-3940256099942544/5224354917';
   static const String releaseBannerId = 'ca-app-pub-3940256099942544/6300978111';
 
-  static String get interstitialId => kReleaseMode ? releaseInterstitialId : testInterstitialId;
-  static String get rewardedId => kReleaseMode ? releaseRewardedId : testRewardedId;
-  static String get bannerId => kReleaseMode ? releaseBannerId : testBannerId;
+  /// `--dart-define=ADS_FORCE_INVALID=true` (yalnızca debug/profile): üç reklam birimi de geçersiz kimlikle istenir → "doldurulamadı"
+  /// (no fill / invalid request). Onaylanmamış AdMob hesabındaki (sınırlı reklam gösterimi) durumu CI emülatöründe taklit eder (docs/18).
+  static const bool adsForceInvalid = bool.fromEnvironment('ADS_FORCE_INVALID');
+  static const String invalidAdUnitId = 'ca-app-pub-0000000000000000/0000000000';
+  static bool get _forceInvalid => adsForceInvalid && !kReleaseMode;
+
+  static String get interstitialId =>
+      _forceInvalid ? invalidAdUnitId : (kReleaseMode ? releaseInterstitialId : testInterstitialId);
+  static String get rewardedId => _forceInvalid ? invalidAdUnitId : (kReleaseMode ? releaseRewardedId : testRewardedId);
+  static String get bannerId => _forceInvalid ? invalidAdUnitId : (kReleaseMode ? releaseBannerId : testBannerId);
+
+  /// `--dart-define=AUTOPLAY_FROM=13` (yalnızca debug/profile): kayıt o seviyeye kadar açılmış ve geçiş reklamı sayacı "bir seviye
+  /// sonra reklam zamanı" olarak tohumlanır; uygulama o seviyeyi kendiliğinden açıp oyunu çözer, seviye sonunda "Sonraki"ne basar
+  /// (donma testi, docs/18). 0 = kapalı. Logcat'te `AUTOPLAY: level N opened` satırları yazılır.
+  static const int autoPlayFrom = int.fromEnvironment('AUTOPLAY_FROM');
+
+  /// Birim testlerinde otomatik oynatmayı açar (yayın derlemesinde hiçbir etkisi yoktur).
+  static bool autoPlayTestOverride = false;
+  static bool get autoPlayOn => !kReleaseMode && (autoPlayFrom > 0 || autoPlayTestOverride);
 
   /// true iken release derlemesinde hâlâ Google test kimlikleri kullanılıyordur (gelir getirmez).
   static bool get usingTestIdsInRelease =>
@@ -44,7 +60,7 @@ class AdsConfig {
 
 class AppInfo {
   AppInfo._();
-  static const String version = '1.1.0'; // pubspec.yaml version: 1.1.0+4 ile aynı
+  static const String version = '1.1.1'; // pubspec.yaml version: 1.1.1+5 ile aynı
   static const String supportEmail = 'nilkaren.tuncay.demir@gmail.com';
   static const String privacyUpdated = '2026-11-09';
   // Herkese açık gizlilik politikası adresi (Play Console'a girilen adresle aynı). GitHub Pages: .github/workflows/pages.yml

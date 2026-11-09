@@ -40,6 +40,8 @@ class FlutterAdsPlatform implements AdsPlatform {
   static const int _closeDelayMs = 350; // ödül olayı nadiren kapanıştan sonra gelir
   static const int _showMaxMs = 5 * 60 * 1000; // bekçi: reklam olayı hiç gelmezse `_showing` en geç bu sürede sıfırlanır
   static const int _loadStaleMs = 30 * 1000; // SDK yükleme yanıtı hiç gelmezse yükleme bu süreden sonra "bayat" sayılır
+  static const int _showStartMs = 3000; // gösterim denemesi bu sürede ekrana gelmezse (olay yok) atlanır (docs/18)
+  static const int _resumeGraceMs = 1500; // uygulama öne döndü ama "kapandı" olayı gelmediyse bu süre sonra devam edilir
 
   bool _started = false;
   bool _sdkReady = false;
@@ -52,6 +54,11 @@ class FlutterAdsPlatform implements AdsPlatform {
   InterstitialAd? _interstitial;
   int _interstitialAt = 0;
   bool _loadingI = false;
+  int _loadStartI = 0;
+  int _genI = 0; // her yükleme denemesine yeni numara: bayat yanıtlar durumu bozmaz (1.1.1)
+  Timer? _retryTimerI;
+  bool _interstitialOnScreen = false;
+  Timer? _resumeGraceI;
   int _retryI = _retryMinMs;
   int _nextI = 0;
 
@@ -216,6 +223,7 @@ class FlutterAdsPlatform implements AdsPlatform {
   void onResume() {
     if (_disposed) return;
     unawaited(refreshOnline());
+    _armResumeGraceI();
     retryConsentForm(); // yalnızca ertelenmiş form; yeni form tetiklenmez
     if (!_sdkReady) {
       unawaited(_afterConsentUpdate());
@@ -230,6 +238,8 @@ class FlutterAdsPlatform implements AdsPlatform {
     _disposed = true;
     _endShow();
     _retryTimerR?.cancel();
+    _retryTimerI?.cancel();
+    _resumeGraceI?.cancel();
     _completeWaiters(false);
     _interstitial?.dispose();
     _rewarded?.dispose();
@@ -258,6 +268,21 @@ class FlutterAdsPlatform implements AdsPlatform {
 
   @override
   bool get ownsRemoveAds => billing.owned;
+
+  @override
+  bool get interstitialOnScreen => _interstitialOnScreen;
+
+  /// Geçiş reklamı ekranda iken uygulama öne döndüyse reklam kapanmıştır; "kapandı" olayı gelmezse kısa süre sonra bekleme biter.
+  void _armResumeGraceI() {
+    if (!_interstitialOnScreen || _onScreenFinish == null) return;
+    _resumeGraceI?.cancel();
+    _resumeGraceI = Timer(const Duration(milliseconds: _resumeGraceMs), () {
+      _log('interstitial: uygulama öne döndü ama kapanış olayı gelmedi; devam');
+      _onScreenFinish?.call(true);
+    });
+  }
+
+  void Function(bool shown)? _onScreenFinish;
 
   @override
   bool get interstitialReady {
@@ -293,7 +318,7 @@ class FlutterAdsPlatform implements AdsPlatform {
   PreloadState preloadInterstitial() {
     if (!_sdkReady || _disposed) return PreloadState.skip;
     if (_interstitial != null && !_expired(_interstitialAt)) return PreloadState.ready;
-    if (_loadingI) return PreloadState.loading;
+    if (_loadingI && _now() - _loadStartI < _loadStaleMs) return PreloadState.loading;
     if (_now() < _nextI) return PreloadState.wait;
     _loadInterstitial();
     return _loadingI ? PreloadState.started : PreloadState.wait;
@@ -305,32 +330,61 @@ class FlutterAdsPlatform implements AdsPlatform {
     if (ad == null || _showing || _disposed) return Future<bool>.value(false);
     _interstitial = null;
     final Completer<bool> c = Completer<bool>();
-    _beginShow(() {
-      if (!c.isCompleted) c.complete(false);
-    });
+    Timer? startTimer;
+    // Tamamlayıcı TAM BİR KEZ tamamlanır; her çıkış yolu buradan geçer (kapandı, gösterilemedi, istisna, ekrana gelmedi).
+    void finish(bool v) {
+      startTimer?.cancel();
+      startTimer = null;
+      _resumeGraceI?.cancel();
+      _resumeGraceI = null;
+      _interstitialOnScreen = false;
+      _onScreenFinish = null;
+      _endShow();
+      if (!c.isCompleted) c.complete(v);
+    }
+
+    _beginShow(() => finish(false));
+    _onScreenFinish = finish;
     ad.fullScreenContentCallback = FullScreenContentCallback<InterstitialAd>(
+      onAdShowedFullScreenContent: (InterstitialAd a) {
+        _interstitialOnScreen = true;
+        startTimer?.cancel(); // ekrana geldi: oyuncu izliyor, kapanışı bekle
+        startTimer = null;
+      },
+      onAdImpression: (InterstitialAd a) {
+        _interstitialOnScreen = true;
+        startTimer?.cancel();
+        startTimer = null;
+      },
       onAdDismissedFullScreenContent: (InterstitialAd a) {
-        _endShow();
         a.dispose();
-        if (!c.isCompleted) c.complete(true);
+        finish(true);
         _loadInterstitial();
       },
       onAdFailedToShowFullScreenContent: (InterstitialAd a, AdError error) {
-        _endShow();
         _log('interstitial show failed: ${error.message}');
         a.dispose();
-        if (!c.isCompleted) c.complete(false);
+        finish(false);
         _loadInterstitial();
       },
     );
+    // 3 sn içinde ekrana gelmezse: sessizce atla, reklamı bırak (geri çağrı gelmeyen SDK oyunu tutamaz)
+    startTimer = Timer(const Duration(milliseconds: _showStartMs), () {
+      if (_interstitialOnScreen || c.isCompleted) return;
+      _log('interstitial: ${_showStartMs} ms içinde ekrana gelmedi, atlandı');
+      try {
+        ad.dispose();
+      } catch (_) {}
+      finish(false);
+    });
     try {
       ad.show().catchError((Object e) {
-        _endShow();
-        if (!c.isCompleted) c.complete(false);
+        _log('interstitial show exception: $e');
+        finish(false);
       });
-    } catch (_) {
-      _endShow();
-      if (!c.isCompleted) c.complete(false);
+    } catch (e) {
+      _log('interstitial show exception: $e');
+      finish(false);
     }
     return c.future;
   }
@@ -343,12 +397,36 @@ class FlutterAdsPlatform implements AdsPlatform {
       return Future<void>.value();
     }
     _rewarded = null;
+    _lastRewardedErrorCode = null; // bu gösterimin sonucu: eski hata kodu "reklam yok" sayılmasın
+    _lastRewardedErrorMessage = null;
     final Completer<void> c = Completer<void>();
+    bool onScreen = false;
+    Timer? startTimer;
     _beginShow(() {
+      startTimer?.cancel();
       if (!c.isCompleted) c.complete();
     });
+    startTimer = Timer(const Duration(milliseconds: _showStartMs), () {
+      if (onScreen || c.isCompleted) return;
+      _setRewardedError('show_timeout', 'rewarded ad did not appear within ${_showStartMs} ms');
+      _log('rewarded: ekrana gelmedi, atlandı');
+      try {
+        ad.dispose();
+      } catch (_) {}
+      _endShow();
+      c.complete();
+    });
     ad.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
+      onAdShowedFullScreenContent: (RewardedAd a) {
+        onScreen = true;
+        startTimer?.cancel();
+      },
+      onAdImpression: (RewardedAd a) {
+        onScreen = true;
+        startTimer?.cancel();
+      },
       onAdDismissedFullScreenContent: (RewardedAd a) {
+        startTimer?.cancel();
         _endShow();
         a.dispose();
         // ödül olayı kapanıştan hemen sonra gelebilir: kapanışı kısa süre geciktir
@@ -358,6 +436,7 @@ class FlutterAdsPlatform implements AdsPlatform {
         _loadRewarded();
       },
       onAdFailedToShowFullScreenContent: (RewardedAd a, AdError error) {
+        startTimer?.cancel();
         _endShow();
         _setRewardedError('show_${error.code}', error.message);
         _log('rewarded show failed (${error.code}): ${error.message}');
@@ -368,11 +447,13 @@ class FlutterAdsPlatform implements AdsPlatform {
     );
     try {
       ad.show(onUserEarnedReward: (AdWithoutView a, RewardItem reward) => onReward()).catchError((Object e) {
+        startTimer?.cancel();
         _endShow();
         _setRewardedError('show_exception', '$e');
         if (!c.isCompleted) c.complete();
       });
     } catch (e) {
+      startTimer?.cancel();
       _endShow();
       _setRewardedError('show_exception', '$e');
       if (!c.isCompleted) c.complete();
@@ -470,39 +551,53 @@ class FlutterAdsPlatform implements AdsPlatform {
 
   // ------------------------------------------------------------------ yükleme
   void _loadInterstitial() {
-    if (!_sdkReady || _disposed || _loadingI) return;
+    if (!_sdkReady || _disposed) return;
+    if (_loadingI) {
+      if (_now() - _loadStartI < _loadStaleMs) return;
+      _log('interstitial load bayat sayıldı, yeniden deneniyor'); // SDK hiç yanıt vermediyse sonsuza dek "yükleniyor" kalmaz (1.1.1)
+    }
     if (_now() < _nextI) return; // başarısız yüklemeden sonra bekleme süresi
     if (_interstitial != null && !_expired(_interstitialAt)) return;
     _loadingI = true;
-    InterstitialAd.load(
-      adUnitId: AdsConfig.interstitialId,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (InterstitialAd ad) {
-          _loadingI = false;
-          if (_disposed) {
-            ad.dispose();
-            return;
-          }
-          _interstitial?.dispose();
-          _interstitial = ad;
-          _interstitialAt = _now();
-          _retryI = _retryMinMs;
-          _online = true;
-          _log('interstitial loaded');
-        },
-        onAdFailedToLoad: (LoadAdError error) {
-          _loadingI = false;
-          _interstitial = null;
-          _log('interstitial onAdFailedToLoad: Ad failed to load (${error.code}): ${error.message}');
-          if (error.code == 2) _online = false; // ERROR_CODE_NETWORK_ERROR
-          final int wait = _retryI;
-          _retryI = math.min(_retryMaxMs, _retryI * 2);
-          _nextI = _now() + wait;
-          Timer(Duration(milliseconds: wait), _loadInterstitial);
-        },
-      ),
-    );
+    _loadStartI = _now();
+    final int gen = ++_genI;
+    try {
+      InterstitialAd.load(
+        adUnitId: AdsConfig.interstitialId,
+        request: const AdRequest(),
+        adLoadCallback: InterstitialAdLoadCallback(
+          onAdLoaded: (InterstitialAd ad) {
+            if (gen == _genI) _loadingI = false;
+            if (_disposed) {
+              ad.dispose();
+              return;
+            }
+            _interstitial?.dispose();
+            _interstitial = ad;
+            _interstitialAt = _now();
+            _retryI = _retryMinMs;
+            _nextI = 0;
+            _online = true;
+            _log('interstitial loaded');
+          },
+          onAdFailedToLoad: (LoadAdError error) {
+            if (gen != _genI) return; // bayat yanıt
+            _loadingI = false;
+            _interstitial = null;
+            _log('interstitial onAdFailedToLoad: Ad failed to load (${error.code}): ${error.message}');
+            if (error.code == 2) _online = false; // ERROR_CODE_NETWORK_ERROR
+            final int wait = _retryI;
+            _retryI = math.min(_retryMaxMs, _retryI * 2);
+            _nextI = _now() + wait;
+            _retryTimerI?.cancel();
+            _retryTimerI = Timer(Duration(milliseconds: wait), _loadInterstitial);
+          },
+        ),
+      );
+    } catch (e) {
+      _loadingI = false;
+      _log('interstitial load exception: $e');
+    }
   }
 
   /// [force]: kullanıcı dokunuşu — başarısız yüklemeden sonraki bekleme süresi yok sayılır.

@@ -327,6 +327,44 @@ const MIN = 60 * 1000;
   to.M.continueAfterLevel(15, () => {}); to.advance(RULES.nativeTimeoutMs + 1);
   check('yerel taraf yanıt vermezse zaman aşımında duraklatma kalkar', JSON.stringify(ev4) === '[true,false]' && !to.M.isAdShowing());
 }
+// 19b) docs/18 (1.1.1): geçiş reklamı denemesi ASLA oyunu tutmaz (seviye 15/16 → 17 donma raporu)
+{
+  const arm = o => { const x = harness(o); for (let id = 13; id <= 15; id++) x.M.onLevelComplete(id); return x; };
+  // geri çağrı hiç gelmez: showStartMs sonra sessizce atlanır, cb tam bir kez, duraklatma geri alınır
+  const a = arm({ autoClose: false }); const ev = []; let n = 0, last = null;
+  a.M.setAdListener(x => ev.push(x));
+  a.M.continueAfterLevel(15, s => { n++; last = s; });
+  a.advance(RULES.showStartMs - 1);
+  check('geri çağrı yok: süre dolmadan henüz beklenir', n === 0 && a.M.isAdShowing());
+  a.advance(2);
+  check('geri çağrı yok: ' + RULES.showStartMs + ' ms sonra atlanır (cb bir kez, false), duraklatma kalkar, bekleyen yok',
+    n === 1 && last === false && JSON.stringify(ev) === '[true,false]' && !a.M.isAdShowing() && a.M._pending() === 0);
+  a.M.onNative(JSON.stringify({ id: 1, event: 'closed' })); a.advance(RULES.nativeTimeoutMs);
+  check('atlandıktan sonra gelen geç olay/zaman aşımı ikinci cb ya da duraklatma üretmez', n === 1 && JSON.stringify(ev) === '[true,false]');
+  // gösterildi olayı gelirse oyuncu izliyor: kısa süre dolunca kesilmez, kapanışı bekler
+  const b = arm({ autoClose: false }); const evb = []; let nb = 0, lb = null;
+  b.M.setAdListener(x => evb.push(x));
+  b.M.continueAfterLevel(15, s => { nb++; lb = s; });
+  b.M.onNative(JSON.stringify({ id: 1, event: 'shown' }));
+  b.advance(RULES.showStartMs + 1000);
+  check('"shown" geldi: izlenen reklam gösterim süresinde kesilmez', nb === 0 && b.M.isAdShowing());
+  b.M.onNative(JSON.stringify({ id: 1, event: 'closed' }));
+  check('"shown" sonrası "closed": cb true, duraklatma kalkar', nb === 1 && lb === true && JSON.stringify(evb) === '[true,false]');
+  // "shown" geldi ama "closed" hiç gelmez: nativeTimeout ile biter
+  const c = arm({ autoClose: false }); const evc = []; let nc = 0;
+  c.M.setAdListener(x => evc.push(x));
+  c.M.continueAfterLevel(15, () => { nc++; });
+  c.M.onNative(JSON.stringify({ id: 1, event: 'shown' })); c.advance(RULES.nativeTimeoutMs + 1);
+  check('"shown" geldi, "closed" gelmedi: nativeTimeout ile biter, duraklatma kalkar', nc === 1 && JSON.stringify(evc) === '[true,false]' && c.M._pending() === 0);
+  // gösterilemedi
+  const d = arm({ autoClose: false }); let nd = 0, ld = null;
+  d.M.continueAfterLevel(15, s => { nd++; ld = s; }); d.M.onNative(JSON.stringify({ id: 1, event: 'failed' })); d.advance(RULES.nativeTimeoutMs);
+  check('gösterilemedi (failed): cb bir kez false', nd === 1 && ld === false && !d.M.isAdShowing());
+  // köprü başlatamadı
+  const e = arm({ startOk: false }); let ne = 0;
+  e.M.continueAfterLevel(15, () => { ne++; }); e.advance(RULES.nativeTimeoutMs);
+  check('köprü başlatamadı: cb bir kez, duraklatma kalkar', ne === 1 && !e.M.isAdShowing());
+}
 // 20) Ekonomi (docs/15 §5): seviye çarpanları seviye bazında (1-3 ×1, 4-6 ×1,5, 7-8 ×2, 9-10 ×3), bölüm = 10 seviye, tek bölüm bonusu 150
 {
   const fs = require('fs'), vm = require('vm');

@@ -1,10 +1,15 @@
 // Arrowtile — app.dart: MaterialApp (dil, açık/koyu tema, RTL, toast katmanı, yaşam döngüsü).
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'config/ads_config.dart';
 import 'l10n/app_localizations.dart';
 import 'state/app_controller.dart';
 import 'state/app_scope.dart';
+import 'ui/flow.dart' show startLevel;
 import 'ui/screens/menu_screen.dart';
 import 'ui/tokens.dart';
 
@@ -21,7 +26,14 @@ class _ArrowtileAppState extends State<ArrowtileApp> with WidgetsBindingObserver
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     // ilk kare çizildikten sonra: ses, satın alma, onay formu (UMP), reklamlar
-    WidgetsBinding.instance.addPostFrameCallback((_) => widget.controller.startServices());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.controller.startServices();
+      // docs/18: AUTOPLAY_FROM tanımlıysa (yalnızca debug) o seviyeyi kendiliğinden aç
+      if (AdsConfig.autoPlayFrom > 0 && !kReleaseMode) {
+        final BuildContext? c = widget.controller.navKey.currentContext;
+        if (c != null) unawaited(startLevel(c, AdsConfig.autoPlayFrom));
+      }
+    });
   }
 
   @override

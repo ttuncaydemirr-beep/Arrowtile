@@ -3,11 +3,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart' show GlobalKey, NavigatorState;
 import 'package:flutter/services.dart' show rootBundle;
 
+import '../config/ads_config.dart';
 import '../core/ads_rules.dart';
 import '../core/daily.dart' as daily;
 import '../core/economy.dart' as eco;
@@ -38,11 +40,18 @@ class AppController extends ChangeNotifier {
     required this.save,
     required this.prebuilt,
     required this.billing,
+    AdsPlatform? adsPlatform,
+    Duration? showTimeout,
   }) {
     sfx.enabled = save.sound;
     haptics.enabled = save.vibration;
     platform = FlutterAdsPlatform(billing: billing, onChanged: notifyListeners, inGame: () => _gameDepth > 0);
-    mon = Monetization(platform: platform, getAds: () => save.ads, persist: persist);
+    // adsPlatform: yalnızca testlerde sahte platform enjekte eder (docs/18); normalde gerçek FlutterAdsPlatform
+    mon = Monetization(
+        platform: adsPlatform ?? platform,
+        getAds: () => save.ads,
+        persist: persist,
+        showTimeout: showTimeout ?? kInterstitialShowTimeout);
     // docs/15 §4: tam ekran reklam gösterilirken ses duraklar (oyun ekranı ayrıca animasyon döngüsünü duraklatır)
     mon.addAdListener((bool active) => sfx.setHeld(active));
     billing.onOwnedChanged = (bool owned) {
@@ -81,15 +90,22 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  static Future<AppController> create() async {
+  static Future<AppController> create({AdsPlatform? adsPlatform}) async {
     final SaveStore store = await SaveStore.open();
     final SaveData save = store.load(detectLang());
+    if (AdsConfig.autoPlayFrom > 0 && !kReleaseMode) {
+      // docs/18 donma testi tohumu: seviye açık, bir seviye sonra geçiş reklamı zamanı
+      save.unlocked = math.max(save.unlocked, AdsConfig.autoPlayFrom).clamp(1, kMaxLevel).toInt();
+      save.ads.since = kEveryLevels - 1;
+      save.ads.lastAt = 0;
+      save.ads.adFree = false;
+    }
     final List<dynamic> raw = jsonDecode(await rootBundle.loadString('lib/data/levels.json')) as List<dynamic>;
     final List<Level> prebuilt = <Level>[
       for (final dynamic j in raw) Level.fromJson(j as Map<String, dynamic>)
     ];
     final BillingService billing = BillingService(owned: save.ads.adFree && !save.ads.test);
-    return AppController._(store: store, save: save, prebuilt: prebuilt, billing: billing);
+    return AppController._(store: store, save: save, prebuilt: prebuilt, billing: billing, adsPlatform: adsPlatform);
   }
 
   /// İlk kare çizildikten sonra çağrılır: ses, satın alma, onay/reklam.

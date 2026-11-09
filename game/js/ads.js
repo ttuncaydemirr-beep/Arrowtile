@@ -40,7 +40,7 @@
 (function (root) {
   'use strict';
 
-  var RULES = { freeUntilLevel: 12, everyLevels: 3, minGapMs: 3 * 60 * 1000, nativeTimeoutMs: 90 * 1000, testRewardMs: 600, preloadRetryMs: 20 * 1000, loadingOverlayMs: 300 };
+  var RULES = { freeUntilLevel: 12, everyLevels: 3, minGapMs: 3 * 60 * 1000, nativeTimeoutMs: 90 * 1000, showStartMs: 3000, testRewardMs: 600, preloadRetryMs: 20 * 1000, loadingOverlayMs: 300 };
   var BANNER_SCREENS = ['menu', 'map']; // v1.1: banner yalnızca Ana menü ve Harita ekranlarında
   var PRODUCT_ID = 'remove_ads';
 
@@ -132,14 +132,27 @@
       var called = false;
       function go(shown) { if (called) return; called = true; try { cb && cb(!!shown); } catch (e) {} }
       if (!interstitialDue(levelId)) { go(false); return false; }
-      var open = true;
+      var open = true, shownEv = false, startTimer = null;
       function end() { if (open) { open = false; adState(false); } }
       adState(true); // yerel çağrıdan ÖNCE duraklat: reklam açılırken oyun döngüsü/ses çalışmaya devam etmesin
       var ok = request('showInterstitial', [], function (m) {
-        if (m.event === 'closed' || m.event === 'failed') { end(); iReady = false; go(m.event === 'closed'); return true; }
+        if (m.event === 'shown') { shownEv = true; if (startTimer !== null) { env.clearTimeout(startTimer); startTimer = null; } return false; } // ekrana geldi: oyuncu izliyor, kapanışı bekle
+        if (m.event === 'closed' || m.event === 'failed') {
+          if (startTimer !== null) { env.clearTimeout(startTimer); startTimer = null; }
+          end(); iReady = false; go(m.event === 'closed'); return true;
+        }
         return false;
       }, function () { end(); go(false); });
       if (!ok) { end(); go(false); return false; }
+      // docs/18 (1.1.1): gösterim denemesi showStartMs içinde ekrana gelmezse (olay yok / yavaş) SESSİZCE atla: oyun devam eder,
+      // duraklatma geri alınır. (Köprü 'shown' olayı göndermiyorsa da ~3 sn sonra devam edilir.) cb yine tam bir kez çağrılır.
+      var rid = seq;
+      startTimer = env.setTimeout(function () {
+        startTimer = null;
+        if (shownEv) return;
+        if (!finish(rid)) return; // zaten bitti
+        end(); iReady = false; go(false);
+      }, RULES.showStartMs);
       iReady = false; iLoading = false;
       var a = ads(); a.since = 0; a.lastAt = env.now(); persist();
       return true;

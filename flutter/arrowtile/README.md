@@ -25,8 +25,8 @@ flutter run              # bağlı telefonda / emülatörde debug (test reklamla
 flutter build appbundle --release   # Play'e yüklenecek imzalı AAB (önce §2)
 ```
 
-Çıktı: `build/app/outputs/bundle/release/app-release.aab`. Sürüm numarası `pubspec.yaml` içindeki `version: 1.1.0+4` satırındadır
-(`1.1.0` = versionName, `+4` = versionCode). Play'e her yüklemede `+N` kısmını 1 artırın.
+Çıktı: `build/app/outputs/bundle/release/app-release.aab`. Sürüm numarası `pubspec.yaml` içindeki `version: 1.1.1+5` satırındadır
+(`1.1.1` = versionName, `+5` = versionCode). Play'e her yüklemede `+N` kısmını 1 artırın.
 
 ### Android klasörü
 `android/` el ile hazırlandı (Flutter şablonuyla aynı yapı: AGP 9.3.1, Kotlin 2.4.20, Gradle 9.5.0, compileSdk/targetSdk 36,
