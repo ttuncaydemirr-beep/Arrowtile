@@ -48,7 +48,10 @@ void googleBannerLoader(
   unawaited(() async {
     AnchoredAdaptiveBannerAdSize? size;
     try {
-      size = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
+      // google_mobile_ads 9: önerilen "büyük sabitlenmiş uyarlanabilir" boyut; alınamazsa eski API ile bir kez daha dene
+      size = await AdSize.getLargeAnchoredAdaptiveBannerAdSize(width);
+      // ignore: deprecated_member_use
+      size ??= await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
     } catch (e) {
       onFailed(-2, 'adaptive size exception: $e');
       return;
