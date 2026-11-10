@@ -1,7 +1,6 @@
 // 1.1.5 (docs/22): HARİTA banner'ı menüyle AYNI paylaşılan yuva (AdBannerSlot) ve aynı düzen: tam genişlikte alt şerit, harita listesi
 // ŞERİDİN ÜSTÜNDE (Column + Expanded; Stack/Positioned örtüsü yok), yüklenmeden hiçbir şey bağlanmaz; menü haritanın altında kalınca
 // reklamını bırakır (aynı anda tek canlı banner).
-import 'package:arrowtile/core/ads_rules.dart';
 import 'package:arrowtile/l10n/app_localizations.dart';
 import 'package:arrowtile/state/app_controller.dart';
 import 'package:arrowtile/state/app_scope.dart';
@@ -24,6 +23,13 @@ Future<AppController> _boot(WidgetTester t, Widget home) async {
   t.view.devicePixelRatio = 1.0;
   addTearDown(t.view.resetPhysicalSize);
   addTearDown(t.view.resetDevicePixelRatio);
+  // test yazı tipi (Ahem) çok geniştir: harita bölüm başlığındaki metin taşması bu testin konusu değil
+  final FlutterExceptionHandler? prev = FlutterError.onError;
+  FlutterError.onError = (FlutterErrorDetails d) {
+    if (d.exceptionAsString().contains('overflowed')) return;
+    prev?.call(d);
+  };
+  addTearDown(() => FlutterError.onError = prev);
   SharedPreferences.setMockInitialValues(<String, Object>{});
   final AppController? made = await t.runAsync(() => AppController.create(adsPlatform: FakePlatform()));
   final AppController app = made!;
@@ -52,11 +58,9 @@ Future<void> _end(WidgetTester t) async {
 }
 
 void main() {
-  late List<AdScreen> requested;
   late int disposed;
   late int made;
   setUp(() {
-    requested = <AdScreen>[];
     disposed = 0;
     made = 0;
   });
