@@ -128,3 +128,9 @@ Diğer sayfalarda değişen bir şey yok: Hedef kitle 13+ kalır (13 yaş altı 
 - `level` parametresi yüksek kardinalitelidir (§2); standart GA4 raporlarında "(other)" görünür.
 - `duration_s` duvar saatidir: arka planda geçen süre de sayılır (3600 sn ile kırpılır). Ortalama yerine medyan kullanın.
 - Sürüm 1.1.2 AAB'si için `versionCode` 6; Play'e her yüklemede `+N` artırılmalıdır.
+
+## 8. CI sonucu
+- Koşu 42792309434 (commit 1bc2d22): TÜM işler yeşil — web doğrulamaları, Flutter analiz + test + deneme APK, debug APK'lar, `smoke`, `smoke-eea`, `smoke-ads` (nofill + fill), `firebase-apk` ve `smoke-firebase`.
+- `firebase-apk`: Firebase eklentileri (google-services 4.5.0 + crashlytics 3.0.8) AGP 9.3.1 + R8 ile sahte yapılandırmada release APK'yı sorunsuz derledi.
+- `smoke-firebase` günlüğü: `TELEMETRY: init ok` → ilk onay hesabı (durum bilinmiyor: hepsi kapalı) → UMP "onay gerekmiyor" yanıtından sonra `analytics=true, adStorage=true, adUserData=true, adPersonalization=false`; arka plana git/dön testi geçti, çökme yok.
+- İlk koşu (abf700e) yalnızca `smoke-firebase` işinde kırmızıydı: emülatör çalıştırıcısı çok satırlı `for` döngüsünü satır satır çalıştırdığı için betik `.github/scripts/smoke-firebase.sh` dosyasına alındı (1bc2d22). Uygulama kodunda hata yoktu.
