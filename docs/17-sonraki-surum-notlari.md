@@ -49,3 +49,6 @@ Yönetici analizi: asıl sebep küçük alan (seviye 10–30'da tahta 7x9–9x11
 Kullanıcı kararı (deneme önizlemesi istemedi):
 13. **Ayarlar'a "Ok rengi: Renkli / Tek renk" seçimi.** Tek renk: referans oyundaki gibi tema zeminine uygun tek renk ince çizgi (açık temada siyah, koyu temada açık). Varsayılan şimdilik Renkli (kararı yayında netleştir). 4 dil.
 14. **Ekranı (tahtayı) büyüt, okları incelt.** Tahta ekrana tek seferde sığmak zorunda değil: sağa-sola ve yukarı-aşağı kaydırılabilir (mevcut yakınlaştırma/kaydırma altyapısı; "sığdır" düğmesi kalır). Hücre en az ~16–20 px dokunulabilir kalmalı; isabet alanı hücre bazlı (§9). Tahta büyümesi çok daha hızlı olmalı (en büyük boyuta çok daha erken ulaşılsın) ve en büyük boyut referans oyuna yaklaşsın (≈28x45 civarı, doğrulayıcı/üretim süresiyle birlikte ayarlanacak). §4–§6 ve §12 ile tek iş.
+
+## 1.1.2 cihaz denemesi (10.11.2026, kullanıcı)
+- 1.1.2 telefonda sorunsuz açıldı. Bir geçiş reklamı geldi; reklam açılırken oyun "birazcık takılır gibi oldu ama ilerledi". → Reklam gösterimi öncesi/sonrası kısa takılma incelenecek (ör. reklam açılmadan önce ticker/ses duraklatma ve geri dönüşte yeniden çizim maliyeti; Crashlytics/ANR ve Firebase `interstitial` olay süreleriyle doğrulanacak).
