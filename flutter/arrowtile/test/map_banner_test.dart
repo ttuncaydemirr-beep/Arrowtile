@@ -24,7 +24,7 @@ Future<AppController> _boot(WidgetTester t, Widget home) async {
   addTearDown(t.view.resetPhysicalSize);
   addTearDown(t.view.resetDevicePixelRatio);
   // test yazı tipi (Ahem) çok geniştir: harita bölüm başlığındaki metin taşması bu testin konusu değil
-  final FlutterExceptionHandler? prev = FlutterError.onError;
+  final void Function(FlutterErrorDetails)? prev = FlutterError.onError;
   FlutterError.onError = (FlutterErrorDetails d) {
     if (d.exceptionAsString().contains('overflowed')) return;
     prev?.call(d);
