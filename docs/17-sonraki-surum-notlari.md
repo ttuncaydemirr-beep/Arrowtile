@@ -60,3 +60,8 @@ Kullanıcı 1.2.0 listesinin tamamını onayladı (büyük kaydırılabilir taht
 - Amaç (kullanıcı): oyuncu her 20 seviyede bir "baştan başlıyor" hissiyle oynasın.
 - Tahta büyüklüğü artık uzun vadeli bölüm ilerlemesine değil çarkın içindeki konuma bağlı ("sürekli değişken"): Kolay küçük, Aşırı zor en büyük (≈28x45, kaydırmalı). Her çarkta yeniden küçükten başlar.
 - Açık sorular (kullanıcıya soruldu): bölüm = 20 seviyelik çark mı; ilk çark(lar) yeni oyuncu için daha yumuşak mı.
+
+## Kesinleşen kararlar (10.11.2026 akşam, kullanıcı)
+- **Bölüm = 20 seviye** (bir çark). Haritada her bölüm Kolay→Aşırı zor tam bir tur; bölüm bonusu tur sonunda. 5.000 seviye = 250 bölüm.
+- **Tahta büyümesi (önceki "tahta çarka bağlı" notunun yerine):** bölümler arası kademeli büyüme — her yeni 20'lik bölümde tahta bir önceki bölümden büyür ve ok sayısı artar; en büyük boyuta (≈28x45) ulaşınca bir sonraki bölümde yine en küçük boyuta dönülür ve döngü tekrar eder. Bölüm içindeki zorluk sırası 5 Kolay / 5 Orta / 5 Zor / 5 Aşırı zor (doluluk, kıvrım, derinlik buna göre). Küçükten en büyüğe kaç bölümde varılacağı web önizlemede ayarlanacak (öneri: 8–10 bölüm) ve kullanıcıya onaylatılacak.
+- **Seviye sonu kutlaması (YENİ, onaylandı):** küçük meşale/alev görseli, büyüklüğü performansa göre (reklamla devam → küçük; can kaybı → orta; kusursuz → büyük + kıvılcım; Aşırı zor kusursuz → altın alev + havai fişek). Mesajlar kademe × performans matrisi (Kolay kusursuz "Sıradaki gelsin!", Aşırı zor kusursuz "Harikasın..!" vb.), her hücrede 3–4 rastgele seçenek, 4 dil (kültüre uygun yazım). Hız yalnızca bonus rozeti ("Şimşek gibi!"); yavaşlık asla olumsuz söylenmez (süre sınırı yok vaadi). Reklamla devam eden oyuncu cesaretlendirilir.
