@@ -42,3 +42,10 @@ Kullanıcı 1.1.1'i telefonda denedi: reklam gelmeyince uyarı verip devam ediyo
     - Doluluk çok yüksek, oklar iç içe geçmiş; çözüm derinliği büyük.
     - Arayüz: üstte geri + yeniden başlat, zorluk adı, 3 kalp; "İpucu" (reklamla) düğmesi; altta ızgara (#) aç/kapa düğmesi.
     → Bizde: Aşırı zor (ve daha hafif hâliyle Zor) için daha büyük alan, daha küçük/ince oklar, çok daha uzun ve karmaşık kıvrımlar, isteğe bağlı şekilli tahta maskeleri (delikli/organik). §4, §5, §6 ile birlikte tek iş olarak ele alınacak. Dokunma isabeti hücre bazlı kalmalı (bkz. §9); ızgara aç/kapa düğmesi düşünülebilir.
+
+## Zorluk kararları (10.11.2026, kullanıcı)
+Testçiler: 1.1.1'de takılma/donma yok. Ancak oyun kolay bulunuyor ("bölümler basit geçiliyor, hiç takılmıyoruz").
+Yönetici analizi: asıl sebep küçük alan (seviye 10–30'da tahta 7x9–9x11 ≈ 60–100 hücre; 22x31'e ancak seviye 201'de ulaşılıyor; küçük tahtada maxLen ≤ 5 → kısa oklar). Renk ikincil (uzun iç içe oklarda takibi kolaylaştırır).
+Kullanıcı kararı (deneme önizlemesi istemedi):
+13. **Ayarlar'a "Ok rengi: Renkli / Tek renk" seçimi.** Tek renk: referans oyundaki gibi tema zeminine uygun tek renk ince çizgi (açık temada siyah, koyu temada açık). Varsayılan şimdilik Renkli (kararı yayında netleştir). 4 dil.
+14. **Ekranı (tahtayı) büyüt, okları incelt.** Tahta ekrana tek seferde sığmak zorunda değil: sağa-sola ve yukarı-aşağı kaydırılabilir (mevcut yakınlaştırma/kaydırma altyapısı; "sığdır" düğmesi kalır). Hücre en az ~16–20 px dokunulabilir kalmalı; isabet alanı hücre bazlı (§9). Tahta büyümesi çok daha hızlı olmalı (en büyük boyuta çok daha erken ulaşılsın) ve en büyük boyut referans oyuna yaklaşsın (≈28x45 civarı, doğrulayıcı/üretim süresiyle birlikte ayarlanacak). §4–§6 ve §12 ile tek iş.
