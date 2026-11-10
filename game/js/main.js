@@ -1097,8 +1097,8 @@
     if (!r) return null;
     aimSel = -1;
     // v1.1 (docs/15 §1): ok hareketi başına YALNIZCA tek ses (çıkışta slideOut, çarpmada bump) — ayrıca "tık" (tap) çalmaz.
-    // "tap" sesi yalnızca "önce seç" kipinde ok seçilirken çalar (hareket yok). Titreşim eskisi gibi.
-    buzz('tap');
+    // "tap" sesi/titreşimi yalnızca "önce seç" kipinde ok seçilirken çalar (hareket yok).
+    // 1.1.5 (docs/22): ok hareketi başına TEK titreşim (çıkışta slideOut, çarpmada bump).
     hintIdx = -1;
     var a = LV.arrows[i], now = performance.now();
     var per = reduced ? 30 : T.anim.slidePerCell;

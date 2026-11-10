@@ -110,6 +110,7 @@ class AdBannerSlot extends StatefulWidget {
 }
 
 class _AdBannerSlotState extends State<AdBannerSlot> {
+  Animation<double>? _routeAnim;
   BannerHandle? _ad;
   bool _loading = false;
   int _gen = 0; // her yükleme denemesine yeni numara: bayat yanıtlar durumu bozmaz
@@ -117,6 +118,24 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
   Timer? _retry;
 
   String get _scr => widget.screen.name;
+
+  // 1.1.5 (docs/22): reklam görünümü (platform view) rota geçiş animasyonu (FadeTransition → Opacity) sürerken bağlanmaz.
+  bool get _settled => _routeAnim == null || _routeAnim!.status == AnimationStatus.completed;
+
+  void _onRouteStatus(AnimationStatus st) {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final Animation<double>? a = ModalRoute.of(context)?.animation;
+    if (!identical(a, _routeAnim)) {
+      _routeAnim?.removeStatusListener(_onRouteStatus);
+      _routeAnim = a;
+      a?.addStatusListener(_onRouteStatus);
+    }
+  }
 
   bool _want(AppController app) => app.mon.bannerVisible(widget.screen) && app.mon.platform.sdkReady;
 
@@ -191,6 +210,7 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
 
   @override
   void dispose() {
+    _routeAnim?.removeStatusListener(_onRouteStatus);
     _drop();
     super.dispose();
   }
@@ -198,13 +218,16 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
   @override
   Widget build(BuildContext context) {
     final AppController app = AppScope.of(context);
-    final bool want = _want(app);
+    // 1.1.5 (docs/22): başka bir ekranın altında kalan (Offstage: TickerMode kapalı) yuva reklamını bırakır; aksi halde menü banner'ı
+    // harita açıkken de canlı kalıp aynı anda iki yerel AdView olurdu (haritada dar kutu / ham metin / banner yok bildirimi).
+    final bool active = TickerMode.of(context);
+    final bool want = active && _want(app);
     if (!want) {
       if (_ad != null || _loading) {
         // reklamsız satın alma vb.: reklamı hemen kaldır (build sırasında durum değişikliği yapmadan)
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          if (!_want(AppScope.read(context))) setState(_drop);
+          if (!(TickerMode.of(context) && _want(AppScope.read(context)))) setState(_drop);
         });
       }
       return const SizedBox.shrink();
@@ -223,9 +246,15 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
       }
       final BannerHandle? ad = _ad;
       if (ad == null) return const SizedBox.shrink(); // yüklenmedi: yer kaplamaz
-      return Align(
-        alignment: Alignment.bottomCenter,
-        child: SizedBox(key: const ValueKey<String>('ad-banner'), width: ad.size.width, height: ad.size.height, child: ad.view),
+      // Tam genişlikte alt şerit (Column'un son çocuğu; harita/menü içeriği Expanded ile ÜSTTE). AdWidget yalnızca yüklendikten sonra,
+      // tam reklam boyutunda SizedBox içinde; Transform/Opacity/Clip yok, kaydırılan listenin içinde değil.
+      return SizedBox(
+        key: const ValueKey<String>('ad-banner-strip'),
+        width: double.infinity,
+        height: ad.size.height,
+        child: _settled
+            ? Center(child: SizedBox(key: const ValueKey<String>('ad-banner'), width: ad.size.width, height: ad.size.height, child: ad.view))
+            : null,
       );
     });
   }

@@ -1,6 +1,7 @@
 // Arrowtile — haptics_service.dart: titreşim desenleri (theme.js THEME.vibrate) `vibration` paketiyle.
 // Not: JS navigator.vibrate deseni [titreş, bekle, titreş …]; Android desenleri [bekle, titreş, bekle …] ile başlar,
 // bu yüzden başa 0 eklenir.
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:vibration/vibration.dart';
 
@@ -17,7 +18,12 @@ class HapticsService {
     'button': <int>[6],
   };
 
+  /// Test: istenen her titreşimin adı (1.1.5: ok hareketi başına tek titreşim denetimi).
+  @visibleForTesting
+  static void Function(String name)? debugSink;
+
   Future<void> buzz(String name) async {
+    debugSink?.call(name);
     if (!enabled) return;
     final List<int>? pat = patterns[name];
     if (pat == null) return;

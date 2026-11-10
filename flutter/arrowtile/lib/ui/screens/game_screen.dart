@@ -565,8 +565,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     if (r == null) return null;
     model.aimSel = -1;
     // v1.1 (docs/15 §1): ok hareketi başına YALNIZCA tek ses (çıkışta slideOut, çarpmada bump) — ayrıca "tık" (tap) çalmaz.
-    // "tap" yalnızca "önce seç" kipinde ok seçilirken çalar (_onBoardTap; hareket yok). Titreşim eskisi gibi.
-    app.buzz('tap');
+    // "tap" yalnızca "önce seç" kipinde ok seçilirken çalar (_onBoardTap; hareket yok).
+    // 1.1.5 (docs/22): ok hareketi başına TEK kısa titreşim (çıkışta slideOut, çarpmada bump). Eskiden önce buzz('tap') sonra slideOut/bump
+    // çalıyordu; telefon yüzeyde dururken iki titreşim, ok sesinden önce fazladan "tık" gibi duyuluyordu.
     model.hintIdx = -1;
     final Arrow a = lv.arrows[i];
     final double now = model.nowMs;
