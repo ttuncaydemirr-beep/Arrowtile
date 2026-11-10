@@ -18,10 +18,11 @@
  *    bitmeden, son oklar çıkarken (preloadInterstitial) yüklenmeye başlar; zaten yükleniyor/hazırsa tekrar başlatılmaz.
  *  - Reklam gösterilirken oyun döngüsü ve ses duraklar (setAdListener(function (active) {...}): reklam açılınca true, kapanınca false).
  *  - 1.1.3 (docs/20): geçiş reklamı YALNIZCA etkin seviye sonu yerleştirmesinde (openLevelEnd belirteci), YALNIZCA hazırsa ve en çok
- *    BİR kez gösterilir; hazır değilse beklemeden atlanır. Ekrana gelmeyen gösterim bırakılır (abandonInterstitial); sonradan gelen
- *    'shown' olayı yok sayılır ve lateBlocked sayılır. Ses YALNIZCA reklam gerçekten ekrandayken susar (setScreenListener).
- *  - Süre sınırı yoktur; bu katman hiçbir zaman oyunu bekletmez: yerel tarafın yanıt vermemesi durumunda
- *    NATIVE_TIMEOUT sonra oyun kendiliğinden devam eder.
+ *    BİR kez gösterilir; hazır değilse beklemeden atlanır. Ses YALNIZCA reklam gerçekten ekrandayken susar (setScreenListener).
+ *  - 1.1.4 (docs/21) TUTMA: show çağrıldıysa cb (sonraki seviye) YALNIZCA 'closed'/'failed' olayıyla ya da uygulama reklamdan/arka
+ *    plandan dönünce (appHidden + appResumed, RULES.returnGraceMs) çağrılır. Gösterimde süre sınırı YOK (eski 3 sn "bırak" sonraki
+ *    seviyenin ortasında reklama yol açıyordu). RULES.holdMaxMs dolunca yalnızca setWaitListener('slow') bildirilir; bekleme sürer.
+ *    Bekleme 300 ms'yi aşarsa setWaitListener('opening'), bitince ('none'). Ödüllü gösterim de aynı biçimde bekler.
  *
  * ANDROID KÖPRÜSÜ (window.AndroidBridge, @JavascriptInterface; yalnızca ilkel türler):
  *  isAdFree(): boolean                       — Play'den doğrulanmış "remove_ads" sahipliği
@@ -43,7 +44,7 @@
 (function (root) {
   'use strict';
 
-  var RULES = { freeUntilLevel: 12, everyLevels: 3, minGapMs: 3 * 60 * 1000, nativeTimeoutMs: 90 * 1000, showStartMs: 3000, testRewardMs: 600, preloadRetryMs: 20 * 1000, loadingOverlayMs: 300 };
+  var RULES = { freeUntilLevel: 12, everyLevels: 3, minGapMs: 3 * 60 * 1000, nativeTimeoutMs: 90 * 1000, holdMaxMs: 20 * 1000, returnGraceMs: 1500, testRewardMs: 600, preloadRetryMs: 20 * 1000, loadingOverlayMs: 300 };
   var BANNER_SCREENS = ['menu', 'map']; // v1.1: banner yalnızca Ana menü ve Harita ekranlarında
   var PRODUCT_ID = 'remove_ads';
 
@@ -75,7 +76,36 @@
     }
     // 1.1.3: yerleştirme oturumu (seviye sonu ekranı etkinken geçerli belirteç)
     var placementSeq = 0, placementOpen = 0, placementLevel = 0, placementUsed = 0;
-    var abandoned = {}, lateBlocked = 0, lateUntil = 0, lateListener = null;
+    var released = {}, lateBlocked = 0, lateUntil = 0, lateListener = null;
+    // 1.1.4: bekleyen tam ekran gösterim (show çağrıldı, sonuç bekleniyor)
+    var hold = null, waitListener = null, stuckCount = 0;
+    function waitState(w) { if (waitListener) { try { waitListener(w); } catch (e) {} } }
+    function startHold(id, onRelease) {
+      var h = { id: id, showed: false, away: false, hard: false, grace: null, slow: null, opening: null, release: onRelease };
+      h.opening = env.setTimeout(function () { if (hold === h) waitState('opening'); }, RULES.loadingOverlayMs);
+      h.slow = env.setTimeout(function () { if (hold === h) { stuckCount++; waitState('slow'); } }, RULES.holdMaxMs);
+      hold = h; return h;
+    }
+    function endHold(h) {
+      if (!h || hold !== h) return;
+      env.clearTimeout(h.opening); env.clearTimeout(h.slow); if (h.grace) env.clearTimeout(h.grace);
+      hold = null; waitState('none');
+    }
+    /** Uygulama gizlendi (visibilitychange hidden / pagehide) [hard=true] ya da yalnızca odak kaybı [hard=false]. */
+    function appHidden(hard) { if (!hold) return; hold.away = true; if (hard !== false) hold.hard = true; if (hold.grace) { env.clearTimeout(hold.grace); hold.grace = null; } }
+    /** Uygulama öne döndü: gösterim sürüyorsa ve (gerçekten arka plana gidildiyse ya da reklam ekrana gelmişse) kısa bekleme sonra biter. */
+    function appResumed() {
+      var h = hold; if (!h) return;
+      if (!(h.hard || (h.away && h.showed))) return;
+      h.away = false; h.hard = false;
+      if (h.grace) env.clearTimeout(h.grace);
+      h.grace = env.setTimeout(function () {
+        if (hold !== h) return;
+        if (!finish(h.id)) return;
+        released[h.id] = true; if (!h.showed) lateUntil = env.now() + 30000;
+        try { h.release(h.showed); } catch (e) {}
+      }, RULES.returnGraceMs);
+    }
     function openLevelEnd(levelId) { placementOpen = ++placementSeq; placementLevel = levelId; return placementOpen; }
     function closeLevelEnd(token) { if (token == null || token === placementOpen) placementOpen = 0; }
     function placementValid(token, levelId) { return !!token && token === placementOpen && (levelId == null || levelId === placementLevel); }
@@ -106,24 +136,25 @@
     }
 
     // Yerel çağrı + yanıt bekleme (tek seferlik geri çağrı, zaman aşımı korumalı)
-    function request(method, args, handler, onTimeout) {
+    // noTimeout (1.1.4): tam ekran gösterimde süre sınırı yok (sonuç olay ya da uygulamadan dönüşle gelir)
+    function request(method, args, handler, onTimeout, noTimeout) {
       var id = ++seq;
       var started = call.apply(null, [method, id].concat(args || []));
       if (started !== true) return false;
-      var p = { handler: handler, timer: env.setTimeout(function () {
+      var p = { handler: handler, timer: noTimeout ? null : env.setTimeout(function () {
         if (!pending[id]) return; delete pending[id]; if (onTimeout) onTimeout();
       }, RULES.nativeTimeoutMs) };
       pending[id] = p;
       return true;
     }
-    function finish(id) { var p = pending[id]; if (!p) return null; delete pending[id]; env.clearTimeout(p.timer); return p; }
+    function finish(id) { var p = pending[id]; if (!p) return null; delete pending[id]; if (p.timer) env.clearTimeout(p.timer); return p; }
 
     function onNative(msg) {
       try {
         var m = typeof msg === 'string' ? JSON.parse(msg) : msg;
-        if (m && typeof m.id === 'number' && abandoned[m.id] && !pending[m.id]) {
-          // bırakılmış (zaman aşımına uğramış) reklam sonradan belirdi: kalkan
-          if (m.event === 'shown') { lateBlocked++; call('abandonInterstitial', m.id); if (lateListener) { try { lateListener(); } catch (e) {} } }
+        if (m && typeof m.id === 'number' && released[m.id] && !pending[m.id]) {
+          // uygulamadan dönüşle bırakılmış gösterim sonradan belirdi: kalkan
+          if (m.event === 'shown') { lateBlocked++; if (lateListener) { try { lateListener(); } catch (e) {} } }
           return false;
         }
         if (!m || typeof m.id !== 'number' || !pending[m.id]) return false;
@@ -154,33 +185,22 @@
       var called = false;
       function go(shown) { if (called) return; called = true; try { cb && cb(!!shown); } catch (e) {} }
       if (!placementValid(token, levelId) || placementUsed === token) { go(false); return false; }
-      if (!interstitialDue(levelId)) { go(false); return false; }
+      if (!interstitialDue(levelId) || hold) { go(false); return false; }
       // yalnızca ZATEN yüklü reklam gösterilir. Köprü hazır bilgisi vermiyorsa (eski köprü) hazır sayılır.
       var rd = call('isInterstitialReady');
       if (rd === false || (rd === undefined && bridge() && typeof bridge().isInterstitialReady === 'function')) { go(false); return false; }
-      var open = true, shownEv = false, startTimer = null;
-      function end() { if (open) { open = false; adState(false); screenState(false); } }
+      var open = true, h = null;
+      function end() { if (open) { open = false; adState(false); screenState(false); } endHold(h); }
       adState(true); // oyun döngüsü duraklatması (ses DEĞİL)
       placementUsed = token; // show en çok bir kez
       var ok = request('showInterstitial', [], function (m) {
-        if (m.event === 'shown') { shownEv = true; screenState(true); if (startTimer !== null) { env.clearTimeout(startTimer); startTimer = null; } return false; } // ekrana geldi: ses şimdi susar
-        if (m.event === 'closed' || m.event === 'failed') {
-          if (startTimer !== null) { env.clearTimeout(startTimer); startTimer = null; }
-          end(); iReady = false; go(m.event === 'closed'); return true;
-        }
+        if (m.event === 'shown') { if (h) h.showed = true; screenState(true); return false; } // ekrana geldi: ses şimdi susar
+        if (m.event === 'closed' || m.event === 'failed') { end(); iReady = false; go(m.event === 'closed'); return true; }
         return false;
-      }, function () { end(); go(false); });
+      }, function () { end(); go(false); }, true);
       if (!ok) { end(); go(false); return false; }
-      // docs/18: gösterim denemesi showStartMs içinde ekrana gelmezse sessizce atla; 1.1.3: reklam BIRAKILIR, sonradan gösterilemez
       var rid = seq;
-      startTimer = env.setTimeout(function () {
-        startTimer = null;
-        if (shownEv) return;
-        if (!finish(rid)) return; // zaten bitti
-        abandoned[rid] = true; lateUntil = env.now() + 30000;
-        call('abandonInterstitial', rid);
-        end(); iReady = false; go(false);
-      }, RULES.showStartMs);
+      if (pending[rid]) h = startHold(rid, function (showed) { call('releaseInterstitial', rid); end(); iReady = false; go(showed); });
       iReady = false; iLoading = false;
       var a = ads(); a.since = 0; a.lastAt = env.now(); persist();
       return true;
@@ -277,14 +297,18 @@
         return true;
       }
       if (!rewardedAvailable()) { done(); return false; }
+      if (hold) { done(); return false; } // başka tam ekran gösterim sürüyor
       shown = true; adState(true); // yerel çağrıdan önce duraklat
+      var h = null;
       var ok = request('showRewarded', [String(placement || '')], function (m) {
-        if (m.event === 'shown') { screenState(true); return false; }
+        if (m.event === 'shown') { if (h) h.showed = true; screenState(true); return false; }
         if (m.event === 'rewarded' && !rewarded) { rewarded = true; try { onReward && onReward(); } catch (e) {} return false; }
-        if (m.event === 'closed' || m.event === 'failed') { done(); return true; }
+        if (m.event === 'closed' || m.event === 'failed') { endHold(h); done(); return true; }
         return false;
-      }, done);
-      if (!ok) done();
+      }, function () { endHold(h); done(); }, true);
+      if (!ok) { done(); return false; }
+      var rid = seq;
+      if (pending[rid]) h = startHold(rid, function () { call('releaseRewarded', rid); endHold(h); done(); });
       return ok;
     }
 
@@ -337,6 +361,10 @@
       openLevelEnd: openLevelEnd, closeLevelEnd: closeLevelEnd,
       setScreenListener: function (fn) { screenListener = typeof fn === 'function' ? fn : null; },
       setLateListener: function (fn) { lateListener = typeof fn === 'function' ? fn : null; },
+      setWaitListener: function (fn) { waitListener = typeof fn === 'function' ? fn : null; },
+      adHoldActive: function () { return !!hold; },
+      stuckCount: function () { return stuckCount; },
+      appHidden: appHidden, appResumed: appResumed,
       lateBlockedCount: function () { return lateBlocked; },
       lateWindowOpen: function () { return lateUntil !== 0 && env.now() < lateUntil; },
       isAdOnScreen: function () { return onScreen; },

@@ -214,16 +214,35 @@ void main() {
           getAds: () => ads,
           persist: () {},
           nativeTimeout: const Duration(milliseconds: 40),
-          showTimeout: const Duration(milliseconds: 40),
+          holdMax: const Duration(milliseconds: 40),
+          returnGrace: const Duration(milliseconds: 10),
           onInterstitialResult: results.add);
-      await m.endScreen(20);
+      final Future<bool> f = m.endScreen(20);
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      m.onAppLifecycle(foreground: false); // yanıt vermeyen SDK: uygulamadan dönüşte biter
+      m.onAppLifecycle(foreground: true);
+      await f;
       return results;
     }
 
     test('gösterildi → shown', () async => expect(await run((FakePlatform p) {}), <String>['shown']));
     test('hazır değil → skipped', () async => expect(await run((FakePlatform p) => p.interstitialOk = false), <String>['skipped']));
     test('gösterilemedi → failed', () async => expect(await run((FakePlatform p) => p.failToShow = true), <String>['failed']));
-    test('ekrana gelmedi (zaman aşımı) → failed', () async => expect(await run((FakePlatform p) => p.hangInterstitial = true), <String>['failed']));
+    test('ekrana gelmedi (uygulamadan dönüşle bırakıldı) → failed', () async => expect(await run((FakePlatform p) => p.hangInterstitial = true), <String>['failed']));
+
+    test('1.1.4 aşama olayı adStage: interstitial_stage {stage, latency_ms}; audio_dead_recovered; banner', () async {
+      final FakeTelemetry t = FakeTelemetry();
+      t.adStage(format: 'interstitial', stage: 'showed', latencyMs: 8123);
+      t.adStage(format: 'rewarded', stage: 'dismissed', latencyMs: -5);
+      t.audioDeadRecovered(reason: 'timeout');
+      t.banner(result: 'failed', code: 3, screen: 'menu');
+      await Future<void>.delayed(Duration.zero);
+      expect(t.named('interstitial_stage').single.params, <String, Object>{'stage': 'showed', 'latency_ms': 8123});
+      expect(t.named('rewarded_stage').single.params['latency_ms'], 0);
+      expect(t.named('audio_dead_recovered').single.params['reason'], 'timeout');
+      expect(t.named('banner').single.params, <String, Object>{'result': 'failed', 'code': 3, 'screen': 'menu'});
+      t.events.forEach(_expectAnonymous);
+    });
 
     test('zamanı gelmediyse olay yok; geri çağrı hata fırlatsa da akış sürer', () async {
       final FakePlatform p = FakePlatform();

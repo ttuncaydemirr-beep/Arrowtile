@@ -80,6 +80,20 @@ abstract class Telemetry {
   /// [result]: shown | skipped | failed | blocked (geçersiz yerleştirme, show() çağrılmadı) | late_blocked (seviye sırasında geç reklam belirdi; docs/20).
   void interstitial({required String result}) => _log('interstitial', <String, Object>{'result': result});
 
+  /// 1.1.4 (docs/21): tam ekran reklam aşaması + gecikme. Olay adı [format] (interstitial_stage | rewarded_stage);
+  /// [stage]: show_called | showed | dismissed | failed_to_show | stuck | released | late_blocked; [latencyMs]: show() çağrısından beri (0..600000).
+  void adStage({required String format, required String stage, required int latencyMs}) => _log(
+      format == 'rewarded' ? 'rewarded_stage' : 'interstitial_stage',
+      <String, Object>{'stage': stage, 'latency_ms': latencyMs.clamp(0, 600000).toInt()});
+
+  /// 1.1.4: ses oyuncuları takıldı/bozuldu ve yeniden kuruldu. [reason]: timeout | error | stuck | health_ad_closed | health_resume.
+  void audioDeadRecovered({required String reason}) => _log('audio_dead_recovered', <String, Object>{'reason': reason});
+
+  /// 1.1.4: banner olayı. [result]: load | loaded | failed | impression | size_null | exception; [code]: AdMob hata kodu (-1 yoksa);
+  /// [screen]: menu | map.
+  void banner({required String result, int code = -1, required String screen}) =>
+      _log('banner', <String, Object>{'result': result, 'code': code, 'screen': screen});
+
   /// "Reklamları kaldır" satın alımı BAŞARIYLA tamamlandı (iptal/bekleyen/hata için çağrılmaz).
   void purchaseRemoveAds({String? currency, double? value}) {
     try {

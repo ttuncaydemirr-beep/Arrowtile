@@ -14,6 +14,7 @@ import '../../state/app_scope.dart';
 import '../flow.dart';
 import '../tokens.dart';
 import '../widgets.dart';
+import 'diag_screen.dart';
 import 'privacy_screen.dart';
 import 'shop_screen.dart' show AdsCard;
 
@@ -131,7 +132,10 @@ class SettingsScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(8, 14, 8, 4),
                 child: Text(loc.settingsPrivacy, textAlign: TextAlign.center, style: TextStyle(color: pal.inkSoftC, fontSize: 14)),
               ),
-              Text(loc.settingsVersion(AppInfo.version), textAlign: TextAlign.center, style: TextStyle(color: pal.inkSoftC, fontSize: 13)),
+              // 1.1.4 (docs/21): sürüm metnine 7 kez dokununca gizli "Tanılama" ekranı açılır
+              _VersionTap(
+                child: Text(loc.settingsVersion(AppInfo.version), textAlign: TextAlign.center, style: TextStyle(color: pal.inkSoftC, fontSize: 13)),
+              ),
               if (AdsConfig.usingTestIdsInRelease)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -151,6 +155,40 @@ class SettingsScreen extends StatelessWidget {
       await launchUrl(u, mode: LaunchMode.externalApplication);
     } catch (_) {}
   }
+}
+
+/// Sürüm metni: 3 sn içinde 7 dokunuş → Tanılama.
+class _VersionTap extends StatefulWidget {
+  final Widget child;
+  const _VersionTap({required this.child});
+  @override
+  State<_VersionTap> createState() => _VersionTapState();
+}
+
+class _VersionTapState extends State<_VersionTap> {
+  int _n = 0;
+  DateTime _first = DateTime.fromMillisecondsSinceEpoch(0);
+
+  void _tap() {
+    final DateTime now = DateTime.now();
+    if (now.difference(_first) > const Duration(seconds: 3)) {
+      _first = now;
+      _n = 0;
+    }
+    _n++;
+    if (_n >= 7) {
+      _n = 0;
+      Navigator.of(context).push(fadeRoute<void>(const DiagScreen()));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+        key: const ValueKey<String>('version-tap'),
+        behavior: HitTestBehavior.opaque,
+        onTap: _tap,
+        child: Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: widget.child),
+      );
 }
 
 // ---- yedek: dışa / içe aktar (G6)

@@ -1189,6 +1189,12 @@
       row.appendChild(btn(t('end.map'), 'secondary', cont(function () { show('map'); }), 'end-map'));
       a.appendChild(row);
       sh.appendChild(a);
+      // 1.1.4 (docs/21): show çağrıldıysa sonraki seviye reklam bitene dek bekler; 300 ms'den uzun sürerse nötr gösterge
+      var waitP = el('p', 'ad-wait'); waitP.style.display = 'none'; sh.appendChild(waitP);
+      M.setWaitListener(function (w) {
+        if (w === 'none') { waitP.style.display = 'none'; return; }
+        waitP.style.display = ''; waitP.textContent = t('ads.opening') + (w === 'slow' ? ' ' + t('ads.slow') : '');
+      });
       // yıldız animasyonu: 380 ms, 180 ms aralık
       var my = session;
       var ics = sb.querySelectorAll('.ic');
@@ -1417,8 +1423,12 @@
   $('modal').addEventListener('click', function (e) { if (e.target === $('modal') && !$('end-sheet') && !$('dead-sheet')) closeModal(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modalOpen() && !$('end-sheet') && !$('dead-sheet')) closeModal(); });
   document.addEventListener('visibilitychange', function () {
+    // 1.1.4: bekleyen tam ekran reklam varsa "uygulamadan dönüş" bilgisi (ads.js beklemeyi bitirebilir)
+    try { if (document.hidden) M.appHidden(true); else M.appResumed(); } catch (e) {}
     if (document.hidden && current === 'game' && G && !busy && !modalOpen()) $('btn-pause').click();
   });
+  window.addEventListener('blur', function () { try { M.appHidden(false); } catch (e) {} });
+  window.addEventListener('focus', function () { try { M.appResumed(); } catch (e) {} });
 
   // ---------------------------------------------------------------- Android kabuğu kancaları
   // Geri tuşu (MainActivity → onBack): 'exit' = uygulamadan çık (yalnızca ana menüde), 'handled' = oyun ele aldı.

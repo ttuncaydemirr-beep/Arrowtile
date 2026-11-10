@@ -27,26 +27,57 @@ String adUnavailableText(AppLocalizations loc, String? code) {
 }
 
 /// Ödüllü reklamı yükleyip gösterir. [onReward] ödül hak edilince en çok bir kez çağrılır.
-/// Dönen değer: ödül verildi mi. Toast'ları kendisi gösterir (reklam yok / ödül yok). Hiçbir yolda takılmaz.
+/// Dönen değer: ödül verildi mi. Toast'ları kendisi gösterir (reklam yok / ödül yok).
+/// 1.1.4 (docs/21): tek bekleme penceresi (300 ms'den uzun sürerse görünür): "Reklam yükleniyor…" (≤ 5 sn) → "Reklam açılıyor…"
+/// (show() çağrıldı, reklam ekrana gelene/kapanana dek; süre sınırıyla bırakılmaz) → 20 sn'de "reklam gecikiyor" ipucu.
+/// Yükleme süre dolduktan sonra tamamlanırsa reklam KENDİLİĞİNDEN gösterilmez.
 Future<bool> playRewarded(BuildContext context, String placement, {required void Function() onReward}) async {
   final AppController app = AppScope.read(context);
   final AppLocalizations loc = AppLocalizations.of(context);
   if (app.rewardBusy) return false;
   app.rewardBusy = true;
-  bool loadingDone = false;
-  bool popQueued = false; // yükleme penceresi en fazla BİR kez kapatılır (ikinci pop alttaki ekranı kapatırdı)
-  BuildContext? loadingCtx;
-  Timer? overlayTimer; // 300 ms eşiği: pencere yalnızca bekleme uzarsa açılır
-  void closeLoading() {
-    loadingDone = true;
+  final ValueNotifier<int> phase = ValueNotifier<int>(0); // 0 yok, 1 yükleniyor, 2 açılıyor, 3 gecikiyor
+  bool finished = false;
+  bool popQueued = false; // pencere en fazla BİR kez kapatılır (ikinci pop alttaki ekranı kapatırdı)
+  BuildContext? sheetCtx;
+  Timer? overlayTimer;
+  void closeSheet() {
     overlayTimer?.cancel();
     overlayTimer = null;
-    final BuildContext? c = loadingCtx;
-    loadingCtx = null;
+    final BuildContext? c = sheetCtx;
+    sheetCtx = null;
     if (c != null && c.mounted && !popQueued) {
       popQueued = true;
       Navigator.of(c).pop();
     }
+  }
+
+  void openSheetSoon(int p) {
+    phase.value = p;
+    if (sheetCtx != null || overlayTimer != null || popQueued) return;
+    overlayTimer = Timer(kLoadingOverlayDelay, () {
+      overlayTimer = null;
+      if (finished || phase.value == 0 || !context.mounted) return; // 300 ms içinde bitti: pencere hiç açılmaz
+      unawaited(showSheet<void>(context, dismissible: false, builder: (BuildContext ctx) {
+        sheetCtx = ctx;
+        if (finished && !popQueued) {
+          popQueued = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (ctx.mounted) Navigator.of(ctx).pop();
+          });
+        }
+        final Palette pal = Palette.of(ctx);
+        return ValueListenableBuilder<int>(
+          valueListenable: phase,
+          builder: (BuildContext c, int ph, Widget? _) => Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+            const SizedBox(height: 4),
+            SizedBox(width: 36, height: 36, child: CircularProgressIndicator(strokeWidth: 4, color: pal.inkC)),
+            sheetText(c, ph <= 1 ? loc.adsLoading : loc.adsOpening, weight: FontWeight.w700),
+            if (ph == 3) sheetText(c, loc.adsSlow),
+          ]),
+        );
+      }));
+    });
   }
 
   RewardedResult res;
@@ -54,37 +85,20 @@ Future<bool> playRewarded(BuildContext context, String placement, {required void
     res = await app.mon.watchRewarded(
       placement,
       onReward: onReward,
-      onLoading: () {
-        overlayTimer?.cancel();
-        overlayTimer = Timer(kLoadingOverlayDelay, () {
-          overlayTimer = null;
-          if (loadingDone || !context.mounted) return; // 300 ms içinde yüklendi / bitti: pencere hiç açılmaz
-          unawaited(showSheet<void>(context, dismissible: false, builder: (BuildContext ctx) {
-            loadingCtx = ctx;
-            if (loadingDone && !popQueued) {
-              // yükleme pencere çizilmeden bitti: ilk karede kapat
-              popQueued = true;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (ctx.mounted) Navigator.of(ctx).pop();
-              });
-            }
-            final Palette pal = Palette.of(ctx);
-            return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-              const SizedBox(height: 4),
-              SizedBox(width: 36, height: 36, child: CircularProgressIndicator(strokeWidth: 4, color: pal.inkC)),
-              sheetText(ctx, loc.adsLoading, weight: FontWeight.w700),
-            ]);
-          }));
-        });
+      onLoading: () => openSheetSoon(1),
+      onLoadingDone: () {
+        if (phase.value == 1) phase.value = 0;
       },
-      onLoadingDone: closeLoading,
+      onShowStart: () => openSheetSoon(2),
+      onSlow: () => phase.value = 3,
       stillWanted: () => context.mounted, // 1.1.3: ekran kapandıysa reklam ASLA otomatik gösterilmez
     );
   } catch (_) {
     res = const RewardedResult(RewardedOutcome.unavailable, errorCode: 'exception');
   } finally {
+    finished = true;
     app.rewardBusy = false;
-    if (!loadingDone) closeLoading();
+    closeSheet();
   }
   app.telemetry.rewardedAd(
       placement: placement, result: res.rewarded ? 'rewarded' : (res.unavailable ? 'unavailable' : 'closed'));

@@ -1,15 +1,16 @@
 package com.arrowtile.puzzle
 
 import android.content.Context
+import android.content.Intent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
-    // UMP (Google Kullanıcı Mesajlaşma Platformu), TCF tercihlerini varsayılan SharedPreferences'a yazar (IABTCF_*).
-    // Flutter tarafı bunları yalnızca Firebase Analytics onay sinyallerini (Consent Mode) türetmek için okur (docs/19).
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        // UMP (Google Kullanıcı Mesajlaşma Platformu), TCF tercihlerini varsayılan SharedPreferences'a yazar (IABTCF_*).
+        // Flutter tarafı bunları yalnızca Firebase Analytics onay sinyallerini (Consent Mode) türetmek için okur (docs/19).
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.arrowtile.puzzle/consent")
             .setMethodCallHandler { call, result ->
                 if (call.method == "tcf") {
@@ -20,6 +21,27 @@ class MainActivity : FlutterActivity() {
                         result.success(mapOf("gdprApplies" to applies, "purposeConsents" to purposes))
                     } catch (e: Exception) {
                         result.success(null)
+                    }
+                } else {
+                    result.notImplemented()
+                }
+            }
+        // 1.1.4 (docs/21): Tanılama ekranındaki "Paylaş" — düz metni Android paylaşım penceresiyle gönderir (WhatsApp, e-posta…).
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "com.arrowtile.puzzle/share")
+            .setMethodCallHandler { call, result ->
+                if (call.method == "text") {
+                    try {
+                        val text = call.argument<String>("text") ?: ""
+                        val subject = call.argument<String>("subject") ?: ""
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, text)
+                            putExtra(Intent.EXTRA_SUBJECT, subject)
+                        }
+                        startActivity(Intent.createChooser(send, null))
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
                     }
                 } else {
                     result.notImplemented()

@@ -38,6 +38,16 @@ class AdsConfig {
   /// (donma testi, docs/18). 0 = kapalı. Logcat'te `AUTOPLAY: level N opened` satırları yazılır.
   static const int autoPlayFrom = int.fromEnvironment('AUTOPLAY_FROM');
 
+  /// `--dart-define=ADS_PRESENT_DELAY_MS=8000` (yalnızca debug/profile; 1.1.4, docs/21): geçiş reklamında show() çağrısı bu kadar
+  /// geciktirilir. Gerçek cihazda AdActivity'nin geç açılmasını CI emülatöründe taklit eder (smoke-ads "slow"). Yayında her zaman 0.
+  static const int presentDelayMs = int.fromEnvironment('ADS_PRESENT_DELAY_MS');
+  static int get debugPresentDelayMs => kReleaseMode ? 0 : presentDelayMs;
+
+  /// Tanılama başlığı için: birim kimliğinin son 4 hanesi (kimlikler APK'nın içinde zaten açıktır; kişisel veri değildir).
+  /// Yanlış/karışmış secret (ör. banner yerine geçiş birimi) tanılama kaydından anlaşılır.
+  static String unitTail(String id) => id.length <= 4 ? id : id.substring(id.length - 4);
+  static bool isTestUnit(String id) => id.startsWith('ca-app-pub-3940256099942544/');
+
   /// Birim testlerinde otomatik oynatmayı açar (yayın derlemesinde hiçbir etkisi yoktur).
   static bool autoPlayTestOverride = false;
   static bool get autoPlayOn => !kReleaseMode && (autoPlayFrom > 0 || autoPlayTestOverride);
@@ -60,7 +70,7 @@ class AdsConfig {
 
 class AppInfo {
   AppInfo._();
-  static const String version = '1.1.3'; // pubspec.yaml version: 1.1.3+7 ile aynı
+  static const String version = '1.1.4'; // pubspec.yaml version: 1.1.4+8 ile aynı
   static const String supportEmail = 'nilkaren.tuncay.demir@gmail.com';
   static const String privacyUpdated = '2026-11-10';
   // Herkese açık gizlilik politikası adresi (Play Console'a girilen adresle aynı). GitHub Pages: .github/workflows/pages.yml

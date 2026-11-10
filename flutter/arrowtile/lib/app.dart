@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'config/ads_config.dart';
+import 'core/diag.dart';
 import 'l10n/app_localizations.dart';
 import 'state/app_controller.dart';
 import 'state/app_scope.dart';
@@ -44,8 +45,10 @@ class _ArrowtileAppState extends State<ArrowtileApp> with WidgetsBindingObserver
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    diag('app', 'lifecycle', <String, Object?>{'state': state.name});
     if (state == AppLifecycleState.resumed) widget.controller.onAppResumed();
     if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) widget.controller.onAppBackgrounded();
+    if (state == AppLifecycleState.inactive) widget.controller.onAppInactive();
   }
 
   ThemeData _theme(Palette p) {

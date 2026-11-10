@@ -13,14 +13,21 @@ class Rig {
   int t = 1000000;
   int saves = 0;
   late final Monetization m;
-  Rig({Duration timeout = const Duration(milliseconds: 40), Duration? showTimeout}) {
+  Rig({Duration timeout = const Duration(milliseconds: 40), Duration? holdMax, Duration returnGrace = const Duration(milliseconds: 30)}) {
     m = Monetization(
         platform: p,
         getAds: () => ads,
         persist: () => saves++,
         now: () => t,
         nativeTimeout: timeout,
-        showTimeout: showTimeout ?? timeout);
+        holdMax: holdMax ?? const Duration(milliseconds: 200),
+        returnGrace: returnGrace);
+  }
+
+  /// Uygulama arka plana gidip döner (AdActivity açılıp kapandı).
+  void awayAndBack() {
+    m.onAppLifecycle(foreground: false);
+    m.onAppLifecycle(foreground: true);
   }
   Future<bool> complete(int id) async {
     m.onLevelComplete(id);
@@ -172,12 +179,20 @@ void main() {
     expect(rc.reason, 'failed');
   });
 
-  test('geçiş reklamı kapanmazsa zaman aşımıyla devam; reklam hazır değilse hemen devam, sayaç sıfırlanmaz', () async {
+  test('1.1.4: geçiş reklamı kapanmazsa süre sınırıyla DEVAM EDİLMEZ (uygulamadan dönüşte biter); hazır değilse hemen devam', () async {
     final Rig r = Rig()..p.hangInterstitial = true;
     for (int id = 13; id <= 15; id++) {
       r.m.onLevelComplete(id);
     }
-    expect(await r.m.endScreen(15), isFalse); // zaman aşımı → false, oyun devam eder
+    bool done = false;
+    final Future<bool> f = r.m.endScreen(15).then((bool v) => done = v || true);
+    await Future<void>.delayed(const Duration(milliseconds: 400)); // holdMax (200 ms) geçti
+    expect(done, isFalse, reason: 'show() sürerken sonraki seviye başlamamalı');
+    expect(r.m.adHoldActive, isTrue);
+    r.awayAndBack();
+    await f;
+    expect(r.m.adHoldActive, isFalse);
+    expect(r.p.calls, contains('releaseI'));
     final Rig r2 = Rig()..p.interstitialOk = false;
     for (int id = 13; id <= 15; id++) {
       r2.m.onLevelComplete(id);
@@ -294,10 +309,17 @@ void main() {
       expect(rew, 0);
     });
 
-    test('reklam gösterimi hiç bitmezse nativeTimeout ile biter', () async {
+    test('1.1.4: gösterim hiç bitmezse süreyle bırakılmaz; uygulamadan dönüşte biter (closed)', () async {
       final Rig r = Rig()..p.hangRewardedShow = true;
-      final RewardedResult res = await r.m.watchRewarded('life', loadTimeout: lt);
+      bool slow = false;
+      final Future<RewardedResult> f = r.m.watchRewarded('life', loadTimeout: lt, onSlow: () => slow = true);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(slow, isTrue, reason: 'holdMax sonra "gecikiyor" bildirimi');
+      expect(r.m.adHoldActive, isTrue);
+      r.awayAndBack();
+      final RewardedResult res = await f;
       expect(res.outcome, RewardedOutcome.closed);
+      expect(r.p.calls, contains('releaseR'));
     });
 
     test('platform yok: no_platform', () async {
@@ -507,12 +529,15 @@ void main() {
       expect(r.m.isAdShowing, isFalse);
     });
 
-    test('gösterim hiç bitmezse nativeTimeout sonunda false (oyun donmaz)', () async {
+    test('gösterim hiç bitmezse uygulamadan dönüşte false; duraklatma geri alınır', () async {
       final Rig r = Rig()..p.hangInterstitial = true;
       final List<bool> ev = <bool>[];
       r.m.addAdListener(ev.add);
       r.ads.since = 3;
-      await r.m.endScreen(15);
+      final Future<bool> f = r.m.endScreen(15);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      r.awayAndBack();
+      expect(await f, isFalse);
       expect(ev, <bool>[true, false]);
       expect(r.m.isAdShowing, isFalse);
     });
@@ -528,21 +553,14 @@ void main() {
     });
   });
 
-  // docs/18 (1.1.1): seviye 15/16 → 17 geçişinde ilk geçiş reklamı denemesi ASLA oyunu tutmamalı.
-  group('geçiş reklamı denemesi sınırlı ve geri alınabilir (1.1.1)', () {
-    // seviye 13, 14, 15 tamamlandı → sayaç 3: ilk deneme
-    Rig armed({Duration native = const Duration(seconds: 5), Duration show = const Duration(milliseconds: 150)}) {
-      final Rig r = Rig(timeout: native, showTimeout: show);
+  // docs/21 (1.1.4): show() çağrıldıysa SDK sonucuna (ya da uygulamadan dönüşe) dek beklenir; yüklü değilse anında devam.
+  group('geçiş reklamı TUTMA tasarımı (1.1.4)', () {
+    Rig armed({Duration hold = const Duration(milliseconds: 150)}) {
+      final Rig r = Rig(timeout: const Duration(seconds: 5), holdMax: hold);
       r.m.onLevelComplete(13);
       r.m.onLevelComplete(14);
       r.m.onLevelComplete(15);
       return r;
-    }
-
-    Future<(bool, int)> timed(Rig r) async {
-      final Stopwatch sw = Stopwatch()..start();
-      final bool shown = await r.m.endScreen(15);
-      return (shown, sw.elapsedMilliseconds);
     }
 
     List<bool> listen(Rig r) {
@@ -554,31 +572,41 @@ void main() {
     test('doldurulamadı (no fill): anında false, platform gösterilmez, duraklatma hiç açılmaz, sayaç korunur', () async {
       final Rig r = armed()..p.interstitialOk = false;
       final List<bool> ev = listen(r);
-      final (bool shown, int ms) = await timed(r);
-      expect(shown, isFalse);
-      expect(ms, lessThan(100));
+      final Stopwatch sw = Stopwatch()..start();
+      expect(await r.m.endScreen(15), isFalse);
+      expect(sw.elapsedMilliseconds, lessThan(100));
       expect(r.p.calls, isNot(contains('interstitial')));
       expect(ev, isEmpty);
       expect(r.ads.since, 3);
     });
 
-    test('geri çağrı HİÇ gelmez: gösterim süresi içinde false, duraklatma geri alınır', () async {
-      final Rig r = armed()..p.hangInterstitial = true;
+    test('reklam show() sonrası 600 ms geç belirir (gerçek cihaz): sonuç ancak kapanınca gelir, arada bitmez', () async {
+      final Rig r = armed()
+        ..p.presentAfter = const Duration(milliseconds: 600)
+        ..p.watchFor = const Duration(milliseconds: 200);
       final List<bool> ev = listen(r);
-      final (bool shown, int ms) = await timed(r);
-      expect(shown, isFalse);
-      expect(ms, lessThan(1500), reason: '90 sn beklememeli');
+      bool slow = false;
+      bool finished = false;
+      bool finishedBeforePresent = false;
+      r.p.onPresented = () => finishedBeforePresent = finished;
+      final Stopwatch sw = Stopwatch()..start();
+      final bool shown = await r.m.continueAfterLevel(15, placement: r.m.openLevelEnd(15), onSlow: () => slow = true);
+      finished = true;
+      expect(shown, isTrue);
+      expect(finishedBeforePresent, isFalse, reason: 'bekleme reklam belirmeden bitmemeli');
+      expect(sw.elapsedMilliseconds, greaterThanOrEqualTo(750));
+      expect(slow, isTrue, reason: 'holdMax (150 ms) aşıldı: "gecikiyor" ipucu, ama bekleme sürdü');
+      expect(r.p.presentedI, 1);
       expect(ev, <bool>[true, false]);
-      expect(r.m.isAdShowing, isFalse);
+      expect(r.m.adHoldActive, isFalse);
     });
 
-    test('gösterilemedi (onAdFailedToShow): false, duraklatma geri alınır', () async {
+    test('gösterilemedi (onAdFailedToShow): hemen false, duraklatma geri alınır', () async {
       final Rig r = armed()..p.failToShow = true;
       final List<bool> ev = listen(r);
-      final (bool shown, int ms) = await timed(r);
-      expect(shown, isFalse);
-      expect(ms, lessThan(500));
+      expect(await r.m.endScreen(15), isFalse);
       expect(ev, <bool>[true, false]);
+      expect(r.m.adHoldActive, isFalse);
     });
 
     test('platform senkron istisna fırlatır: false, duraklatma geri alınır', () async {
@@ -588,42 +616,44 @@ void main() {
       expect(ev, <bool>[true, false]);
     });
 
-    test('yavaş yükleme/gösterim (süreden uzun, ekrana gelmez): atlanır; geç gelen sonuç hatasız yok sayılır', () async {
-      final Rig r = armed()..p.showAfter = const Duration(milliseconds: 600);
-      final List<bool> ev = listen(r);
-      final (bool shown, int ms) = await timed(r);
-      expect(shown, isFalse);
-      expect(ms, lessThan(450));
-      expect(ev, <bool>[true, false]);
-      await Future<void>.delayed(const Duration(milliseconds: 700)); // geç tamamlanma: ikinci tamamlama/istisna yok
-      expect(r.m.isAdShowing, isFalse);
-    });
-
-    test('reklam gerçekten ekrana geldiyse kapanışı beklenir (oyuncu izliyor), sonra true', () async {
-      final Rig r = armed()
-        ..p.showAfter = const Duration(milliseconds: 500)
-        ..p.appearsOnScreen = true;
-      final List<bool> ev = listen(r);
-      final (bool shown, int ms) = await timed(r);
-      expect(shown, isTrue);
-      expect(ms, greaterThanOrEqualTo(450), reason: 'ekrandaki reklam 150 ms gösterim süresinde kesilmemeli');
-      expect(ev, <bool>[true, false]);
-    });
-
-    test('ekrandaki reklam kapanış olayı hiç göndermezse nativeTimeout ile biter', () async {
-      final Rig r = armed(native: const Duration(milliseconds: 400))
-        ..p.hangInterstitial = true
-        ..p.onScreen = true;
-      final List<bool> ev = listen(r);
-      final (bool shown, int ms) = await timed(r);
-      expect(shown, isFalse);
-      expect(ms, greaterThanOrEqualTo(350));
-      expect(ms, lessThan(1500));
-      expect(ev, <bool>[true, false]);
-    });
-
-    test('art arda iki seviye sonu denemesi: sayaç ve duraklatma dengeli kalır', () async {
+    test('yalnızca bildirim perdesi (inactive→resumed, reklam ekrana gelmemiş) beklemeyi BİTİRMEZ', () async {
       final Rig r = armed()..p.hangInterstitial = true;
+      bool done = false;
+      final Future<bool> f = r.m.endScreen(15).whenComplete(() => done = true);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      r.m.onAppLifecycle(foreground: false, hard: false);
+      r.m.onAppLifecycle(foreground: true);
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+      expect(done, isFalse);
+      r.awayAndBack(); // gerçek arka plan
+      await f;
+      expect(done, isTrue);
+    });
+
+    test('reklam ekrana geldi, kapanış olayı gelmedi, uygulama döndü (yalnızca inactive): kısa bekleme sonra true', () async {
+      final Rig r = armed()..p.hangInterstitial = true;
+      final Future<bool> f = r.m.endScreen(15);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      r.p.onScreenChanged!(true); // SDK "gösterildi"
+      r.m.onAppLifecycle(foreground: false, hard: false);
+      r.m.onAppLifecycle(foreground: true);
+      expect(await f, isTrue);
+    });
+
+    test('aşama olayları: show_called → showed → dismissed (gecikme ms ile)', () async {
+      final List<String> st = <String>[];
+      final FakePlatform p = FakePlatform()
+        ..presentAfter = const Duration(milliseconds: 50)
+        ..watchFor = const Duration(milliseconds: 50);
+      final AdsState ads = AdsState()..since = 3;
+      final Monetization m = Monetization(
+          platform: p, getAds: () => ads, persist: () {}, onAdStage: (String f, String s, int ms) => st.add('$f:$s'));
+      expect(await m.endScreen(15), isTrue);
+      expect(st, <String>['interstitial:show_called', 'interstitial:showed', 'interstitial:dismissed']);
+    });
+
+    test('art arda iki seviye sonu: sayaç ve duraklatma dengeli kalır', () async {
+      final Rig r = armed()..p.failToShow = true;
       final List<bool> ev = listen(r);
       expect(await r.m.endScreen(15), isFalse);
       r.t += 4 * min;

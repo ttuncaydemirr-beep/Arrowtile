@@ -13,6 +13,7 @@ import '../config/ads_config.dart';
 import '../core/ads_rules.dart';
 import '../core/consent_gate.dart' show TelemetryConsent;
 import '../core/daily.dart' as daily;
+import '../core/diag.dart';
 import '../core/economy.dart' as eco;
 import '../core/levelgen.dart';
 import '../core/models.dart';
@@ -45,7 +46,6 @@ class AppController extends ChangeNotifier {
     required this.billing,
     this.telemetry = const NoopTelemetry(),
     AdsPlatform? adsPlatform,
-    Duration? showTimeout,
   }) {
     sfx.enabled = save.sound;
     haptics.enabled = save.vibration;
@@ -59,10 +59,11 @@ class AppController extends ChangeNotifier {
         platform: adsPlatform ?? platform,
         getAds: () => save.ads,
         persist: persist,
-        showTimeout: showTimeout ?? kInterstitialShowTimeout,
-        onInterstitialResult: (String r) => telemetry.interstitial(result: r));
+        onInterstitialResult: (String r) => telemetry.interstitial(result: r),
+        onAdStage: (String f, String st, int ms) => telemetry.adStage(format: f, stage: st, latencyMs: ms));
     // docs/15 §4: tam ekran reklam gösterilirken ses duraklar (oyun ekranı ayrıca animasyon döngüsünü duraklatır)
     mon.addScreenListener((bool onScreen) => sfx.setHeld(onScreen)); // 1.1.3: ses yalnızca reklam EKRANDAYKEN susar
+    sfx.onDeadRecovered = (String reason) => telemetry.audioDeadRecovered(reason: reason); // 1.1.4 (docs/21)
     billing.onOwnedChanged = (bool owned) {
       if (owned) {
         save.ads.adFree = true;
@@ -147,12 +148,22 @@ class AppController extends ChangeNotifier {
     }());
   }
 
+  /// Uygulama öne geldi (app.dart). 1.1.4: bekleyen tam ekran gösterim varsa Monetization "reklamdan dönüldü" sayabilir.
   void onAppResumed() {
-    sfx.onLifecycle(foreground: true); // uzun arka plan / reklam etkinliği sonrası ses havuzlarını yeniden kur (1.1.3)
+    diag('app', 'resumed', <String, Object?>{'adHold': mon.adHoldFormat});
+    sfx.onLifecycle(foreground: true); // takılı/bozuk ses oyuncularını yeniden kur (1.1.4)
+    mon.onAppLifecycle(foreground: true);
     platform.onResume();
   }
 
-  void onAppBackgrounded() => sfx.onLifecycle(foreground: false);
+  void onAppBackgrounded() {
+    diag('app', 'background', <String, Object?>{'adHold': mon.adHoldFormat});
+    sfx.onLifecycle(foreground: false);
+    mon.onAppLifecycle(foreground: false);
+  }
+
+  /// Yalnızca inactive (saydam AdActivity, bildirim perdesi, sistem penceresi).
+  void onAppInactive() => mon.onAppLifecycle(foreground: false, hard: false);
 
   // ------------------------------------------------------------------ oyun ekranı sayacı
   // Açık oyun ekranı sayısı (seviye geçişinde kısa süre 2). Onay formu (UMP) oyunun üstüne açılmaz: oyundan çıkılınca gösterilir.

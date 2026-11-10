@@ -1,7 +1,7 @@
-// 1.1.3 (docs/20): geç gelen (seviye ortası) reklam yok + reklam sırasında/sonrasında ses davranışı.
-// Kök neden: show() çağrıldıktan sonra SDK geri alınamaz; 1.1.2 zamanında bırakıp (dispose) oyunu sürdürüyordu ama reklam
-// ekrana yine geliyordu. Burada SDK modeli: "dispose edilen reklam gösterilemez"; kurallar: yalnızca etkin seviye sonu yerleştirmesinde,
-// yalnızca yüklüyse, en çok bir kez, ekrana gelmeyen bırakılır, ses yalnızca ekrandayken susar ve ASLA sıraya alınmaz.
+// 1.1.3 → 1.1.4 (docs/20, docs/21): seviye ortasında reklam yok + reklam sırasında/sonrasında ses davranışı.
+// Gerçek kök neden (1.1.4): show() çağrıldıktan sonra SDK gösterimi geri alınamaz; 1.1.3 3 sn sonra "bırakıp" (dispose) sonraki seviyeyi
+// başlatıyordu, gerçek cihazda geç açılan AdActivity sonraki seviyenin ortasında beliriyordu. Buradaki SDK modeli bunu birebir taklit eder:
+// show() çağrılan reklam [presentAfter] sonra MUTLAKA belirir (bırakma onu durdurmaz). Doğrulanan: bekleme reklam kapanana dek sürer.
 import 'dart:async';
 
 import 'package:arrowtile/core/ads_rules.dart';
@@ -19,13 +19,14 @@ class _Rig {
   final List<bool> screen = <bool>[];
   final AudioService sfx = AudioService();
   late final Monetization m;
-  _Rig({int showMs = 50}) {
+  _Rig({int holdMs = 200}) {
     m = Monetization(
         platform: p,
         getAds: () => ads,
         persist: () {},
         nativeTimeout: const Duration(seconds: 5),
-        showTimeout: Duration(milliseconds: showMs),
+        holdMax: Duration(milliseconds: holdMs),
+        returnGrace: const Duration(milliseconds: 30),
         onInterstitialResult: results.add);
     sfx.debugReady(onPlay: plays.add);
     m.addScreenListener((bool on) {
@@ -49,6 +50,10 @@ void main() {
     r.p.interstitialOk = true; // yükleme seviye sırasında tamamlandı
     await _wait(200);
     expect(r.p.calls, isNot(contains('interstitial')), reason: 'hiçbir yükleme geri çağrısı/zamanlayıcı show() çağırmaz');
+    r.m.onAppLifecycle(foreground: false);
+    r.m.onAppLifecycle(foreground: true);
+    await _wait(60);
+    expect(r.p.calls, isNot(contains('interstitial')), reason: 'öne gelme show() çağırmaz');
     expect(r.m.levelEndActive, isFalse);
     // sonraki uygun seviye sonu: hazır → tam bir kez
     r.m.onLevelComplete(16);
@@ -56,20 +61,34 @@ void main() {
     expect(r.p.calls.where((String c) => c == 'interstitial').length, 1);
   });
 
-  test('(b) show() çağrıldı, reklam 5 sn sonra belirecekti: bırakılır (dispose), asla gösterilmez, ses hiç susmaz', () async {
-    final _Rig r = _Rig(showMs: 60)..p.presentAfter = const Duration(milliseconds: 400);
-    expect(await r.m.endScreen(15), isFalse);
-    expect(r.p.abandonedI, isTrue, reason: 'ad.dispose() eşdeğeri çağrılmalı');
-    expect(r.m.isAdShowing, isFalse);
-    expect(r.sfx.held, isFalse);
-    r.sfx.slideOut(); // sonraki dokunuş: hemen, tam bir kez
+  test('(b) yüklü reklam show() sonrası 800 ms (gerçekte ~8 sn) geç belirir: bekleme reklam KAPANANA dek sürer, sonra reklam yok', () async {
+    final _Rig r = _Rig()
+      ..p.presentAfter = const Duration(milliseconds: 800)
+      ..p.watchFor = const Duration(milliseconds: 150);
+    bool done = false;
+    int presentedAfterDone = 0;
+    r.p.onPresented = () {
+      if (done) presentedAfterDone++;
+    };
+    bool slow = false;
+    final Future<bool> f = r.m.continueAfterLevel(15, placement: r.m.openLevelEnd(15), onSlow: () => slow = true);
+    await _wait(300);
+    expect(r.m.adHoldActive, isTrue, reason: 'show() bekleniyor: sonraki seviye başlamamalı');
+    expect(r.sfx.held, isFalse, reason: 'reklam ekranda değilken ses susmaz');
+    r.sfx.slideOut(); // seviye sonu penceresi sesleri çalabilir
     expect(r.plays, <String>['slide_out_0']);
-    await _wait(600); // reklamın "belirme" zamanı geçti
-    expect(r.p.presentedI, 0, reason: 'bırakılan reklam asla ekrana gelmemeli');
-    expect(r.p.onScreen, isFalse);
-    expect(r.screen, isEmpty, reason: 'ses ekrana gelmeyen reklam için hiç susturulmadı');
-    expect(r.plays, hasLength(1), reason: 'dokunuşsuz ses çalmamalı / ertelenmiş ses olmamalı');
-    expect(r.m.lateWindowOpen, isTrue);
+    expect(await f, isTrue);
+    done = true;
+    expect(slow, isTrue);
+    expect(r.p.presentedI, 1);
+    expect(r.p.releasedI, 0, reason: 'süre sınırıyla bırakılmadı');
+    expect(r.m.adHoldActive, isFalse);
+    expect(r.sfx.held, isFalse);
+    await _wait(1200);
+    expect(presentedAfterDone, 0, reason: 'bekleme bittikten sonra (seviye sırasında) reklam belirmemeli');
+    expect(r.screen, <bool>[true, false]);
+    r.sfx.slideOut();
+    expect(r.plays, <String>['slide_out_0', 'slide_out_0'], reason: 'sonraki dokunuşta TAM bir ses');
   });
 
   test('geçersiz / kapanmış yerleştirme: show() çağrılmaz; bir yerleştirmede en çok bir show()', () async {
@@ -88,7 +107,7 @@ void main() {
   });
 
   test('ses yalnızca reklam EKRANDAYKEN susar; susarken düşer (kuyruğa alınmaz), kapanınca bir şey kendiliğinden çalmaz', () async {
-    final _Rig r = _Rig(showMs: 1000)
+    final _Rig r = _Rig()
       ..p.showAfter = const Duration(milliseconds: 200)
       ..p.appearsOnScreen = true;
     final Future<bool> f = r.m.endScreen(15);
@@ -106,7 +125,7 @@ void main() {
     expect(r.screen, <bool>[true, false]);
   });
 
-  test('gösterilemedi / istisna / yanıt yok: ses bayrağı her yolda false, sonraki dokunuşta tam bir ses', () async {
+  test('gösterilemedi / istisna / yanıt yok + uygulamadan dönüş: ses bayrağı her yolda false, sonraki dokunuşta tam bir ses', () async {
     for (final void Function(FakePlatform) cfg in <void Function(FakePlatform)>[
       (FakePlatform p) => p.failToShow = true,
       (FakePlatform p) => p.throwOnShow = true,
@@ -114,7 +133,11 @@ void main() {
     ]) {
       final _Rig r = _Rig();
       cfg(r.p);
-      expect(await r.m.endScreen(15), isFalse);
+      final Future<bool> f = r.m.endScreen(15);
+      await _wait(20);
+      r.m.onAppLifecycle(foreground: false);
+      r.m.onAppLifecycle(foreground: true);
+      expect(await f, isFalse);
       expect(r.sfx.held, isFalse);
       expect(r.m.adOnScreen, isFalse);
       r.sfx.slideOut();
@@ -124,22 +147,37 @@ void main() {
     }
   });
 
-  test('(d) ödüllü yavaş: bırakılır, "reklam yok" sonucu (mesaj), sonradan asla gösterilmez, ödül verilmez', () async {
+  test('(d) ödüllü yavaş sunum: süre sınırıyla bırakılmaz, ekrana gelince ödül verilir (tek kez)', () async {
     final _Rig r = _Rig();
-    r.p
-      ..rewardedPresentAfter = const Duration(milliseconds: 400)
-      ..rewardedWatchdog = const Duration(milliseconds: 80);
+    r.p.rewardedPresentAfter = const Duration(milliseconds: 500);
     int rew = 0;
-    final RewardedResult res = await r.m.watchRewarded('life', onReward: () => rew++);
-    expect(res.unavailable, isTrue, reason: 'arayüz "Şu an reklam yok" iletisini gösterir');
-    expect(res.errorCode, 'show_timeout');
-    expect(r.p.abandonedR, isTrue);
-    expect(r.m.isAdShowing, isFalse);
+    bool slow = false;
+    final RewardedResult res = await r.m.watchRewarded('life', onReward: () => rew++, onSlow: () => slow = true);
+    expect(res.rewarded, isTrue);
+    expect(rew, 1);
+    expect(slow, isTrue);
+    expect(r.p.releasedR, 0);
+    expect(r.m.adHoldActive, isFalse);
     expect(r.sfx.held, isFalse);
-    await _wait(600);
+  });
+
+  test('ödüllü: yükleme süreden uzun sürer → "reklam yok"; sonradan tamamlanan yükleme reklamı ASLA kendiliğinden göstermez', () async {
+    final _Rig r = _Rig()
+      ..p.rewardedOk = false
+      ..p.loadAfter = const Duration(milliseconds: 300);
+    final RewardedResult res = await r.m.watchRewarded('coins', loadTimeout: const Duration(milliseconds: 100));
+    expect(res.unavailable, isTrue);
+    await _wait(500); // yükleme şimdi tamamlandı
+    expect(r.p.rewardedOk, isTrue);
+    expect(r.p.lateLoads, 1);
+    r.m.onAppLifecycle(foreground: false);
+    r.m.onAppLifecycle(foreground: true);
+    await _wait(100);
+    expect(r.p.calls.where((String c) => c.startsWith('rewarded:')), isEmpty, reason: 'geç yükleme gösterim tetiklemez');
     expect(r.p.presentedR, 0);
-    expect(rew, 0);
-    expect(r.screen, isEmpty);
+    // sonraki DOKUNUŞ hazır reklamı kullanır
+    final RewardedResult res2 = await r.m.watchRewarded('coins');
+    expect(res2.rewarded, isTrue);
   });
 
   test('ödüllü: bekleme sırasında ekran kapandıysa (stillWanted=false) ASLA gösterilmez', () async {
@@ -150,6 +188,17 @@ void main() {
     final RewardedResult res = await f;
     expect(res.unavailable, isTrue);
     expect(r.p.calls.where((String c) => c.startsWith('rewarded:')), isEmpty);
+  });
+
+  test('geçiş gösterimi sürerken ödüllü gösterilmez (aynı anda tek tam ekran)', () async {
+    final _Rig r = _Rig()..p.hangInterstitial = true;
+    final Future<bool> f = r.m.endScreen(15);
+    await _wait(10);
+    expect(await r.m.showRewarded('life'), isFalse);
+    expect(r.p.calls.where((String c) => c.startsWith('rewarded:')), isEmpty);
+    r.m.onAppLifecycle(foreground: false);
+    r.m.onAppLifecycle(foreground: true);
+    await f;
   });
 
   test('kalkan: seviye sırasında tam ekran reklam belirirse telemetri late_blocked, oyun+ses duraklar, kayıp yok; gidince geri alınır', () async {
@@ -173,7 +222,17 @@ void main() {
     final _Rig r = _Rig();
     r.p.onLateAd!.call();
     expect(r.results, contains('late_blocked'));
-    expect(r.p.calls, contains('abandonI'));
     r.m.lateAdGone();
+  });
+
+  test('uygulamadan dönüşle bırakılan (ekrana gelmemiş) gösterim kalkan penceresini açar', () async {
+    final _Rig r = _Rig()..p.hangInterstitial = true;
+    final Future<bool> f = r.m.endScreen(15);
+    await _wait(10);
+    r.m.onAppLifecycle(foreground: false);
+    r.m.onAppLifecycle(foreground: true);
+    expect(await f, isFalse);
+    expect(r.p.releasedI, 1);
+    expect(r.m.lateWindowOpen, isTrue);
   });
 }

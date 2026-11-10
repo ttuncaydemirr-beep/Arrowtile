@@ -1,4 +1,4 @@
-// Testler için sahte reklam platformu (ads_rules_test + seviye geçişi donma testleri; docs/18). Gerçek AdMob/Billing çağrılmaz.
+// Testler için sahte reklam platformu (ads_rules_test + seviye geçişi testleri; docs/18, docs/21). Gerçek AdMob/Billing çağrılmaz.
 import 'dart:async';
 
 import 'package:arrowtile/core/ads_rules.dart';
@@ -79,11 +79,34 @@ class FakePlatform implements AdsPlatform {
     return PreloadState.started;
   }
 
+  /// 1.1.4: yükleme bu kadar sürer (süre sınırından uzunsa platform zamanında false döner, reklam SONRADAN hazır olur: "geç yükleme").
+  Duration? loadAfter;
+  int lateLoads = 0;
+
   @override
   Future<bool> ensureRewardedLoaded({Duration timeout = kRewardedLoadTimeout}) async {
     calls.add('ensure');
     if (throwOnLoad) throw StateError('boom');
     if (hangLoad) return Completer<bool>().future;
+    final Duration? la = loadAfter;
+    if (la != null) {
+      final Completer<bool> c = Completer<bool>();
+      Timer(la, () {
+        rewardedOk = true; // yükleme tamamlandı (belki süre dolduktan sonra)
+        if (!c.isCompleted) {
+          c.complete(true);
+        } else {
+          lateLoads++;
+        }
+      });
+      if (la > timeout) {
+        Timer(timeout, () {
+          errCode = 'timeout';
+          if (!c.isCompleted) c.complete(false);
+        });
+      }
+      return c.future;
+    }
     if (loadOk) {
       rewardedOk = !expireAfterLoad;
       return true;
@@ -100,20 +123,25 @@ class FakePlatform implements AdsPlatform {
   @override
   bool get interstitialOnScreen => onScreen;
 
-  // ---- 1.1.3: SDK modeli — ad.show() bir kez çağrılınca geri alınamaz; ancak dispose (abandon) edilen reklam gösterilemez
+  // ---- 1.1.4: SDK modeli — ad.show() bir kez çağrılınca geri ALINAMAZ (dispose iptal etmez). Reklam [presentAfter] sonra belirir,
+  // [watchFor] boyunca ekranda kalır, sonra "kapandı" (true). [releaseInterstitial] yalnızca platformun bekleyen durumunu unutur;
+  // gösterimi DURDURMAZ (gerçek SDK gibi) — reklam yine belirir. Testler bu yüzden "sonraki seviye show() bitmeden başlamaz"ı doğrular.
   @override
   void Function(bool onScreen)? onScreenChanged;
   @override
   void Function()? onLateAd;
-  Duration? presentAfter; // reklam show() çağrısından bu kadar sonra belirir (bırakılmadıysa); showInterstitial süre sınırı kendi başına dolar
+  Duration? presentAfter;
+  Duration watchFor = const Duration(seconds: 1);
   int presentedI = 0; // gerçekten ekrana gelen geçiş reklamı sayısı
   int presentedR = 0;
-  bool abandonedI = false;
-  bool abandonedR = false;
+  int releasedI = 0;
+  int releasedR = 0;
   Completer<bool>? _ic;
   Timer? _it;
-  Duration rewardedWatchdog = const Duration(seconds: 3);
-  Duration? rewardedPresentAfter; // ödüllü: bu kadar sonra belirir; platform 3 sn'de show_timeout ile bırakır
+  Duration? rewardedPresentAfter; // ödüllü: bu kadar sonra belirir, ödül verir, kapanır
+
+  /// Ekrana gelme anında çağrılır (testler seviye ortası denetimi için).
+  void Function()? onPresented;
 
   void _setScreen(bool on) {
     onScreen = on;
@@ -121,11 +149,9 @@ class FakePlatform implements AdsPlatform {
   }
 
   @override
-  void abandonInterstitial() {
-    calls.add('abandonI');
-    abandonedI = true;
-    _it?.cancel();
-    if (onScreen) _setScreen(false);
+  void releaseInterstitial() {
+    calls.add('releaseI');
+    releasedI++;
     final Completer<bool>? c = _ic;
     if (c != null && !c.isCompleted) c.complete(false);
   }
@@ -138,14 +164,17 @@ class FakePlatform implements AdsPlatform {
       return Future<bool>.value(false);
     }
     if (throwOnShow) throw StateError('show boom');
-    abandonedI = false;
     final Duration? pa = presentAfter;
     if (pa != null) {
       final Completer<bool> c = _ic = Completer<bool>();
       _it = Timer(pa, () {
-        if (abandonedI) return; // dispose edilmiş: SDK gösteremez
-        presentedI++;
+        presentedI++; // gerçek SDK: show() sonrası iptal edilemez
         _setScreen(true);
+        onPresented?.call();
+        Timer(watchFor, () {
+          _setScreen(false);
+          if (!c.isCompleted) c.complete(true);
+        });
       });
       return c.future;
     }
@@ -157,6 +186,7 @@ class FakePlatform implements AdsPlatform {
       if (appearsOnScreen) {
         presentedI++;
         _setScreen(true);
+        onPresented?.call();
       }
       _it = Timer(d, () {
         if (onScreen) _setScreen(false);
@@ -167,10 +197,13 @@ class FakePlatform implements AdsPlatform {
     return Future<bool>.value(true);
   }
 
+  /// Test temizliği.
+  void cancelTimers() => _it?.cancel();
+
   @override
-  void abandonRewarded() {
-    calls.add('abandonR');
-    abandonedR = true;
+  void releaseRewarded() {
+    calls.add('releaseR');
+    releasedR++;
   }
 
   @override
@@ -181,24 +214,16 @@ class FakePlatform implements AdsPlatform {
       errCode = 'cancelled';
       return;
     }
-    abandonedR = false;
     final Duration? ra = rewardedPresentAfter;
     if (ra != null) {
       final Completer<void> c = Completer<void>();
       Timer(ra, () {
-        if (abandonedR) return;
         presentedR++;
         _setScreen(true);
+        onPresented?.call();
         if (rewardGiven) onReward();
         _setScreen(false);
         if (!c.isCompleted) c.complete();
-      });
-      Timer(rewardedWatchdog, () {
-        if (presentedR > 0 || c.isCompleted) return; // platformun 3 sn bekçisi
-        abandonedR = true;
-        calls.add('abandonR');
-        errCode = 'show_timeout';
-        c.complete();
       });
       return c.future;
     }

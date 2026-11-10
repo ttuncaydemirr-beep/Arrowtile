@@ -28,6 +28,12 @@ Future<void> startLevel(BuildContext context, int id, {bool replace = false}) as
   final AppController app = AppScope.read(context);
   final NavigatorState nav = Navigator.of(context);
   Level? lv = app.getLevel(id);
+  // 1.1.4 (docs/21) ikinci kalkan: bir tam ekran reklam için show() çağrılmış ve SDK sonucu bekleniyorsa yeni seviye BAŞLATILMAZ
+  // (normalde seviye sonu penceresi zaten bekler; bu yalnızca beklenmedik bir yoldan çağrıya karşıdır).
+  while (app.mon.adHoldActive) {
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    if (!context.mounted) return;
+  }
   if (!replace) {
     // onay formu (UMP) sürüyorsa kısa süre bekle: form oyunun üstüne çıkmasın (replace: oyuncu zaten oyunda)
     await app.waitConsentIdle();

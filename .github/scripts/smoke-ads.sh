@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Emülatörde "reklam donması" duman testi (docs/18, sürüm 1.1.1).
-# Kullanım: smoke-ads.sh <etiket> <nofill|fill>
+# Kullanım: smoke-ads.sh <etiket> <nofill|fill|slow>
+#   slow  : (1.1.4, docs/21) fill + --dart-define=ADS_PRESENT_DELAY_MS=8000: show() 8 sn geciktirilir (gerçek cihazdaki geç AdActivity).
+#           Beklenen: seviye sonu reklam kapanana dek bekler; "show() çağrıldı" ile sonraki "level N opened" arasında mutlaka
+#           dismissed / show failed / released satırı vardır ve seviye sırasında AdActivity hiç görülmez.
 #   nofill: debug APK --dart-define=ADS_FORCE_INVALID=true (geçersiz reklam birimi → doldurulamadı; onaysız AdMob hesabını taklit eder)
 #   fill  : debug APK, Google test reklam birimleri (gerçek reklam yüklenir/gösterilir; reklam penceresi kapatılır)
 # 1.1.3: seviye sırasında AdActivity (geç gelen reklam) ve 'GEÇ gösterildi'/late_blocked satırları da başarısızlıktır.
@@ -63,7 +66,7 @@ while [ $((SECONDS - START)) -lt "$TOTAL" ]; do
     if echo "$LASTMARK" | grep -q "opened"; then
       fail "GEÇ REKLAM: seviye sırasında tam ekran reklam penceresi açıldı (son işaret: $LASTMARK)"
     fi
-    if [ "$MODE" = "fill" ]; then
+    if [ "$MODE" = "fill" ] || [ "$MODE" = "slow" ]; then
       dump "$OUT/cur.xml"
       if xy=$($UI find "$OUT/cur.xml" '(?i)^(close|close ad|skip|kapat)$'); then
         log "reklam penceresi kapatılıyor (dokun @ $xy)"; adb shell input tap $xy
@@ -92,4 +95,13 @@ if grep -qE "GEÇ gösterildi|late_blocked" "$OUT/logcat-full.txt"; then grep -E
 if [ "$MODE" = "nofill" ]; then
   grep -q "onAdFailedToLoad" "$OUT/ads-lines.txt" || log "UYARI: geçersiz birim için onAdFailedToLoad satırı görülmedi (SDK hazır olmayabilir)"
 fi
+# 1.1.4 (docs/21): TUTMA sırası — show() çağrıldıktan sonra, reklam kapanmadan / gösterilemeden / bırakılmadan yeni seviye açılmamalı
+grep -E "AUTOPLAY: level [0-9]+ opened|Ads: interstitial: (show\(\) çağrıldı|dismissed|released)|Ads: interstitial show failed" "$OUT/logcat-full.txt" > "$OUT/hold-order.txt" || true
+echo "=== tutma sırası ==="; cut -c1-160 "$OUT/hold-order.txt" | tail -40
+if ! awk '/show\(\) çağrıldı/{open=1; next} /dismissed|released|show failed/{open=0; next} /AUTOPLAY: level [0-9]+ opened/{ if (open) { print "İHLAL: " $0; bad=1 } } END { exit bad ? 1 : 0 }' "$OUT/hold-order.txt"; then
+  fail "TUTMA İHLALİ: show() bitmeden yeni seviye açıldı"
+fi
+SHOWS=$(grep -c "show() çağrıldı" "$OUT/hold-order.txt" || true)
+log "show() çağrısı: $SHOWS"
+if [ "$MODE" = "slow" ] && [ "${SHOWS:-0}" -lt 1 ]; then log "UYARI: slow kipinde show() çağrısı görülmedi (test reklamı yüklenmemiş olabilir)"; fi
 log "TAMAM: seviye 13 → $LAST_LVL arası geçişler takılmadan geçti (kip: $MODE, kapatılan reklam penceresi: $AD_CLOSES)"

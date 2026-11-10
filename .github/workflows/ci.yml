@@ -179,6 +179,7 @@ jobs:
   # docs/18 (1.1.1): "17. seviye açılmadı / reklam donuyor" için emülatör testi. Debug APK, AUTOPLAY_FROM=13 ile seviye 13'ten
   # kendiliğinden oynar ve geçiş reklamı denemelerinden (15/16 → 17 dahil) geçip seviye 18'e ulaşmalıdır.
   #   nofill: geçersiz reklam birimi (doldurulamadı; onaysız AdMob hesabını taklit eder)  |  fill: Google test reklamları (gerçek gösterim)
+  #   slow (1.1.4): fill + show() 8 sn gecikmeli; sonraki seviye reklam kapanmadan açılırsa / seviye sırasında AdActivity görülürse başarısız
   debug-ads-apk:
     name: Debug APK (reklam donma testi, ${{ matrix.variant }})
     runs-on: ubuntu-latest
@@ -190,6 +191,9 @@ jobs:
             defines: --dart-define=ADS_FORCE_INVALID=true --dart-define=AUTOPLAY_FROM=13
           - variant: fill
             defines: --dart-define=AUTOPLAY_FROM=13
+          # 1.1.4 (docs/21): gerçek cihazdaki yavaş sunum — show() 8 sn geciktirilir; seviye sonu reklam kapanana dek beklemeli
+          - variant: slow
+            defines: --dart-define=AUTOPLAY_FROM=13 --dart-define=ADS_PRESENT_DELAY_MS=8000
     defaults:
       run:
         working-directory: flutter/arrowtile
@@ -220,7 +224,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        variant: [nofill, fill]
+        variant: [nofill, fill, slow]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v5

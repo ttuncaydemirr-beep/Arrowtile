@@ -554,6 +554,34 @@
   "@adsLoading": {
     "description": "ads.loading"
   },
+  "adsOpening": "Reklam açılıyor…",
+  "@adsOpening": {
+    "description": "ads.opening"
+  },
+  "adsSlow": "Reklam gecikiyor. Uygulamadan çıkıp geri dönersen oyun devam eder.",
+  "@adsSlow": {
+    "description": "ads.slow"
+  },
+  "diagTitle": "Tanılama",
+  "@diagTitle": {
+    "description": "diag.title"
+  },
+  "diagCopy": "Kopyala",
+  "@diagCopy": {
+    "description": "diag.copy"
+  },
+  "diagShare": "Paylaş",
+  "@diagShare": {
+    "description": "diag.share"
+  },
+  "diagCopied": "Kopyalandı",
+  "@diagCopied": {
+    "description": "diag.copied"
+  },
+  "diagHint": "Bu kayıt kişisel veri içermez. Kopyalayıp ya da paylaşıp bize gönder.",
+  "@diagHint": {
+    "description": "diag.hint"
+  },
   "adsBannerPlaceholder": "Reklam alanı",
   "@adsBannerPlaceholder": {
     "description": "ads.banner_placeholder"

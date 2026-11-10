@@ -13,9 +13,10 @@ import 'package:flutter/scheduler.dart';
 
 import '../../config/ads_config.dart';
 import '../../core/daily.dart' as dl;
+import '../../core/diag.dart';
 import '../../core/economy.dart' as eco;
 import '../../core/engine.dart';
-import '../../core/ads_rules.dart' show Unsubscribe;
+import '../../core/ads_rules.dart' show Unsubscribe, kLoadingOverlayDelay;
 import '../../core/levelgen.dart' show chapterOf, isCurved, kDesigned;
 import '../../core/models.dart';
 import '../../core/save_data.dart' show kMaxLevel;
@@ -97,6 +98,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     _attemptClock
       ..reset()
       ..start();
+    diag('level', 'start', <String, Object?>{'lvl': lv.isDaily ? 'daily' : lv.id});
     if (!lv.isDaily) app.telemetry.levelStart(level: lv.id, tier: lv.diff, chapter: chapterOf(lv.id));
   }
 
@@ -172,9 +174,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     }
   }
 
+  /// 1.1.4: seviye sonunda show() çağrıldı ve SDK sonucu bekleniyor: 0 yok, 1 "Reklam açılıyor…", 2 "reklam gecikiyor".
+  final ValueNotifier<int> _adWait = ValueNotifier<int>(0);
+
   @override
   void dispose() {
     _autoTimer?.cancel();
+    _adWait.dispose();
     _unsubAd?.call();
     _unsubAd = null;
     app.mon.closeLevelEnd(_levelEndToken == 0 ? null : _levelEndToken);
@@ -623,6 +629,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   void _onWin() {
     if (winDone) return;
     winDone = true;
+    diag('level', 'end', <String, Object?>{'lvl': lv.isDaily ? 'daily' : lv.id});
     busy = true;
     final int my = session;
     final int stars = g.stars();
@@ -683,6 +690,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         reduced: _reduced,
         levelId: id,
         allDone: id == kDesigned, // 5.000 seviye bitti: sonsuz bölümler başlıyor
+        adWait: _adWait,
         onNext: () async {
           await _adThenContinue(id, token);
           if (ctx.mounted) Navigator.of(ctx).pop();
@@ -702,16 +710,23 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     });
   }
 
-  /// Seviye sonu "devam" adımında geçiş reklamı denemesi. HİÇBİR yolda istisna fırlatmaz ve [Monetization.continueAfterLevel]'in
-  /// sınırlarına ek olarak sert bir üst sınırla biter: reklam ne olursa olsun sonraki ekran açılır (docs/18).
+  /// Seviye sonu "devam" adımında geçiş reklamı denemesi. HİÇBİR yolda istisna fırlatmaz.
+  /// 1.1.4 (docs/21): reklam yüklü değilse anında döner. Yüklüyse show() çağrılır ve SDK "kapandı/gösterilemedi" bildirene ya da
+  /// uygulama reklamdan dönene dek BEKLENİR — sonraki seviye bu bekleme bitmeden başlamaz (seviye ortasında reklam olamaz).
+  /// Bekleme 300 ms'yi aşarsa pencerede "Reklam açılıyor…", 20 sn'yi aşarsa "reklam gecikiyor" ipucu görünür. Üst süre sınırı YOKTUR.
   Future<void> _adThenContinue(int id, int token) async {
+    final Timer t = Timer(kLoadingOverlayDelay, () {
+      if (mounted && app.mon.adHoldActive && _adWait.value == 0) _adWait.value = 1;
+    });
     try {
-      await app.mon
-          .continueAfterLevel(id, placement: token)
-          .timeout(app.mon.nativeTimeout + const Duration(seconds: 2), onTimeout: () => false);
+      await app.mon.continueAfterLevel(id, placement: token, onSlow: () {
+        if (mounted) _adWait.value = 2;
+      });
     } catch (_) {
       // yut: oyun devam eder
     } finally {
+      t.cancel();
+      if (mounted) _adWait.value = 0;
       app.mon.closeLevelEnd(token); // yerleştirme biter: bundan sonra hiçbir yol show() çağıramaz
     }
   }
@@ -1322,7 +1337,9 @@ class _EndSheet extends StatefulWidget {
   final eco.CompleteResult res;
   final bool relaxed, reduced, allDone;
   final Future<void> Function() onNext, onReplay, onMap;
+  final ValueListenable<int> adWait;
   const _EndSheet({
+    required this.adWait,
     required this.stars,
     required this.res,
     required this.collisions,
@@ -1401,6 +1418,24 @@ class _EndSheetState extends State<_EndSheet> {
         if (res.chapterDone) tag(loc.mapChapterBonus(res.bonus)),
       ]),
       if (widget.allDone) sheetText(context, loc.endAllDone),
+      // 1.1.4: show() sonrası bekleme göstergesi (yalnızca 300 ms'den uzun sürerse)
+      ValueListenableBuilder<int>(
+        valueListenable: widget.adWait,
+        builder: (BuildContext c, int w, Widget? _) {
+          if (w == 0) return const SizedBox.shrink();
+          return Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+              Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: pal.inkSoftC)),
+                const SizedBox(width: 10),
+                Flexible(child: Text(loc.adsOpening, style: TextStyle(color: pal.inkSoftC, fontSize: 15, fontWeight: FontWeight.w700))),
+              ]),
+              if (w == 2) sheetText(c, loc.adsSlow),
+            ]),
+          );
+        },
+      ),
       actionsColumn(<Widget>[
         if (widget.levelId < kMaxLevel) AppButton(loc.endNext, kind: BtnKind.primary, onTap: _going ? null : () => _go(widget.onNext)),
         Row(children: <Widget>[

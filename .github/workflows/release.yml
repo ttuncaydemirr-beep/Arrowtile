@@ -50,6 +50,15 @@ jobs:
           case "$ADMOB_INTERSTITIAL_ID" in ca-app-pub-[0-9]*/[0-9]*) ;; *) echo "::error::ADMOB_INTERSTITIAL_ID biçimi ca-app-pub-XXXX/YYYY olmalı (/ içerir)."; exit 1;; esac
           case "$ADMOB_REWARDED_ID" in ca-app-pub-[0-9]*/[0-9]*) ;; *) echo "::error::ADMOB_REWARDED_ID biçimi ca-app-pub-XXXX/YYYY olmalı (/ içerir)."; exit 1;; esac
           case "$ADMOB_BANNER_ID" in ca-app-pub-[0-9]*/[0-9]*) ;; *) echo "::error::ADMOB_BANNER_ID biçimi ca-app-pub-XXXX/YYYY olmalı (/ içerir)."; exit 1;; esac
+          # 1.1.4 (docs/21): banner görünmüyor bildirimi — üç birim birbirinden FARKLI olmalı ve uygulama kimliğiyle aynı yayıncıya ait
+          # olmalı (karışmış secret, ör. banner yerine geçiş birimi, banner'ın hiç dolmamasına yol açar). Değerler günlüğe yazılmaz.
+          if [ "$ADMOB_BANNER_ID" = "$ADMOB_INTERSTITIAL_ID" ] || [ "$ADMOB_BANNER_ID" = "$ADMOB_REWARDED_ID" ] || [ "$ADMOB_INTERSTITIAL_ID" = "$ADMOB_REWARDED_ID" ]; then
+            echo "::error::ADMOB_*_ID secret'larından ikisi aynı. Her biçim (geçiş, ödüllü, banner) için AdMob'da ayrı birim oluşturun."; exit 1
+          fi
+          PUB="${ADMOB_APP_ID%%~*}"
+          for v in "$ADMOB_INTERSTITIAL_ID" "$ADMOB_REWARDED_ID" "$ADMOB_BANNER_ID"; do
+            case "$v" in "$PUB"/*) ;; *) echo "::error::Bir reklam birimi ADMOB_APP_ID ile aynı yayıncı kimliğine (ca-app-pub-XXXX) sahip değil."; exit 1;; esac
+          done
           for v in "$ADMOB_APP_ID" "$ADMOB_INTERSTITIAL_ID" "$ADMOB_REWARDED_ID" "$ADMOB_BANNER_ID"; do
             case "$v" in ca-app-pub-3940256099942544*) echo "::error::Google TEST kimliği verilmiş (3940256099942544). Kendi AdMob kimliğinizi girin."; exit 1;; esac
           done
