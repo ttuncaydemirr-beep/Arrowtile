@@ -317,18 +317,7 @@ jobs:
           disable-animations: true
           script: |
             adb install -r Arrowtile-firebase-ci.apk
-            adb logcat -c
-            adb shell monkey -p com.arrowtile.puzzle -c android.intent.category.LAUNCHER 1
-            for i in $(seq 1 60); do
-              adb logcat -d -v brief flutter:V AndroidRuntime:E '*:S' > logcat-fb.txt || true
-              if grep -q "TELEMETRY: init ok" logcat-fb.txt && grep -q "TELEMETRY: consent:" logcat-fb.txt; then break; fi
-              sleep 1
-            done
-            grep -E "TELEMETRY|FATAL" logcat-fb.txt || true
-            if grep -q "FATAL EXCEPTION" logcat-fb.txt; then echo "UYGULAMA ÇÖKTÜ"; exit 1; fi
-            grep -q "TELEMETRY: init ok" logcat-fb.txt || { echo "Firebase başlatılamadı (init ok satırı yok)"; exit 1; }
-            grep -q "TELEMETRY: consent:" logcat-fb.txt || { echo "Onay sinyalleri hesaplanmadı (consent satırı yok)"; exit 1; }
-            bash .github/scripts/smoke-resume.sh firebase 0
+            bash .github/scripts/smoke-firebase.sh
       - uses: actions/upload-artifact@v5
         if: always()
         with:
