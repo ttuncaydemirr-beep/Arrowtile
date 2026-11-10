@@ -17,6 +17,9 @@
  *  - Önceden yükleme (docs/15 §4): ödüllü reklam oyun ekranı açılınca ve can 1'e düşünce (preloadRewarded), geçiş reklamı seviye
  *    bitmeden, son oklar çıkarken (preloadInterstitial) yüklenmeye başlar; zaten yükleniyor/hazırsa tekrar başlatılmaz.
  *  - Reklam gösterilirken oyun döngüsü ve ses duraklar (setAdListener(function (active) {...}): reklam açılınca true, kapanınca false).
+ *  - 1.1.3 (docs/20): geçiş reklamı YALNIZCA etkin seviye sonu yerleştirmesinde (openLevelEnd belirteci), YALNIZCA hazırsa ve en çok
+ *    BİR kez gösterilir; hazır değilse beklemeden atlanır. Ekrana gelmeyen gösterim bırakılır (abandonInterstitial); sonradan gelen
+ *    'shown' olayı yok sayılır ve lateBlocked sayılır. Ses YALNIZCA reklam gerçekten ekrandayken susar (setScreenListener).
  *  - Süre sınırı yoktur; bu katman hiçbir zaman oyunu bekletmez: yerel tarafın yanıt vermemesi durumunda
  *    NATIVE_TIMEOUT sonra oyun kendiliğinden devam eder.
  *
@@ -64,6 +67,19 @@
       var now = adActive > 0; if (was !== now && adListener) { try { adListener(now); } catch (e) {} }
     }
 
+    // 1.1.3: ses yalnızca reklam GERÇEKTEN ekrandayken ('shown' olayı) susar; show çağrısı/yükleme sesi susturmaz
+    var screenListener = null, onScreen = false;
+    function screenState(on) {
+      if (onScreen === on) return; onScreen = on;
+      if (screenListener) { try { screenListener(on); } catch (e) {} }
+    }
+    // 1.1.3: yerleştirme oturumu (seviye sonu ekranı etkinken geçerli belirteç)
+    var placementSeq = 0, placementOpen = 0, placementLevel = 0, placementUsed = 0;
+    var abandoned = {}, lateBlocked = 0, lateUntil = 0, lateListener = null;
+    function openLevelEnd(levelId) { placementOpen = ++placementSeq; placementLevel = levelId; return placementOpen; }
+    function closeLevelEnd(token) { if (token == null || token === placementOpen) placementOpen = 0; }
+    function placementValid(token, levelId) { return !!token && token === placementOpen && (levelId == null || levelId === placementLevel); }
+
     function ads() {
       var s = getState();
       if (!s) return { since: 0, lastAt: 0, adFree: false, test: false };
@@ -105,6 +121,11 @@
     function onNative(msg) {
       try {
         var m = typeof msg === 'string' ? JSON.parse(msg) : msg;
+        if (m && typeof m.id === 'number' && abandoned[m.id] && !pending[m.id]) {
+          // bırakılmış (zaman aşımına uğramış) reklam sonradan belirdi: kalkan
+          if (m.event === 'shown') { lateBlocked++; call('abandonInterstitial', m.id); if (lateListener) { try { lateListener(); } catch (e) {} } }
+          return false;
+        }
         if (!m || typeof m.id !== 'number' || !pending[m.id]) return false;
         var p = pending[m.id];
         var done = p.handler(m) !== false; // handler false dönerse istek açık kalır (ör. 'rewarded' sonrası 'closed' beklenir)
@@ -127,16 +148,22 @@
       if (!bridge() || !online()) return false;
       return true;
     }
-    /** Seviye sonu ekranında oyuncu devam edince çağrılır. cb her durumda TAM BİR KEZ çağrılır. */
-    function continueAfterLevel(levelId, cb) {
+    /** Seviye sonu ekranında oyuncu devam edince çağrılır. cb her durumda TAM BİR KEZ çağrılır.
+     *  token: openLevelEnd(levelId) belirteci (zorunlu; geçersizse reklam GÖSTERİLMEZ). Reklam hazır değilse beklemeden atlanır. */
+    function continueAfterLevel(levelId, cb, token) {
       var called = false;
       function go(shown) { if (called) return; called = true; try { cb && cb(!!shown); } catch (e) {} }
+      if (!placementValid(token, levelId) || placementUsed === token) { go(false); return false; }
       if (!interstitialDue(levelId)) { go(false); return false; }
+      // yalnızca ZATEN yüklü reklam gösterilir. Köprü hazır bilgisi vermiyorsa (eski köprü) hazır sayılır.
+      var rd = call('isInterstitialReady');
+      if (rd === false || (rd === undefined && bridge() && typeof bridge().isInterstitialReady === 'function')) { go(false); return false; }
       var open = true, shownEv = false, startTimer = null;
-      function end() { if (open) { open = false; adState(false); } }
-      adState(true); // yerel çağrıdan ÖNCE duraklat: reklam açılırken oyun döngüsü/ses çalışmaya devam etmesin
+      function end() { if (open) { open = false; adState(false); screenState(false); } }
+      adState(true); // oyun döngüsü duraklatması (ses DEĞİL)
+      placementUsed = token; // show en çok bir kez
       var ok = request('showInterstitial', [], function (m) {
-        if (m.event === 'shown') { shownEv = true; if (startTimer !== null) { env.clearTimeout(startTimer); startTimer = null; } return false; } // ekrana geldi: oyuncu izliyor, kapanışı bekle
+        if (m.event === 'shown') { shownEv = true; screenState(true); if (startTimer !== null) { env.clearTimeout(startTimer); startTimer = null; } return false; } // ekrana geldi: ses şimdi susar
         if (m.event === 'closed' || m.event === 'failed') {
           if (startTimer !== null) { env.clearTimeout(startTimer); startTimer = null; }
           end(); iReady = false; go(m.event === 'closed'); return true;
@@ -144,13 +171,14 @@
         return false;
       }, function () { end(); go(false); });
       if (!ok) { end(); go(false); return false; }
-      // docs/18 (1.1.1): gösterim denemesi showStartMs içinde ekrana gelmezse (olay yok / yavaş) SESSİZCE atla: oyun devam eder,
-      // duraklatma geri alınır. (Köprü 'shown' olayı göndermiyorsa da ~3 sn sonra devam edilir.) cb yine tam bir kez çağrılır.
+      // docs/18: gösterim denemesi showStartMs içinde ekrana gelmezse sessizce atla; 1.1.3: reklam BIRAKILIR, sonradan gösterilemez
       var rid = seq;
       startTimer = env.setTimeout(function () {
         startTimer = null;
         if (shownEv) return;
         if (!finish(rid)) return; // zaten bitti
+        abandoned[rid] = true; lateUntil = env.now() + 30000;
+        call('abandonInterstitial', rid);
         end(); iReady = false; go(false);
       }, RULES.showStartMs);
       iReady = false; iLoading = false;
@@ -239,9 +267,9 @@
      *  Köprü yoksa (web önizleme test modu) kısa gecikmeyle ödül taklit edilir. */
     function showRewarded(placement, onReward, onDone) {
       var rewarded = false, closed = false, shown = false;
-      function done() { if (closed) return; closed = true; if (shown) { shown = false; adState(false); } try { onDone && onDone(rewarded); } catch (e) {} }
+      function done() { if (closed) return; closed = true; screenState(false); if (shown) { shown = false; adState(false); } try { onDone && onDone(rewarded); } catch (e) {} }
       if (!bridge()) {
-        shown = true; adState(true); // test modu: kısa süre "reklam gösteriliyor" (oyun döngüsü + ses duraklar)
+        shown = true; adState(true); screenState(true); // test modu: kısa süre "reklam gösteriliyor" (oyun döngüsü + ses duraklar)
         env.setTimeout(function () {
           if (!rewarded) { rewarded = true; try { onReward && onReward(); } catch (e) {} }
           done();
@@ -251,6 +279,7 @@
       if (!rewardedAvailable()) { done(); return false; }
       shown = true; adState(true); // yerel çağrıdan önce duraklat
       var ok = request('showRewarded', [String(placement || '')], function (m) {
+        if (m.event === 'shown') { screenState(true); return false; }
         if (m.event === 'rewarded' && !rewarded) { rewarded = true; try { onReward && onReward(); } catch (e) {} return false; }
         if (m.event === 'closed' || m.event === 'failed') { done(); return true; }
         return false;
@@ -305,6 +334,12 @@
       RULES: RULES, PRODUCT_ID: PRODUCT_ID, BANNER_SCREENS: BANNER_SCREENS,
       /** Bu ekranda banner gösterilir mi? (yalnızca menu/map ve reklamsız satın alma yoksa) */
       bannerVisible: function (screen) { return BANNER_SCREENS.indexOf(screen) >= 0 && !isAdFree(); },
+      openLevelEnd: openLevelEnd, closeLevelEnd: closeLevelEnd,
+      setScreenListener: function (fn) { screenListener = typeof fn === 'function' ? fn : null; },
+      setLateListener: function (fn) { lateListener = typeof fn === 'function' ? fn : null; },
+      lateBlockedCount: function () { return lateBlocked; },
+      lateWindowOpen: function () { return lateUntil !== 0 && env.now() < lateUntil; },
+      isAdOnScreen: function () { return onScreen; },
       setAdListener: function (fn) { adListener = typeof fn === 'function' ? fn : null; },
       isAdShowing: function () { return adActive > 0; },
       preloadRewarded: preloadRewarded, rewardedLoading: rewardedLoading,

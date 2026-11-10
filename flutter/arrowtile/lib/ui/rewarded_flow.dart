@@ -78,6 +78,7 @@ Future<bool> playRewarded(BuildContext context, String placement, {required void
         });
       },
       onLoadingDone: closeLoading,
+      stillWanted: () => context.mounted, // 1.1.3: ekran kapandıysa reklam ASLA otomatik gösterilmez
     );
   } catch (_) {
     res = const RewardedResult(RewardedOutcome.unavailable, errorCode: 'exception');

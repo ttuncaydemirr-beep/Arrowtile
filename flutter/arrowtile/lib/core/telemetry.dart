@@ -77,7 +77,7 @@ abstract class Telemetry {
   void rewardedAd({required String placement, required String result}) =>
       _log('rewarded_ad', <String, Object>{'placement': placement, 'result': result});
 
-  /// [result]: shown | skipped | failed.
+  /// [result]: shown | skipped | failed | blocked (geçersiz yerleştirme, show() çağrılmadı) | late_blocked (seviye sırasında geç reklam belirdi; docs/20).
   void interstitial({required String result}) => _log('interstitial', <String, Object>{'result': result});
 
   /// "Reklamları kaldır" satın alımı BAŞARIYLA tamamlandı (iptal/bekleyen/hata için çağrılmaz).

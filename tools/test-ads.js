@@ -21,6 +21,7 @@ function harness(opts = {}) {
       loadInterstitial(id) { calls.push(['loadInterstitial', id]); if (opts.loadHold) held.push(id); else queue.push({ id, event: opts.loadFail ? 'failed' : 'loaded', code: 3 }); return true; },
       isInterstitialReady() { return !!opts.interstitialReady; }
     } : {}),
+    abandonInterstitial(id) { calls.push(['abandon', id]); },
     showInterstitial(id) { calls.push(['interstitial', id]); if (!this.startOk) return false; if (this.autoClose) queue.push({ id, event: 'closed' }); return true; },
     showRewarded(id, pl) { calls.push(['rewarded', id, pl]); if (opts.rewardOutcome !== 'skip') queue.push({ id, event: 'rewarded' }); queue.push({ id, event: 'closed' }); return true; },
     purchaseRemoveAds(id) { calls.push(['purchase', id]); queue.push({ id, event: opts.purchase || 'purchased' }); return true; },
@@ -39,23 +40,25 @@ function harness(opts = {}) {
   return { M, state, calls, bridge, flush, queue, held, advance: ms => { t += ms; const due = timers.filter(h => h.at <= t); timers = timers.filter(h => h.at > t); due.forEach(h => h.f()); }, setOnline: v => { online = v; }, saves: () => saves };
 }
 const MIN = 60 * 1000;
+// seviye sonu yerleştirmesini açıp devam eder (1.1.3: belirteç zorunlu)
+const CL = (h, id, cb) => h.M.continueAfterLevel(id, cb, h.M.openLevelEnd(id));
 
 // 1) Bölüm 1 tamamen reklamsız
 {
   const h = harness(); let shown = 0;
-  for (let id = 1; id <= 12; id++) { h.M.onLevelComplete(id); h.M.continueAfterLevel(id, s => { if (s) shown++; }); h.flush(); h.advance(10 * MIN); }
+  for (let id = 1; id <= 12; id++) { h.M.onLevelComplete(id); CL(h, id, s => { if (s) shown++; }); h.flush(); h.advance(10 * MIN); }
   check('seviye 1-12: hiç geçiş reklamı yok, sayaç ilerlemez', shown === 0 && h.calls.length === 0 && (h.state.ads.since | 0) === 0);
 }
 // 2) En erken her 3 tamamlanan seviyede bir
 {
   const h = harness(); const shownAt = [];
-  for (let id = 13; id <= 24; id++) { h.M.onLevelComplete(id); h.M.continueAfterLevel(id, s => { if (s) shownAt.push(id); }); h.flush(); h.advance(5 * MIN); }
+  for (let id = 13; id <= 24; id++) { h.M.onLevelComplete(id); CL(h, id, s => { if (s) shownAt.push(id); }); h.flush(); h.advance(5 * MIN); }
   check('13+ seviyelerde her 3 tamamlamada bir reklam (15, 18, 21, 24)', JSON.stringify(shownAt) === '[15,18,21,24]', shownAt.join(','));
 }
 // 3) İki reklam arası en az 3 dakika
 {
   const h = harness(); const shownAt = [];
-  for (let id = 13; id <= 30; id++) { h.M.onLevelComplete(id); h.M.continueAfterLevel(id, s => { if (s) shownAt.push(id); }); h.flush(); h.advance(30 * 1000); }
+  for (let id = 13; id <= 30; id++) { h.M.onLevelComplete(id); CL(h, id, s => { if (s) shownAt.push(id); }); h.flush(); h.advance(30 * 1000); }
   // 3 seviye = 1,5 dk < 3 dk; 15'te ilk reklam, sonra 6 seviye (3 dk) beklenir
   check('reklamlar arası ≥ 3 dk (30 sn/seviye hızında 15, 21, 27)', JSON.stringify(shownAt) === '[15,21,27]', shownAt.join(','));
   h.advance(0);
@@ -65,19 +68,19 @@ const MIN = 60 * 1000;
   const h = harness();
   h.M.onLevelComplete(13); h.M.onLevelComplete(14);
   check('sayaç kayıtta (state.ads.since) tutulur ve kaydedilir', h.state.ads.since === 2 && h.saves() >= 2);
-  let shown = null; h.M.continueAfterLevel(14, s => { shown = s; }); h.flush();
+  let shown = null; CL(h, 14, s => { shown = s; }); h.flush();
   check('2 tamamlama sonrası reklam yok', shown === false && h.calls.length === 0);
 }
 // 5) Çevrimdışı / köprü yok → reklam yok, oyun hemen devam eder
 {
   const h = harness(); h.setOnline(false);
   for (let id = 13; id <= 15; id++) h.M.onLevelComplete(id);
-  let cbs = 0; h.M.continueAfterLevel(15, () => cbs++);
+  let cbs = 0; CL(h, 15, () => cbs++);
   check('çevrimdışı: reklam çağrılmaz, devam geri çağrısı hemen ve bir kez', cbs === 1 && h.calls.length === 0);
-  h.setOnline(true); h.M.continueAfterLevel(15, () => cbs++); h.flush();
+  h.setOnline(true); CL(h, 15, () => cbs++); h.flush();
   check('internet gelince (sayaç korunmuştu) reklam gösterilir', cbs === 2 && h.calls.filter(c => c[0] === 'interstitial').length === 1);
   const n = harness({ noBridge: true }); for (let id = 13; id <= 15; id++) n.M.onLevelComplete(id);
-  let c2 = 0, sh = null; n.M.continueAfterLevel(15, s => { c2++; sh = s; });
+  let c2 = 0, sh = null; CL(n, 15, s => { c2++; sh = s; });
   check('köprü yok (web önizleme): reklam gösterilmez, oyun devam eder', c2 === 1 && sh === false);
 }
 // 6) Reklamları kaldır → geçiş reklamı yok; ödüllü reklam isteğe bağlı kalır
@@ -85,7 +88,7 @@ const MIN = 60 * 1000;
   const h = harness();
   let r = null; h.M.purchaseRemoveAds(x => { r = x; }); h.flush();
   check('satın alma: köprü "purchased" → reklamsız, kalıcı alan (state.ads.adFree)', r && r.ok && h.state.ads.adFree === true && h.calls.some(c => c[0] === 'purchase'));
-  for (let id = 13; id <= 20; id++) { h.M.onLevelComplete(id); h.M.continueAfterLevel(id, () => {}); h.flush(); h.advance(10 * MIN); }
+  for (let id = 13; id <= 20; id++) { h.M.onLevelComplete(id); CL(h, id, () => {}); h.flush(); h.advance(10 * MIN); }
   check('reklamsız: hiç geçiş reklamı yok', !h.calls.some(c => c[0] === 'interstitial'));
   let rew = 0, done = null; h.M.showRewarded('hint', () => rew++, x => { done = x; }); h.flush();
   check('reklamsız sürümde ödüllü reklam isteğe bağlı çalışır', rew === 1 && done === true);
@@ -129,14 +132,14 @@ const MIN = 60 * 1000;
 // 10) Geçiş reklamı kapanmazsa zaman aşımı; devam geri çağrısı tek sefer
 {
   const h = harness({ autoClose: false }); for (let id = 13; id <= 15; id++) h.M.onLevelComplete(id);
-  let cbs = 0; h.M.continueAfterLevel(15, () => cbs++);
+  let cbs = 0; CL(h, 15, () => cbs++);
   check('reklam açıkken oyun bekler (devam henüz çağrılmadı)', cbs === 0);
   h.advance(RULES.nativeTimeoutMs + 1);
   check('yerel taraf yanıt vermezse zaman aşımıyla devam (tek sefer)', cbs === 1);
   h.M.onNative({ id: 1, event: 'closed' });
   check('geç gelen "closed" ikinci kez devam ettirmez', cbs === 1);
   const h2 = harness({ startOk: false }); for (let id = 13; id <= 15; id++) h2.M.onLevelComplete(id);
-  let c2 = 0; h2.M.continueAfterLevel(15, () => c2++);
+  let c2 = 0; CL(h2, 15, () => c2++);
   check('reklam başlatılamazsa (doldurulamadı) hemen devam, sayaç sıfırlanmaz', c2 === 1 && h2.state.ads.since === 3);
 }
 // 11) Ödüllü reklam: izlenmeden kapatılırsa ödül yok
@@ -307,7 +310,7 @@ const MIN = 60 * 1000;
   const h = harness(); const ev = [];
   h.M.setAdListener(a => ev.push(a));
   for (let id = 13; id <= 15; id++) h.M.onLevelComplete(id);
-  h.M.continueAfterLevel(15, () => {});
+  CL(h, 15, () => {});
   check('geçiş reklamı açılınca dinleyici true', JSON.stringify(ev) === '[true]' && h.M.isAdShowing());
   h.flush();
   check('geçiş reklamı kapanınca dinleyici false', JSON.stringify(ev) === '[true,false]' && !h.M.isAdShowing());
@@ -324,7 +327,7 @@ const MIN = 60 * 1000;
   const to = harness({ autoClose: false }); const ev4 = [];
   to.M.setAdListener(a => ev4.push(a));
   for (let id = 13; id <= 15; id++) to.M.onLevelComplete(id);
-  to.M.continueAfterLevel(15, () => {}); to.advance(RULES.nativeTimeoutMs + 1);
+  CL(to, 15, () => {}); to.advance(RULES.nativeTimeoutMs + 1);
   check('yerel taraf yanıt vermezse zaman aşımında duraklatma kalkar', JSON.stringify(ev4) === '[true,false]' && !to.M.isAdShowing());
 }
 // 19b) docs/18 (1.1.1): geçiş reklamı denemesi ASLA oyunu tutmaz (seviye 15/16 → 17 donma raporu)
@@ -333,7 +336,7 @@ const MIN = 60 * 1000;
   // geri çağrı hiç gelmez: showStartMs sonra sessizce atlanır, cb tam bir kez, duraklatma geri alınır
   const a = arm({ autoClose: false }); const ev = []; let n = 0, last = null;
   a.M.setAdListener(x => ev.push(x));
-  a.M.continueAfterLevel(15, s => { n++; last = s; });
+  CL(a, 15, s => { n++; last = s; });
   a.advance(RULES.showStartMs - 1);
   check('geri çağrı yok: süre dolmadan henüz beklenir', n === 0 && a.M.isAdShowing());
   a.advance(2);
@@ -344,7 +347,7 @@ const MIN = 60 * 1000;
   // gösterildi olayı gelirse oyuncu izliyor: kısa süre dolunca kesilmez, kapanışı bekler
   const b = arm({ autoClose: false }); const evb = []; let nb = 0, lb = null;
   b.M.setAdListener(x => evb.push(x));
-  b.M.continueAfterLevel(15, s => { nb++; lb = s; });
+  CL(b, 15, s => { nb++; lb = s; });
   b.M.onNative(JSON.stringify({ id: 1, event: 'shown' }));
   b.advance(RULES.showStartMs + 1000);
   check('"shown" geldi: izlenen reklam gösterim süresinde kesilmez', nb === 0 && b.M.isAdShowing());
@@ -353,16 +356,16 @@ const MIN = 60 * 1000;
   // "shown" geldi ama "closed" hiç gelmez: nativeTimeout ile biter
   const c = arm({ autoClose: false }); const evc = []; let nc = 0;
   c.M.setAdListener(x => evc.push(x));
-  c.M.continueAfterLevel(15, () => { nc++; });
+  CL(c, 15, () => { nc++; });
   c.M.onNative(JSON.stringify({ id: 1, event: 'shown' })); c.advance(RULES.nativeTimeoutMs + 1);
   check('"shown" geldi, "closed" gelmedi: nativeTimeout ile biter, duraklatma kalkar', nc === 1 && JSON.stringify(evc) === '[true,false]' && c.M._pending() === 0);
   // gösterilemedi
   const d = arm({ autoClose: false }); let nd = 0, ld = null;
-  d.M.continueAfterLevel(15, s => { nd++; ld = s; }); d.M.onNative(JSON.stringify({ id: 1, event: 'failed' })); d.advance(RULES.nativeTimeoutMs);
+  CL(d, 15, s => { nd++; ld = s; }); d.M.onNative(JSON.stringify({ id: 1, event: 'failed' })); d.advance(RULES.nativeTimeoutMs);
   check('gösterilemedi (failed): cb bir kez false', nd === 1 && ld === false && !d.M.isAdShowing());
   // köprü başlatamadı
   const e = arm({ startOk: false }); let ne = 0;
-  e.M.continueAfterLevel(15, () => { ne++; }); e.advance(RULES.nativeTimeoutMs);
+  CL(e, 15, () => { ne++; }); e.advance(RULES.nativeTimeoutMs);
   check('köprü başlatamadı: cb bir kez, duraklatma kalkar', ne === 1 && !e.M.isAdShowing());
 }
 // 20) Ekonomi (docs/15 §5): seviye çarpanları seviye bazında (1-3 ×1, 4-6 ×1,5, 7-8 ×2, 9-10 ×3), bölüm = 10 seviye, tek bölüm bonusu 150
@@ -391,6 +394,60 @@ const MIN = 60 * 1000;
   S.completeLevel(11, 3, false);
   for (let id = 12; id <= 20; id++) S.completeLevel(id, 1, false);
   check('bölüm 2 bonusu da 150 (kademe fark etmez), 11. seviye 1 yıldız sonrası', S.get().chapterBonus.join() === '1,2' && S.get().unlocked === 21);
+}
+
+// 21) docs/20 (1.1.3): geç gelen reklam yok — yerleştirme belirteci, hazır değilse atla, bir kez göster, bırak, ses yalnızca ekrandayken
+{
+  const arm = o => { const x = harness(o); for (let id = 13; id <= 15; id++) x.M.onLevelComplete(id); return x; };
+  const count = (h, n) => h.calls.filter(c => c[0] === n).length;
+  // belirteç yok / geçersiz / kapalı → show çağrılmaz
+  const a = arm(); let na = 0;
+  a.M.continueAfterLevel(15, () => na++);
+  a.M.continueAfterLevel(15, () => na++, 999);
+  const tk = a.M.openLevelEnd(15); a.M.closeLevelEnd(tk); a.M.continueAfterLevel(15, () => na++, tk);
+  check('belirteç yok/yanlış/kapanmış: cb false, show() HİÇ çağrılmaz', na === 3 && count(a, 'interstitial') === 0 && a.state.ads.since === 3);
+  const a2 = arm(); const t2 = a2.M.openLevelEnd(15); let r2 = null;
+  a2.M.continueAfterLevel(16, s => { r2 = s; }, t2);
+  check('belirteç başka seviyeye aitse show() çağrılmaz', r2 === false && count(a2, 'interstitial') === 0);
+  // hazır değil → beklemeden atla, sayaç korunur, sonra hazır olunca ancak SEVİYE SONUNDA gösterilir
+  const b = arm({ preload: true, interstitialReady: false, autoClose: true }); let nb = 0, lb = null;
+  CL(b, 15, s => { nb++; lb = s; });
+  check('hazır değil: anında cb(false), show() yok, bekleyen yok, sayaç korunur', nb === 1 && lb === false && count(b, 'interstitial') === 0 && b._pending === undefined && b.M._pending() === 0 && b.state.ads.since === 3);
+  b.advance(10 * 1000);
+  check('hazır değil sonrası zaman geçince (seviye ortası) show() çağrılmaz', count(b, 'interstitial') === 0);
+  // seviye ortasında yükleme tamamlanır (hazır olur): yine show yok; sonraki seviye sonu: gösterilir (tek kez)
+  b.M.onLevelComplete(16); b.advance(60 * 1000); b.flush();
+  check('yükleme seviye ortasında tamamlandı: show() hâlâ yok', count(b, 'interstitial') === 0);
+  b.bridge.isInterstitialReady = () => true;
+  let sb = null; CL(b, 16, s => { sb = s; }); b.flush();
+  check('sonraki uygun seviye sonunda hazır reklam tam bir kez gösterilir', sb === true && count(b, 'interstitial') === 1);
+  // aynı belirteçle ikinci deneme: show() ikinci kez çağrılmaz
+  const c = arm({ autoClose: false }); const tc = c.M.openLevelEnd(15); let nc = 0;
+  c.M.continueAfterLevel(15, () => nc++, tc); c.M.onNative(JSON.stringify({ id: 1, event: 'closed' }));
+  c.M.continueAfterLevel(15, () => nc++, tc);
+  check('bir yerleştirmede show() en çok bir kez', nc === 2 && count(c, 'interstitial') === 1);
+  // show çağrıldı, reklam 5 sn sonra belirir: bırakılmıştı → geç gösterim engellenir, ses hiç susmaz, sonraki seviye etkilenmez
+  const d = arm({ autoClose: false }); const scr = [], lateEv = []; let nd = 0, ld = null;
+  d.M.setScreenListener(x => scr.push(x)); d.M.setLateListener(() => lateEv.push(1));
+  CL(d, 15, s => { nd++; ld = s; });
+  check('show çağrısı sesi susturmaz (ekrana gelmedi)', scr.length === 0);
+  d.advance(RULES.showStartMs + 1);
+  check('3 sn içinde ekrana gelmedi: cb false, reklam bırakıldı (abandon), duraklatma kalktı', nd === 1 && ld === false && count(d, 'abandon') === 1 && !d.M.isAdShowing() && d.M.lateWindowOpen());
+  d.advance(2000); d.M.onNative(JSON.stringify({ id: 1, event: 'shown' }));
+  check('5 sn sonra gelen "shown" engellenir: lateBlocked=1, dinleyici bildirildi, ekran/ses durumu değişmez, cb tekrar çağrılmaz',
+    d.M.lateBlockedCount() === 1 && lateEv.length === 1 && scr.length === 0 && !d.M.isAdOnScreen() && nd === 1 && count(d, 'abandon') === 2);
+  // ses yalnızca ekrandayken: shown → true, closed → false
+  const e = arm({ autoClose: false }); const se = [];
+  e.M.setScreenListener(x => se.push(x));
+  CL(e, 15, () => {});
+  e.M.onNative(JSON.stringify({ id: 1, event: 'shown' }));
+  const mid = JSON.stringify(se);
+  e.M.onNative(JSON.stringify({ id: 1, event: 'closed' }));
+  check('ses yalnızca reklam ekrandayken susar: shown → [true], closed → [true,false]', mid === '[true]' && JSON.stringify(se) === '[true,false]' && !e.M.isAdOnScreen());
+  // gösterilemedi / köprü başlatamadı: ses hiç susmaz
+  const f = arm({ startOk: false }); const sf = [];
+  f.M.setScreenListener(x => sf.push(x)); CL(f, 15, () => {});
+  check('köprü başlatamadı: ses durumu değişmez', sf.length === 0 && !f.M.isAdOnScreen());
 }
 
 console.log(`\n${fail ? fail + ' KALDI, ' : ''}${pass} GEÇTİ (reklam/satın alma birim testi)`);

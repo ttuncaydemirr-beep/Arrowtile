@@ -24,7 +24,7 @@ class Rig {
   }
   Future<bool> complete(int id) async {
     m.onLevelComplete(id);
-    return m.continueAfterLevel(id);
+    return m.endScreen(id);
   }
 }
 
@@ -85,10 +85,10 @@ void main() {
     for (int id = 13; id <= 15; id++) {
       r.m.onLevelComplete(id);
     }
-    expect(await r.m.continueAfterLevel(15), isFalse);
+    expect(await r.m.endScreen(15), isFalse);
     expect(r.p.calls, isEmpty);
     r.p.isOnline = true;
-    expect(await r.m.continueAfterLevel(15), isTrue);
+    expect(await r.m.endScreen(15), isTrue);
     expect(r.p.calls, <String>['interstitial']);
   });
 
@@ -97,7 +97,7 @@ void main() {
     for (int id = 13; id <= 15; id++) {
       r.m.onLevelComplete(id);
     }
-    expect(await r.m.continueAfterLevel(15), isFalse);
+    expect(await r.m.endScreen(15), isFalse);
     final PurchaseResult pr = await r.m.purchaseRemoveAds();
     expect(pr.ok && pr.test, isTrue);
     expect(r.ads.adFree && r.ads.test, isTrue);
@@ -177,12 +177,12 @@ void main() {
     for (int id = 13; id <= 15; id++) {
       r.m.onLevelComplete(id);
     }
-    expect(await r.m.continueAfterLevel(15), isFalse); // zaman aşımı → false, oyun devam eder
+    expect(await r.m.endScreen(15), isFalse); // zaman aşımı → false, oyun devam eder
     final Rig r2 = Rig()..p.interstitialOk = false;
     for (int id = 13; id <= 15; id++) {
       r2.m.onLevelComplete(id);
     }
-    expect(await r2.m.continueAfterLevel(15), isFalse);
+    expect(await r2.m.endScreen(15), isFalse);
     expect(r2.ads.since, 3);
   });
 
@@ -477,7 +477,7 @@ void main() {
       });
       expect(r.m.isAdShowing, isFalse);
       r.ads.since = 3;
-      expect(await r.m.continueAfterLevel(15), isTrue);
+      expect(await r.m.endScreen(15), isTrue);
       expect(ev, <bool>[true, false]);
       // duraklatma yerel gösterim çağrısından ÖNCE; kapanış bildirimi ondan SONRA
       expect(nativeCalledAtEvent, <bool>[false, true]);
@@ -488,10 +488,10 @@ void main() {
       final Rig r = Rig();
       final List<bool> ev = <bool>[];
       r.m.addAdListener(ev.add);
-      expect(await r.m.continueAfterLevel(5), isFalse); // seviye ≤ 12
+      expect(await r.m.endScreen(5), isFalse); // seviye ≤ 12
       r.p.interstitialOk = false;
       r.ads.since = 3;
-      expect(await r.m.continueAfterLevel(15), isFalse); // hazır değil
+      expect(await r.m.endScreen(15), isFalse); // hazır değil
       expect(ev, isEmpty);
     });
 
@@ -512,7 +512,7 @@ void main() {
       final List<bool> ev = <bool>[];
       r.m.addAdListener(ev.add);
       r.ads.since = 3;
-      await r.m.continueAfterLevel(15);
+      await r.m.endScreen(15);
       expect(ev, <bool>[true, false]);
       expect(r.m.isAdShowing, isFalse);
     });
@@ -541,7 +541,7 @@ void main() {
 
     Future<(bool, int)> timed(Rig r) async {
       final Stopwatch sw = Stopwatch()..start();
-      final bool shown = await r.m.continueAfterLevel(15);
+      final bool shown = await r.m.endScreen(15);
       return (shown, sw.elapsedMilliseconds);
     }
 
@@ -584,7 +584,7 @@ void main() {
     test('platform senkron istisna fırlatır: false, duraklatma geri alınır', () async {
       final Rig r = armed()..p.throwOnShow = true;
       final List<bool> ev = listen(r);
-      expect(await r.m.continueAfterLevel(15), isFalse);
+      expect(await r.m.endScreen(15), isFalse);
       expect(ev, <bool>[true, false]);
     });
 
@@ -625,12 +625,12 @@ void main() {
     test('art arda iki seviye sonu denemesi: sayaç ve duraklatma dengeli kalır', () async {
       final Rig r = armed()..p.hangInterstitial = true;
       final List<bool> ev = listen(r);
-      expect(await r.m.continueAfterLevel(15), isFalse);
+      expect(await r.m.endScreen(15), isFalse);
       r.t += 4 * min;
       r.m.onLevelComplete(16);
       r.m.onLevelComplete(17);
       r.m.onLevelComplete(18);
-      expect(await r.m.continueAfterLevel(18), isFalse);
+      expect(await r.m.endScreen(18), isFalse);
       expect(ev, <bool>[true, false, true, false]);
       expect(r.m.isAdShowing, isFalse);
     });

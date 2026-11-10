@@ -62,7 +62,7 @@ class AppController extends ChangeNotifier {
         showTimeout: showTimeout ?? kInterstitialShowTimeout,
         onInterstitialResult: (String r) => telemetry.interstitial(result: r));
     // docs/15 §4: tam ekran reklam gösterilirken ses duraklar (oyun ekranı ayrıca animasyon döngüsünü duraklatır)
-    mon.addAdListener((bool active) => sfx.setHeld(active));
+    mon.addScreenListener((bool onScreen) => sfx.setHeld(onScreen)); // 1.1.3: ses yalnızca reklam EKRANDAYKEN susar
     billing.onOwnedChanged = (bool owned) {
       if (owned) {
         save.ads.adFree = true;
@@ -148,8 +148,11 @@ class AppController extends ChangeNotifier {
   }
 
   void onAppResumed() {
+    sfx.onLifecycle(foreground: true); // uzun arka plan / reklam etkinliği sonrası ses havuzlarını yeniden kur (1.1.3)
     platform.onResume();
   }
+
+  void onAppBackgrounded() => sfx.onLifecycle(foreground: false);
 
   // ------------------------------------------------------------------ oyun ekranı sayacı
   // Açık oyun ekranı sayısı (seviye geçişinde kısa süre 2). Onay formu (UMP) oyunun üstüne açılmaz: oyundan çıkılınca gösterilir.

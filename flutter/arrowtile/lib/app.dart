@@ -45,6 +45,7 @@ class _ArrowtileAppState extends State<ArrowtileApp> with WidgetsBindingObserver
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) widget.controller.onAppResumed();
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.hidden) widget.controller.onAppBackgrounded();
   }
 
   ThemeData _theme(Palette p) {

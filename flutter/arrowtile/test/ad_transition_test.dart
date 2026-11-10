@@ -16,15 +16,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fake_ads_platform.dart';
+import 'fake_telemetry.dart';
 
 const Duration _step = Duration(milliseconds: 100);
 
-Future<AppController> _boot(WidgetTester t, FakePlatform fp, {required int level}) async {
+Future<AppController> _boot(WidgetTester t, FakePlatform fp, {required int level, FakeTelemetry? tel}) async {
   SharedPreferences.setMockInitialValues(<String, Object>{});
   AdsConfig.autoPlayTestOverride = true;
   // tahta animasyonları BoardModel.nowMs ile ilerler (gerçek Stopwatch); widget testinde sanal saate bağlanır
   BoardModel.testClock = () => t.binding.clock.now().microsecondsSinceEpoch / 1000.0;
-  final AppController? made = await t.runAsync(() => AppController.create(adsPlatform: fp));
+  final AppController? made = await t.runAsync(() => AppController.create(adsPlatform: fp, telemetry: tel));
   final AppController app = made!;
   app.save.lang = 'en';
   app.save.unlocked = level;
@@ -180,6 +181,79 @@ void main() {
     await _transition(t, app, 15);
     await _transition(t, app, 16);
     await _expectPlayable(t, app, 17);
+    await _finish(t);
+  });
+
+  // ---- 1.1.3 (docs/20): geç gelen reklam yok + ses
+  testWidgets('(b) show() çağrıldı, reklam 5 sn sonra belirecekti: bırakılır, ASLA gösterilmez; sonraki seviye etkilenmez; ses show çağrısında susmaz',
+      (WidgetTester t) async {
+    final FakePlatform fp = FakePlatform()..presentAfter = const Duration(seconds: 5);
+    final AppController app = await _boot(t, fp, level: 15);
+    expect(await _until(t, _endSheetVisible), greaterThanOrEqualTo(0));
+    // show() çağrıldı ama reklam henüz ekranda değil: oyun duraklatması var, SES SUSMAMALI
+    expect(await _until(t, () => fp.calls.contains('interstitial'), maxMs: 4000), greaterThanOrEqualTo(0));
+    expect(app.mon.isAdShowing, isTrue);
+    expect(app.sfx.held, isFalse, reason: 'ses yalnızca reklam gerçekten ekrandayken susar');
+    final int wait = await _until(t, () => _game(16).evaluate().isNotEmpty, maxMs: 30000);
+    expect(wait, greaterThanOrEqualTo(0));
+    expect(fp.abandonedI, isTrue);
+    await t.pump(const Duration(seconds: 8)); // reklamın "belirme" zamanı geçti
+    expect(fp.presentedI, 0, reason: 'bırakılan reklam seviye ortasında belirmemeli');
+    expect(app.sfx.held, isFalse);
+    expect(app.mon.isAdShowing, isFalse);
+    await _expectPlayable(t, app, 16);
+    await _finish(t);
+  });
+
+  testWidgets('(c) yükleme sonraki seviye sırasında tamamlanır: seviye bitene dek show() yok; seviye sonunda tam bir kez', (WidgetTester t) async {
+    final FakePlatform fp = FakePlatform()..interstitialOk = false;
+    final AppController app = await _boot(t, fp, level: 15);
+    await _transition(t, app, 15); // no fill → anında atlandı
+    expect(fp.calls, isNot(contains('interstitial')));
+    fp.interstitialOk = true; // yükleme seviye 16 sırasında tamamlandı
+    int guard = 0;
+    while (!_endSheetVisible() && guard++ < 1200) {
+      await t.pump(_step);
+      expect(fp.calls.where((String c) => c == 'interstitial'), isEmpty, reason: 'seviye ortasında show() çağrılmamalı');
+    }
+    expect(_endSheetVisible(), isTrue);
+    await _transition(t, app, 16);
+    expect(fp.calls.where((String c) => c == 'interstitial').length, 1, reason: 'sonraki uygun seviye sonunda bir kez');
+    await _finish(t);
+  });
+
+  testWidgets('kalkan: seviye sürerken bırakılmış reklam penceresi açıkken uygulama arka plana düşerse late_blocked + duraklat, dönünce devam',
+      (WidgetTester t) async {
+    final FakeTelemetry tel = FakeTelemetry();
+    final FakePlatform fp = FakePlatform()..presentAfter = const Duration(seconds: 5);
+    final AppController app = await _boot(t, fp, level: 15, tel: tel);
+    await _transition(t, app, 15);
+    final dynamic st = t.state(_game(16));
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive); // geç gelen reklam etkinliği öne çıktı
+    await t.pump(const Duration(milliseconds: 50));
+    expect(tel.named('interstitial').map((LoggedEvent e) => e.params['result']), contains('late_blocked'));
+    expect(st.debugAdPaused, isTrue, reason: 'oyun duraklar (ticker)');
+    expect(app.sfx.held, isTrue);
+    expect(st.debugTickerActive, isFalse);
+    t.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await t.pump(const Duration(milliseconds: 50));
+    expect(st.debugAdPaused, isFalse);
+    expect(app.sfx.held, isFalse);
+    expect(app.mon.isAdShowing, isFalse);
+    await _expectPlayable(t, app, 16);
+    await _finish(t);
+  });
+
+  testWidgets('seviye sürerken ve ekranda reklam yokken ses bayrağı her zaman false (no fill / yanıt yok / yavaş)', (WidgetTester t) async {
+    final FakePlatform fp = FakePlatform()..hangInterstitial = true;
+    final AppController app = await _boot(t, fp, level: 15);
+    int steps = 0;
+    while (!_game(16).evaluate().isNotEmpty && steps++ < 400) {
+      await t.pump(_step);
+      expect(app.sfx.held, isFalse, reason: 'ekranda reklam yok: ses susturulmamalı');
+    }
+    await _expectPlayable(t, app, 16);
+    expect(app.sfx.held, isFalse);
     await _finish(t);
   });
 }

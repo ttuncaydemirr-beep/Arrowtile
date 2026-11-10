@@ -110,6 +110,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     super.initState();
     app = AppScope.read(context);
     app.gameEntered();
+    app.mon.closeLevelEnd(); // 1.1.3: yeni seviye başladı: önceki seviye sonu yerleştirmesi geçersiz (seviye sırasında reklam yok)
     WidgetsBinding.instance.addObserver(this);
     _adPause = app.mon.isAdShowing;
     _unsubAd = app.mon.addAdListener(_onAdState);
@@ -176,6 +177,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     _autoTimer?.cancel();
     _unsubAd?.call();
     _unsubAd = null;
+    app.mon.closeLevelEnd(_levelEndToken == 0 ? null : _levelEndToken);
     WidgetsBinding.instance.removeObserver(this);
     for (final Timer t in _timers) {
       t.cancel();
@@ -199,9 +201,22 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   @visibleForTesting
   bool get pauseRequested => _pausePending || _pauseOpen;
 
+  /// Seviye sonu yerleştirme belirteci (0: seviye sürüyor / seviye sonu kapalı). [Monetization.openLevelEnd].
+  int _levelEndToken = 0;
+
+  /// 1.1.3: bu ekran şu an "seviye SIRASINDA" mı (seviye sonu penceresi açık değil)?
+  bool get _levelInProgress => _levelEndToken == 0 && !winDone;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!mounted) return;
+    // 1.1.3 kalkan: seviye sürerken, bırakılmış bir reklamın penceresi açıksa ve uygulama arka plana düştüyse (inactive/hidden/paused)
+    // bu büyük olasılıkla geç gelen tam ekran reklamdır → telemetri late_blocked, oyun (ticker + ses) duraklar, kayıp yok.
+    if (state == AppLifecycleState.resumed) {
+      app.mon.lateAdGone();
+    } else if (_levelInProgress && app.mon.lateWindowOpen && state != AppLifecycleState.detached) {
+      app.mon.lateAdSurfaced();
+    }
     switch (state) {
       case AppLifecycleState.hidden:
       case AppLifecycleState.paused:
@@ -646,6 +661,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     final int collisions = g.collisions;
     final bool relaxed = g.relaxed;
     final int my = session;
+    final int token = app.mon.openLevelEnd(id); // 1.1.3: geçiş reklamı yalnızca bu yerleştirme etkinken
+    _levelEndToken = token;
     // yıldız sesleri: k. yıldız 200 + k·(190 + 180) ms'de; jeton sesi bunlardan sonra
     for (int k = 0; k < stars; k++) {
       _laterAlways(_reduced ? 50.0 + k * 80 : 200.0 + k * (Anim.starPop * 0.5 + Anim.starStagger), () {
@@ -667,17 +684,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         levelId: id,
         allDone: id == kDesigned, // 5.000 seviye bitti: sonsuz bölümler başlıyor
         onNext: () async {
-          await _adThenContinue(id);
+          await _adThenContinue(id, token);
           if (ctx.mounted) Navigator.of(ctx).pop();
           if (mounted) unawaited(startLevel(context, id + 1, replace: true));
         },
         onReplay: () async {
-          await _adThenContinue(id);
+          await _adThenContinue(id, token);
           if (ctx.mounted) Navigator.of(ctx).pop();
           if (mounted) unawaited(startLevel(context, id, replace: true));
         },
         onMap: () async {
-          await _adThenContinue(id);
+          await _adThenContinue(id, token);
           if (ctx.mounted) Navigator.of(ctx).pop();
           if (mounted) goToMap(context);
         },
@@ -687,11 +704,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
 
   /// Seviye sonu "devam" adımında geçiş reklamı denemesi. HİÇBİR yolda istisna fırlatmaz ve [Monetization.continueAfterLevel]'in
   /// sınırlarına ek olarak sert bir üst sınırla biter: reklam ne olursa olsun sonraki ekran açılır (docs/18).
-  Future<void> _adThenContinue(int id) async {
+  Future<void> _adThenContinue(int id, int token) async {
     try {
-      await app.mon.continueAfterLevel(id).timeout(app.mon.nativeTimeout + const Duration(seconds: 2), onTimeout: () => false);
+      await app.mon
+          .continueAfterLevel(id, placement: token)
+          .timeout(app.mon.nativeTimeout + const Duration(seconds: 2), onTimeout: () => false);
     } catch (_) {
       // yut: oyun devam eder
+    } finally {
+      app.mon.closeLevelEnd(token); // yerleştirme biter: bundan sonra hiçbir yol show() çağıramaz
     }
   }
 
@@ -786,6 +807,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     exitStreak = 0;
     session++;
     winDone = false;
+    _levelEndToken = 0;
     model.aimSel = -1;
     _beginAttempt();
     _hud();

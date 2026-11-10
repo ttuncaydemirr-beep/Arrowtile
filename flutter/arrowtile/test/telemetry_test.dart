@@ -216,7 +216,7 @@ void main() {
           nativeTimeout: const Duration(milliseconds: 40),
           showTimeout: const Duration(milliseconds: 40),
           onInterstitialResult: results.add);
-      await m.continueAfterLevel(20);
+      await m.endScreen(20);
       return results;
     }
 
@@ -231,7 +231,7 @@ void main() {
       int n = 0;
       final Monetization m = Monetization(
           platform: p, getAds: () => ads, persist: () {}, onInterstitialResult: (String r) => n++);
-      expect(await m.continueAfterLevel(20), isFalse);
+      expect(await m.endScreen(20), isFalse);
       expect(n, 0);
       final AdsState ads2 = AdsState()..since = 3;
       final Monetization m2 = Monetization(
@@ -239,7 +239,7 @@ void main() {
           getAds: () => ads2,
           persist: () {},
           onInterstitialResult: (String r) => throw StateError('telemetri bozuk'));
-      expect(await m2.continueAfterLevel(20), isTrue);
+      expect(await m2.endScreen(20), isTrue);
     });
   });
 

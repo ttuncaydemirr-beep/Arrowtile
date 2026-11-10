@@ -202,7 +202,7 @@ function loadStore(initial) {
   for (const [name, ops] of Object.entries(scenarios)) {
     const h = harness({}), log = [];
     for (const op of ops) {
-      if (op[0] === 'c') { h.M.onLevelComplete(op[1]); let shown = null; h.M.continueAfterLevel(op[1], s => { shown = s; }); h.flush(); log.push({ op, shown, since: h.state.ads.since | 0, lastAt: h.state.ads.lastAt | 0 }); }
+      if (op[0] === 'c') { h.M.onLevelComplete(op[1]); let shown = null; h.M.continueAfterLevel(op[1], s => { shown = s; }, h.M.openLevelEnd(op[1])); h.flush(); log.push({ op, shown, since: h.state.ads.since | 0, lastAt: h.state.ads.lastAt | 0 }); }
       else if (op[0] === 't') h.advance(op[1]);
       else if (op[0] === 'o') h.setOnline(op[1]);
       else if (op[0] === 'buy') { let r = null; h.M.purchaseRemoveAds(x => { r = x; }); h.flush(); log.push({ op, r, adFree: h.state.ads.adFree }); }

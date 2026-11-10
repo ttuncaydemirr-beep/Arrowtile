@@ -3,6 +3,7 @@
 # Kullanım: smoke-ads.sh <etiket> <nofill|fill>
 #   nofill: debug APK --dart-define=ADS_FORCE_INVALID=true (geçersiz reklam birimi → doldurulamadı; onaysız AdMob hesabını taklit eder)
 #   fill  : debug APK, Google test reklam birimleri (gerçek reklam yüklenir/gösterilir; reklam penceresi kapatılır)
+# 1.1.3: seviye sırasında AdActivity (geç gelen reklam) ve 'GEÇ gösterildi'/late_blocked satırları da başarısızlıktır.
 # Her iki APK de --dart-define=AUTOPLAY_FROM=13 ile derlenir: kayıt seviye 13'e açılır, geçiş reklamı sayacı "bir sonraki tamamlamada
 # reklam" olarak tohumlanır; uygulama seviye 13'ü kendiliğinden açıp çözer ve seviye sonunda "Sonraki"ne basar. Her seviye açılışında
 # logcat'e `AUTOPLAY: level N opened` yazılır. 15 (ve 16) → 17 geçişi dahil, seviye 18'e kadar ilerlemesi beklenir; belirli bir süre
@@ -56,6 +57,12 @@ while [ $((SECONDS - START)) -lt "$TOTAL" ]; do
   # UMP formu çıkarsa onayla; tam ekran reklam ekrandaysa kapat (yalnızca fill kipi)
   FOCUS=$(adb shell dumpsys window 2>/dev/null | grep -E "mCurrentFocus" | head -1)
   if echo "$FOCUS" | grep -q "AdActivity"; then
+    # 1.1.3 (docs/20): tam ekran reklam yalnızca seviye sonu geçişinde (show() çağrısından sonra, bir SONRAKİ seviye açılmadan) görünebilir.
+    # Son işaret "level N opened" ise reklam seviye SIRASINDA belirmiştir (geç gelen reklam) → başarısız (fill ve nofill).
+    LASTMARK=$(grep -nE "AUTOPLAY: level [0-9]+ opened|interstitial: show\(\) çağrıldı" "$OUT/flutter-cur.txt" | tail -1)
+    if echo "$LASTMARK" | grep -q "opened"; then
+      fail "GEÇ REKLAM: seviye sırasında tam ekran reklam penceresi açıldı (son işaret: $LASTMARK)"
+    fi
     if [ "$MODE" = "fill" ]; then
       dump "$OUT/cur.xml"
       if xy=$($UI find "$OUT/cur.xml" '(?i)^(close|close ad|skip|kapat)$'); then
@@ -81,6 +88,7 @@ grep -E "Ads:" "$OUT/logcat-full.txt" > "$OUT/ads-lines.txt" || true
 echo "=== Ads satırları (son 40) ==="; tail -40 "$OUT/ads-lines.txt" || true
 if grep -q "FATAL EXCEPTION" "$OUT/logcat-full.txt" && grep -q "Process: $PKG" "$OUT/logcat-full.txt"; then fail "uygulama çöktü"; fi
 if grep -E "ANR in $PKG|EXCEPTION CAUGHT BY|Unhandled Exception" "$OUT/logcat-full.txt" > "$OUT/exceptions.txt"; then head -30 "$OUT/exceptions.txt"; fail "ANR / Flutter istisnası"; fi
+if grep -qE "GEÇ gösterildi|late_blocked" "$OUT/logcat-full.txt"; then grep -E "GEÇ gösterildi|late_blocked" "$OUT/logcat-full.txt" | head; fail "geç gelen reklam olayı görüldü (bırakılmış reklam seviye sırasında belirdi)"; fi
 if [ "$MODE" = "nofill" ]; then
   grep -q "onAdFailedToLoad" "$OUT/ads-lines.txt" || log "UYARI: geçersiz birim için onAdFailedToLoad satırı görülmedi (SDK hazır olmayabilir)"
 fi

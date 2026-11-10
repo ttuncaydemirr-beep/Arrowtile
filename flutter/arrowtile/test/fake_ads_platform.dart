@@ -3,6 +3,14 @@ import 'dart:async';
 
 import 'package:arrowtile/core/ads_rules.dart';
 
+/// Testlerde seviye sonu yerleştirmesini açıp devam eder (1.1.3: continueAfterLevel belirteç ister).
+extension LevelEndTest on Monetization {
+  Future<bool> endScreen(int id) {
+    final int t = openLevelEnd(id);
+    return continueAfterLevel(id, placement: t).whenComplete(() => closeLevelEnd(t));
+  }
+}
+
 class FakePlatform implements AdsPlatform {
   bool isAvailable = true;
   bool isOnline = true;
@@ -92,26 +100,108 @@ class FakePlatform implements AdsPlatform {
   @override
   bool get interstitialOnScreen => onScreen;
 
+  // ---- 1.1.3: SDK modeli — ad.show() bir kez çağrılınca geri alınamaz; ancak dispose (abandon) edilen reklam gösterilemez
   @override
-  Future<bool> showInterstitial() {
+  void Function(bool onScreen)? onScreenChanged;
+  @override
+  void Function()? onLateAd;
+  Duration? presentAfter; // reklam show() çağrısından bu kadar sonra belirir (bırakılmadıysa); showInterstitial süre sınırı kendi başına dolar
+  int presentedI = 0; // gerçekten ekrana gelen geçiş reklamı sayısı
+  int presentedR = 0;
+  bool abandonedI = false;
+  bool abandonedR = false;
+  Completer<bool>? _ic;
+  Timer? _it;
+  Duration rewardedWatchdog = const Duration(seconds: 3);
+  Duration? rewardedPresentAfter; // ödüllü: bu kadar sonra belirir; platform 3 sn'de show_timeout ile bırakır
+
+  void _setScreen(bool on) {
+    onScreen = on;
+    onScreenChanged?.call(on);
+  }
+
+  @override
+  void abandonInterstitial() {
+    calls.add('abandonI');
+    abandonedI = true;
+    _it?.cancel();
+    if (onScreen) _setScreen(false);
+    final Completer<bool>? c = _ic;
+    if (c != null && !c.isCompleted) c.complete(false);
+  }
+
+  @override
+  Future<bool> showInterstitial({bool Function()? allowed}) {
     calls.add('interstitial');
+    if (allowed != null && !allowed()) {
+      calls.add('blocked');
+      return Future<bool>.value(false);
+    }
     if (throwOnShow) throw StateError('show boom');
-    if (hangInterstitial) return Completer<bool>().future;
+    abandonedI = false;
+    final Duration? pa = presentAfter;
+    if (pa != null) {
+      final Completer<bool> c = _ic = Completer<bool>();
+      _it = Timer(pa, () {
+        if (abandonedI) return; // dispose edilmiş: SDK gösteremez
+        presentedI++;
+        _setScreen(true);
+      });
+      return c.future;
+    }
+    if (hangInterstitial) return (_ic = Completer<bool>()).future;
     if (failToShow) return Future<bool>.value(false);
     final Duration? d = showAfter;
     if (d != null) {
-      if (appearsOnScreen) onScreen = true;
-      return Future<bool>.delayed(d, () {
-        onScreen = false;
-        return true;
+      final Completer<bool> c = _ic = Completer<bool>();
+      if (appearsOnScreen) {
+        presentedI++;
+        _setScreen(true);
+      }
+      _it = Timer(d, () {
+        if (onScreen) _setScreen(false);
+        if (!c.isCompleted) c.complete(true);
       });
+      return c.future;
     }
     return Future<bool>.value(true);
   }
 
   @override
-  Future<void> showRewarded(String placement, void Function() onReward) async {
+  void abandonRewarded() {
+    calls.add('abandonR');
+    abandonedR = true;
+  }
+
+  @override
+  Future<void> showRewarded(String placement, void Function() onReward, {bool Function()? allowed}) async {
     calls.add('rewarded:$placement');
+    if (allowed != null && !allowed()) {
+      calls.add('blockedR');
+      errCode = 'cancelled';
+      return;
+    }
+    abandonedR = false;
+    final Duration? ra = rewardedPresentAfter;
+    if (ra != null) {
+      final Completer<void> c = Completer<void>();
+      Timer(ra, () {
+        if (abandonedR) return;
+        presentedR++;
+        _setScreen(true);
+        if (rewardGiven) onReward();
+        _setScreen(false);
+        if (!c.isCompleted) c.complete();
+      });
+      Timer(rewardedWatchdog, () {
+        if (presentedR > 0 || c.isCompleted) return; // platformun 3 sn bekçisi
+        abandonedR = true;
+        calls.add('abandonR');
+        errCode = 'show_timeout';
+        c.complete();
+      });
+      return c.future;
+    }
     if (hangRewardedShow) return Completer<void>().future;
     if (rewardGiven) onReward();
   }

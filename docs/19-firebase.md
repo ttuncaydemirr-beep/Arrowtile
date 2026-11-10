@@ -36,7 +36,7 @@ tamamlama/hata/ipucu/süre verisi toplamak, (2) çökmeleri görmek. Ayrıca giz
 | `hint_used` | `level` | İpucu harcandı |
 | `daily_puzzle_complete` | `stars`, `mistakes`, `duration_s` | Günlük bulmaca çözüldü |
 | `rewarded_ad` | `placement` (coins/life/hint), `result` (rewarded/closed/unavailable) | Ödüllü reklam akışı bitince |
-| `interstitial` | `result` (shown/skipped/failed) | Geçiş reklamının zamanı geldiğinde: `shown` gösterildi, `skipped` hazır değildi, `failed` denendi ama ekrana gelmedi |
+| `interstitial` | `result` (shown/skipped/failed/blocked/late_blocked) | Geçiş reklamının zamanı geldiğinde: `shown` gösterildi, `skipped` hazır değildi, `failed` denendi ama ekrana gelmedi; `blocked` geçersiz yerleştirme; `late_blocked` seviye sırasında geç reklam engellendi (docs/20) |
 | `purchase` (`logPurchase`) | `remove_ads`, Play'in bildirdiği para birimi/fiyat | **Yalnızca** başarılı gerçek satın alma (iptal/bekleyen/hata/test modu/zaten sahip değil) |
 | `setting_changed` | `name` (relaxed_mode/aim_mode/appearance/arrow_theme), `value` (on/off, auto/light/dark, tema kimliği) | Ayar değişince |
 | Kullanıcı özelliği `app_lang` | tr/en/de/ar | Açılışta ve dil değişince |

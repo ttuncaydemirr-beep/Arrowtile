@@ -251,6 +251,7 @@ class FlutterAdsPlatform implements AdsPlatform {
 
   void dispose() {
     _disposed = true;
+    _screen(false);
     _endShow();
     _retryTimerR?.cancel();
     _retryTimerI?.cancel();
@@ -340,12 +341,40 @@ class FlutterAdsPlatform implements AdsPlatform {
   }
 
   @override
-  Future<bool> showInterstitial() {
+  void Function(bool onScreen)? onScreenChanged;
+  @override
+  void Function()? onLateAd;
+
+  void _screen(bool on) {
+    try {
+      onScreenChanged?.call(on);
+    } catch (_) {}
+  }
+
+  void Function()? _abandonI; // sürmekte olan geçiş gösterimini bırakır (dispose + tamamla)
+  void Function()? _abandonR;
+
+  @override
+  void abandonInterstitial() => _abandonI?.call();
+
+  @override
+  void abandonRewarded() => _abandonR?.call();
+
+  /// 1.1.3 (docs/20): show() YALNIZCA [allowed] true iken ve reklam ZATEN yüklüyken, en çok bir kez çağrılır. Hiçbir yükleme/zamanlayıcı
+  /// geri çağrısı show() çağırmaz. Ekrana gelmeyen gösterim `dispose` ile bırakılır; bırakılmış reklamın sonradan gelen "gösterildi"
+  /// olayı [onLateAd] ile bildirilir ve reklam yine `dispose` edilir (kalkan).
+  @override
+  Future<bool> showInterstitial({bool Function()? allowed}) {
     final InterstitialAd? ad = _interstitial;
-    if (ad == null || _showing || _disposed) return Future<bool>.value(false);
+    if (ad == null || _showing || _disposed || _expired(_interstitialAt)) return Future<bool>.value(false);
+    if (allowed != null && !allowed()) {
+      _log('interstitial: yerleştirme geçersiz, show() çağrılmadı');
+      return Future<bool>.value(false);
+    }
     _interstitial = null;
     final Completer<bool> c = Completer<bool>();
     Timer? startTimer;
+    bool dead = false; // bırakıldı / bitti: bu reklam bir daha gösterilemez
     // Tamamlayıcı TAM BİR KEZ tamamlanır; her çıkış yolu buradan geçer (kapandı, gösterilemedi, istisna, ekrana gelmedi).
     void finish(bool v) {
       startTimer?.cancel();
@@ -354,61 +383,95 @@ class FlutterAdsPlatform implements AdsPlatform {
       _resumeGraceI = null;
       _interstitialOnScreen = false;
       _onScreenFinish = null;
+      _abandonI = null;
       _endShow();
+      _screen(false);
       if (!c.isCompleted) c.complete(v);
+    }
+
+    void abandon() {
+      if (dead) return;
+      dead = true;
+      try {
+        ad.dispose(); // SDK artık bu nesneyi gösteremez
+      } catch (_) {}
+      finish(false);
+      _loadInterstitial(); // gelecekteki uygun seviye sonu için taze reklam (bekleme süresi/yaş kurallarına uyar)
     }
 
     _beginShow(() => finish(false));
     _onScreenFinish = finish;
+    _abandonI = abandon;
     ad.fullScreenContentCallback = FullScreenContentCallback<InterstitialAd>(
       onAdShowedFullScreenContent: (InterstitialAd a) {
+        if (dead || (allowed != null && !allowed())) {
+          // geç gelen / geçersiz gösterim: kalkan
+          _log('interstitial: GEÇ gösterildi, engellendi');
+          try {
+            a.dispose();
+          } catch (_) {}
+          dead = true;
+          _interstitialOnScreen = false;
+          try {
+            onLateAd?.call();
+          } catch (_) {}
+          return;
+        }
         _interstitialOnScreen = true;
+        _screen(true); // ses YALNIZCA şimdi susar
         startTimer?.cancel(); // ekrana geldi: oyuncu izliyor, kapanışı bekle
         startTimer = null;
       },
       onAdImpression: (InterstitialAd a) {
+        if (dead) return;
         _interstitialOnScreen = true;
         startTimer?.cancel();
         startTimer = null;
       },
       onAdDismissedFullScreenContent: (InterstitialAd a) {
+        dead = true;
         a.dispose();
         finish(true);
         _loadInterstitial();
       },
       onAdFailedToShowFullScreenContent: (InterstitialAd a, AdError error) {
+        dead = true;
         _log('interstitial show failed: ${error.message}');
         a.dispose();
         finish(false);
         _loadInterstitial();
       },
     );
-    // 3 sn içinde ekrana gelmezse: sessizce atla, reklamı bırak (geri çağrı gelmeyen SDK oyunu tutamaz)
+    // 3 sn içinde ekrana gelmezse: bırak (dispose), sessizce atla
     startTimer = Timer(const Duration(milliseconds: _showStartMs), () {
       if (_interstitialOnScreen || c.isCompleted) return;
-      _log('interstitial: $_showStartMs ms içinde ekrana gelmedi, atlandı');
-      try {
-        ad.dispose();
-      } catch (_) {}
-      finish(false);
+      _log('interstitial: $_showStartMs ms içinde ekrana gelmedi, bırakıldı');
+      abandon();
     });
+    _log('interstitial: show() çağrıldı');
     try {
       ad.show().catchError((Object e) {
         _log('interstitial show exception: $e');
+        dead = true;
         finish(false);
       });
     } catch (e) {
       _log('interstitial show exception: $e');
+      dead = true;
       finish(false);
     }
     return c.future;
   }
 
   @override
-  Future<void> showRewarded(String placement, void Function() onReward) {
+  Future<void> showRewarded(String placement, void Function() onReward, {bool Function()? allowed}) {
     final RewardedAd? ad = _rewarded;
     if (ad == null || _showing || _disposed) {
       _setRewardedError(_showing ? 'busy' : 'not_ready', _showing ? 'another ad is showing' : 'no rewarded ad loaded');
+      return Future<void>.value();
+    }
+    if (allowed != null && !allowed()) {
+      _setRewardedError('cancelled', 'rewarded request no longer valid');
       return Future<void>.value();
     }
     _rewarded = null;
@@ -416,33 +479,62 @@ class FlutterAdsPlatform implements AdsPlatform {
     _lastRewardedErrorMessage = null;
     final Completer<void> c = Completer<void>();
     bool onScreen = false;
+    bool dead = false;
     Timer? startTimer;
-    _beginShow(() {
+    void done() {
       startTimer?.cancel();
+      _abandonR = null;
+      _endShow();
+      _screen(false);
       if (!c.isCompleted) c.complete();
-    });
-    startTimer = Timer(const Duration(milliseconds: _showStartMs), () {
-      if (onScreen || c.isCompleted) return;
-      _setRewardedError('show_timeout', 'rewarded ad did not appear within $_showStartMs ms');
-      _log('rewarded: ekrana gelmedi, atlandı');
+    }
+
+    void abandon({String? code}) {
+      if (dead) return;
+      dead = true;
+      if (code != null) _setRewardedError(code, 'rewarded ad did not appear within $_showStartMs ms');
       try {
         ad.dispose();
       } catch (_) {}
-      _endShow();
-      c.complete();
+      done();
+      _loadRewarded();
+    }
+
+    _abandonR = () => abandon(code: onScreen ? null : 'show_timeout');
+    _beginShow(done);
+    startTimer = Timer(const Duration(milliseconds: _showStartMs), () {
+      if (onScreen || c.isCompleted) return;
+      _log('rewarded: ekrana gelmedi, bırakıldı');
+      abandon(code: 'show_timeout');
     });
     ad.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
       onAdShowedFullScreenContent: (RewardedAd a) {
+        if (dead || (allowed != null && !allowed())) {
+          _log('rewarded: GEÇ gösterildi, engellendi');
+          try {
+            a.dispose();
+          } catch (_) {}
+          dead = true;
+          try {
+            onLateAd?.call();
+          } catch (_) {}
+          return;
+        }
         onScreen = true;
+        _screen(true);
         startTimer?.cancel();
       },
       onAdImpression: (RewardedAd a) {
+        if (dead) return;
         onScreen = true;
         startTimer?.cancel();
       },
       onAdDismissedFullScreenContent: (RewardedAd a) {
+        dead = true;
+        _abandonR = null;
         startTimer?.cancel();
         _endShow();
+        _screen(false);
         a.dispose();
         // ödül olayı kapanıştan hemen sonra gelebilir: kapanışı kısa süre geciktir
         Timer(const Duration(milliseconds: _closeDelayMs), () {
@@ -451,27 +543,26 @@ class FlutterAdsPlatform implements AdsPlatform {
         _loadRewarded();
       },
       onAdFailedToShowFullScreenContent: (RewardedAd a, AdError error) {
-        startTimer?.cancel();
-        _endShow();
+        dead = true;
         _setRewardedError('show_${error.code}', error.message);
         _log('rewarded show failed (${error.code}): ${error.message}');
         a.dispose();
-        if (!c.isCompleted) c.complete();
+        done();
         _loadRewarded();
       },
     );
     try {
-      ad.show(onUserEarnedReward: (AdWithoutView a, RewardItem reward) => onReward()).catchError((Object e) {
-        startTimer?.cancel();
-        _endShow();
+      ad.show(onUserEarnedReward: (AdWithoutView a, RewardItem reward) {
+        if (!dead) onReward();
+      }).catchError((Object e) {
+        dead = true;
         _setRewardedError('show_exception', '$e');
-        if (!c.isCompleted) c.complete();
+        done();
       });
     } catch (e) {
-      startTimer.cancel();
-      _endShow();
+      dead = true;
       _setRewardedError('show_exception', '$e');
-      if (!c.isCompleted) c.complete();
+      done();
     }
     return c.future;
   }

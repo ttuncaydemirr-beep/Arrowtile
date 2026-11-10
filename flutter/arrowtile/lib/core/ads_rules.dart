@@ -12,6 +12,9 @@
 //  - İnternet yoksa ya da reklam SDK'sı yoksa reklam gösterilmez, oyun normal devam eder.
 //  - "Reklamları kaldır" (tüketilmeyen `remove_ads`): geçiş reklamları kalıcı kapanır, ödüllü reklamlar isteğe bağlı kalır.
 //    Platform yoksa (testler) satın alma TEST MODUNDA taklit edilir.
+//  - 1.1.3 (docs/20): geçiş reklamı YALNIZCA etkin seviye sonu yerleştirmesinde ([Monetization.openLevelEnd] belirteci), YALNIZCA
+//    zaten yüklenmişse ve en çok BİR kez gösterilir; yüklenmemişse beklemeden atlanır. Ekrana gelmeyen gösterim bırakılır (dispose).
+//    Ses yalnızca reklam gerçekten ekrandayken susar ([Monetization.addScreenListener]).
 //  - Bu katman hiçbir zaman oyunu bekletmez: platform yanıt vermezse [nativeTimeout] sonra oyun devam eder.
 //  - Banner (v1.1, docs/15 §3): yalnızca Ana menü ve Harita ekranlarında ([kBannerScreens]); oyun, seviye sonu, mağaza, ayarlar ve
 //    günlük bulmacada yok; "Reklamları kaldır" alınmışsa yok ([Monetization.bannerVisible]).
@@ -100,14 +103,29 @@ abstract class AdsPlatform {
   String? get lastRewardedErrorMessage;
 
   /// Geçiş reklamını gösterir; reklam kapanınca true, gösterilemezse/başarısızsa false döner.
-  Future<bool> showInterstitial();
+  /// [allowed] (1.1.3, docs/20): `ad.show()` çağrılmadan hemen önce (ve "gösterildi" olayında) sorulur; false ise reklam GÖSTERİLMEZ.
+  Future<bool> showInterstitial({bool Function()? allowed});
+
+  /// 1.1.3: gösterimi başlatılmış ama ekrana gelmemiş reklamı bırakır: `ad.dispose()` + tamamlayıcıyı bitirir + taze reklam yükler.
+  /// Bırakılan reklamın sonradan olası "gösterildi" olayı yok sayılır, [onLateAd] ile bildirilir. İdempotent.
+  void abandonInterstitial();
+
+  /// Tam ekran reklam gerçekten ekrana gelince true, kapanınca/başarısız olunca/bırakılınca false (1.1.3: ses YALNIZCA bu sırada susar).
+  void Function(bool onScreen)? onScreenChanged;
+
+  /// 1.1.3: bırakılmış (zaman aşımı) bir reklam sonradan ekrana geldiyse çağrılır (kalkan: oyun duraklatılır, telemetri late_blocked).
+  void Function()? onLateAd;
 
   /// Geçiş reklamı şu an gerçekten ekranda mı (SDK "gösterildi" olayı geldi, henüz kapanmadı)? [Monetization.continueAfterLevel]
   /// bunu ancak gösterim denemesi [kInterstitialShowTimeout] içinde ekrana gelmediyse "atla" kararı için kullanır.
   bool get interstitialOnScreen;
 
   /// Ödüllü reklamı gösterir; ödül hak edilince [onReward] çağrılır; reklam kapanınca Future tamamlanır.
-  Future<void> showRewarded(String placement, void Function() onReward);
+  /// [allowed] false ise gösterilmez (dokunuş isteği artık geçerli değil). Ekrana gelmezse `show_timeout` hata koduyla biter.
+  Future<void> showRewarded(String placement, void Function() onReward, {bool Function()? allowed});
+
+  /// 1.1.3: ekrana gelmemiş ödüllü reklamı bırakır (`dispose`); sonradan gösterilemez. İdempotent.
+  void abandonRewarded();
 
   Future<PurchaseOutcome> purchaseRemoveAds();
 
@@ -177,7 +195,10 @@ class Monetization {
     this.nativeTimeout = kNativeTimeout,
     this.showTimeout = kInterstitialShowTimeout,
     this.onInterstitialResult,
-  }) : now = now ?? (() => DateTime.now().millisecondsSinceEpoch);
+  }) : now = now ?? (() => DateTime.now().millisecondsSinceEpoch) {
+    platform.onScreenChanged = _screenChanged;
+    platform.onLateAd = lateAdSurfaced;
+  }
 
   bool get _bridge => platform.available;
   bool get _online => platform.online;
@@ -225,6 +246,87 @@ class Monetization {
         f(now);
       } catch (_) {}
     }
+  }
+
+  // ---- 1.1.3 (docs/20): ses yalnızca reklam GERÇEKTEN ekrandayken susar ----
+  final List<void Function(bool onScreen)> _screenListeners = <void Function(bool onScreen)>[];
+  bool _onScreen = false;
+
+  /// Tam ekran reklam ekrana gelince true, kapanınca false (yalnızca değişimde). Ses bu olaya bağlanır; [addAdListener] (ticker) değil.
+  Unsubscribe addScreenListener(void Function(bool onScreen) fn) {
+    _screenListeners.add(fn);
+    return () => _screenListeners.remove(fn);
+  }
+
+  bool get adOnScreen => _onScreen;
+
+  void _screenChanged(bool on) {
+    if (_onScreen == on) return;
+    _onScreen = on;
+    for (final void Function(bool) f in List<void Function(bool)>.of(_screenListeners)) {
+      try {
+        f(on);
+      } catch (_) {}
+    }
+  }
+
+  // ---- 1.1.3: yerleştirme (placement) oturumu — geçiş reklamı yalnızca seviye sonu ekranı etkinken ----
+  int _placementSeq = 0;
+  int _placementOpen = 0; // 0: açık yok
+  int _placementLevel = 0;
+  int _placementUsed = 0; // show() çağrılmış belge: bir yerleştirmede en çok BİR kez
+
+  /// Seviye sonu ekranı açılınca çağrılır; belirteç döner. Yeni oturum eskisini geçersiz kılar.
+  int openLevelEnd(int levelId) {
+    _placementOpen = ++_placementSeq;
+    _placementLevel = levelId;
+    return _placementOpen;
+  }
+
+  /// Seviye sonu ekranı kapanırken / yeni seviye başlarken. [token] verilirse yalnızca eşleşirse kapatılır.
+  void closeLevelEnd([int? token]) {
+    if (token == null || token == _placementOpen) _placementOpen = 0;
+  }
+
+  bool placementValid(int token, [int? levelId]) =>
+      token != 0 && token == _placementOpen && (levelId == null || levelId == _placementLevel);
+
+  bool get levelEndActive => _placementOpen != 0;
+
+  // ---- 1.1.3: geç gelen reklam kalkanı ----
+  static const int kLateWindowMs = 30 * 1000;
+  int _lateUntil = 0;
+  bool _lateHeld = false;
+  Timer? _lateCap;
+
+  /// Gösterimi başlatılıp zaman aşımına uğrayan (bırakılan) reklamın hâlâ ekrana gelebileceği pencere açık mı.
+  bool get lateWindowOpen => _lateUntil != 0 && now() < _lateUntil;
+
+  void _openLateWindow() => _lateUntil = now() + kLateWindowMs;
+
+  /// Seviye SIRASINDA tam ekran reklam belirdi (bırakılmış reklam ya da yaşam döngüsü ipucu): telemetri `late_blocked`,
+  /// reklam bırakılır, oyun (ticker + ses) duraklatılır. [lateAdGone] ile geri alınır; en geç [kNativeTimeout] sonra kendiliğinden.
+  void lateAdSurfaced() {
+    _reportInterstitial('late_blocked');
+    try {
+      platform.abandonInterstitial();
+    } catch (_) {}
+    _lateUntil = 0;
+    if (_lateHeld) return;
+    _lateHeld = true;
+    _screenChanged(true);
+    _adState(true);
+    _lateCap?.cancel();
+    _lateCap = Timer(nativeTimeout, lateAdGone);
+  }
+
+  void lateAdGone() {
+    _lateCap?.cancel();
+    _lateCap = null;
+    if (!_lateHeld) return;
+    _lateHeld = false;
+    _screenChanged(false);
+    _adState(false);
   }
 
   // ---- önceden yükleme (docs/15 §4) ----
@@ -278,7 +380,13 @@ class Monetization {
   ///  - Gösterim denemesi [showTimeout] içinde ekrana gelmezse (geri çağrı hiç gelmedi / yavaş) false: sessizce devam.
   ///  - Reklam ekrana geldiyse kapanışı en çok [nativeTimeout] bekler.
   ///  - [_adState] (ticker + ses duraklatma) her yolda `finally` ile geri alınır; tamamlayıcı tam bir kez tamamlanır.
-  Future<bool> continueAfterLevel(int levelId) async {
+  Future<bool> continueAfterLevel(int levelId, {required int placement}) async {
+    // 1.1.3: yalnızca etkin seviye sonu yerleştirmesinde ve belirteç eşleşirse
+    if (!placementValid(placement, levelId)) {
+      _reportInterstitial('blocked');
+      return false;
+    }
+    if (_placementUsed == placement) return false; // bu yerleştirmede show() zaten çağrıldı
     if (!interstitialDue(levelId)) return false;
     bool ready = false;
     try {
@@ -288,7 +396,7 @@ class Monetization {
     }
     if (!ready) {
       _reportInterstitial('skipped');
-      return false; // doldurulamadı: hemen devam, sayaç sıfırlanmaz
+      return false; // yüklenmemiş: HİÇ beklemeden devam; yükleme arka planda sürer, gelecekteki uygun seviye sonunda denenir
     }
     final AdsState a = getAds();
     a.since = 0;
@@ -301,15 +409,29 @@ class Monetization {
 
     Timer? preTimer;
     Timer? capTimer;
-    _adState(true); // yerel çağrıdan ÖNCE duraklat: reklam açılırken oyun döngüsü/ses çalışmaya devam etmesin
+    bool abandoned = false;
+    _adState(true); // ticker duraklatması (ses DEĞİL): reklam açılırken oyun döngüsü çalışmaya devam etmesin
     try {
       final Duration pre = showTimeout < nativeTimeout ? showTimeout : nativeTimeout;
       preTimer = Timer(pre, () {
-        if (!platform.interstitialOnScreen) finish(false); // ekrana gelmedi: atla
+        if (platform.interstitialOnScreen) return;
+        abandoned = true; // ekrana gelmedi: BIRAK (dispose) — sonradan gösterilemez
+        _openLateWindow();
+        try {
+          platform.abandonInterstitial();
+        } catch (_) {}
+        finish(false);
       });
       capTimer = Timer(nativeTimeout, () => finish(false));
       try {
-        platform.showInterstitial().then<void>(finish, onError: (Object _) => finish(false));
+        _placementUsed = placement; // show() en çok bir kez
+        if (!placementValid(placement, levelId)) {
+          finish(false);
+        } else {
+          platform
+              .showInterstitial(allowed: () => !abandoned && placementValid(placement, levelId))
+              .then<void>(finish, onError: (Object _) => finish(false));
+        }
       } catch (_) {
         finish(false);
       }
@@ -323,6 +445,7 @@ class Monetization {
       preTimer?.cancel();
       capTimer?.cancel();
       _adState(false);
+      if (!_lateHeld && !platform.interstitialOnScreen) _screenChanged(false); // ses her yolda geri alınır
     }
   }
 
@@ -366,6 +489,7 @@ class Monetization {
     void Function()? onLoading,
     void Function()? onLoadingDone,
     Duration loadTimeout = kRewardedLoadTimeout,
+    bool Function()? stillWanted,
   }) async {
     if (!_bridge) return const RewardedResult(RewardedOutcome.unavailable, errorCode: 'no_platform');
     if (!platform.rewardedReady) {
@@ -378,7 +502,11 @@ class Monetization {
       // yükleme ile gösterim arasında süresi doldu / tüketildi
       return RewardedResult(RewardedOutcome.unavailable, errorCode: platform.lastRewardedErrorCode ?? 'expired');
     }
-    final bool rewarded = await showRewarded(placement, onReward: onReward);
+    if (stillWanted != null && !stillWanted()) {
+      // yükleme beklerken ekran kapandı: dokunuşun sonucu artık geçerli değil → ASLA gösterme
+      return const RewardedResult(RewardedOutcome.unavailable, errorCode: 'cancelled');
+    }
+    final bool rewarded = await showRewarded(placement, onReward: onReward, stillWanted: stillWanted);
     if (rewarded) return const RewardedResult(RewardedOutcome.rewarded);
     // gösterim hiç başlamadıysa (başarısız / zaman aşımı) "kapandı" değil "reklam yok" sayılır (docs/18)
     final String? showErr = platform.lastRewardedErrorCode;
@@ -390,23 +518,42 @@ class Monetization {
 
   /// [onReward] ödül hak edilirse en çok bir kez çağrılır. Dönen değer: ödül verildi mi. Hazır ödüllü reklam gerekir
   /// (yüklemeyi de yapan tam akış için [watchRewarded]).
-  Future<bool> showRewarded(String placement, {void Function()? onReward}) async {
+  Future<bool> showRewarded(String placement, {void Function()? onReward, bool Function()? stillWanted}) async {
     if (!rewardedAvailable()) return false;
     bool rewarded = false;
-    _adState(true); // yerel çağrıdan önce duraklat
+    final int req = ++_rewardedSeq; // 1.1.3: ödüllü reklam yalnızca bu dokunuş isteği sürerken gösterilir
+    _rewardedActive = req;
+    _adState(true); // ticker duraklatması (ses DEĞİL)
     try {
-      await platform.showRewarded(placement, () {
-        if (rewarded) return;
-        rewarded = true;
-        onReward?.call();
-      }).timeout(nativeTimeout, onTimeout: () {});
+      await platform
+          .showRewarded(placement, () {
+            if (rewarded) return;
+            rewarded = true;
+            onReward?.call();
+          }, allowed: () => _rewardedActive == req && (stillWanted?.call() ?? true))
+          .timeout(nativeTimeout, onTimeout: () {
+        try {
+          platform.abandonRewarded();
+        } catch (_) {}
+      });
+      if (platform.lastRewardedErrorCode == 'show_timeout') {
+        try {
+          platform.abandonRewarded();
+        } catch (_) {}
+        _openLateWindow();
+      }
     } catch (_) {
       // yut: oyun devam eder
     } finally {
+      if (_rewardedActive == req) _rewardedActive = 0;
       _adState(false);
+      if (!_lateHeld) _screenChanged(false); // ses her yolda geri alınır
     }
     return rewarded;
   }
+
+  int _rewardedSeq = 0;
+  int _rewardedActive = 0;
 
   // ---- satın alma ----
   Future<PurchaseResult> purchaseRemoveAds() async {

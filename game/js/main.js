@@ -18,8 +18,10 @@
   var adPause = false;
   M.setAdListener(function (active) {
     adPause = !!active;
-    try { if (active) SFX.pause(); else { SFX.resume(); kick(); } } catch (e) {}
+    try { if (!active) kick(); } catch (e) {}
   });
+  // 1.1.3: ses YALNIZCA reklam gerçekten ekrandayken susar (show çağrısı / yükleme sesi susturmaz)
+  M.setScreenListener(function (on) { try { if (on) SFX.pause(); else SFX.resume(); } catch (e) {} });
 
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
@@ -733,6 +735,7 @@
   function prefetchNext(id) { if (id + 1 > PREBUILT) ensureLevel(id + 1); }
   var pendingStart = 0;
   function startLevel(id) {
+    M.closeLevelEnd(); // 1.1.3: yeni seviye başladı: önceki seviye sonu yerleştirmesi geçersiz
     var lv = getLevel(id);
     if (lv) { pendingStart = 0; playLevel(lv); return; }
     if (id <= PREBUILT || id > Store.MAX_LEVEL) return;
@@ -1178,7 +1181,8 @@
       var a = el('div', 'actions');
       // Oyuncu devam edince (ve yalnızca o zaman) geçiş reklamı kuralları değerlendirilir (ads.js)
       var going = false;
-      function cont(fn) { return function () { if (going) return; going = true; M.continueAfterLevel(id, function () { fn(); }); }; }
+      var adToken = M.openLevelEnd(id); // 1.1.3: yerleştirme oturumu; geçiş reklamı yalnızca bu seviye sonu ekranı etkinken
+      function cont(fn) { return function () { if (going) return; going = true; M.continueAfterLevel(id, function () { M.closeLevelEnd(adToken); fn(); }, adToken); }; }
       if (id < Store.MAX_LEVEL) a.appendChild(btn(t('end.next'), 'primary', cont(function () { startLevel(id + 1); }), 'end-next'));
       var row = el('div', 'actions row'); row.style.marginTop = '0';
       row.appendChild(btn(t('end.replay'), 'secondary', cont(function () { startLevel(id); }), 'end-replay'));

@@ -12,7 +12,7 @@ const bridge = { // ads.js çağrılarını kaydeden ve Java ile aynı kimlik s�
 const env = { now: () => 1e9, bridge: () => bridge, online: () => true, setTimeout: () => 0, clearTimeout: () => {} };
 const M = create(env); const state = { ads: { since: 3, lastAt: 0, adFree: false, test: false } }; M.attach(() => state, () => {});
 const R = {};
-M.continueAfterLevel(20, s => { R.inter = s; });                       // id 1
+M.continueAfterLevel(20, s => { R.inter = s; }, M.openLevelEnd(20));                       // id 1
 M.showRewarded('life', () => { R.reward = (R.reward || 0) + 1; }, d => { R.rdone = d; }); // id 2
 M.purchaseRemoveAds(r => { R.p3 = r; });                                // id 3
 M.showPrivacyOptions(() => { R.po = (R.po || 0) + 1; });                 // id 4

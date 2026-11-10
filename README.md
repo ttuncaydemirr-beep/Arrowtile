@@ -58,7 +58,7 @@ Her başarılı `main` derlemesinden sonra **Releases → Deneme APK** altında 
 ### Play Store paketi (imzalı AAB)
 
 1. Yükleme anahtarını oluştur ve 9 secret'ı gir (sonuncusu Firebase `GOOGLE_SERVICES_JSON`): [docs/14-ci-imzali-derleme.md](docs/14-ci-imzali-derleme.md)
-2. Her yüklemeden önce `flutter/arrowtile/pubspec.yaml` içindeki `version: 1.1.2+N` değerinde `N`'i (versionCode) bir artır.
+2. Her yüklemeden önce `flutter/arrowtile/pubspec.yaml` içindeki `version: 1.1.3+N` değerinde `N`'i (versionCode) bir artır.
 3. **Actions → Release AAB (imzalı) → Run workflow** → bitince **Artifacts → arrowtile-release-aab**.
 4. Play Console'a yükleme adımları ve form yanıtları: [docs/10-play-store-yukleme.md](docs/10-play-store-yukleme.md)
 
