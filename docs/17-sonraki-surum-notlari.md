@@ -52,3 +52,11 @@ Kullanıcı kararı (deneme önizlemesi istemedi):
 
 ## 1.1.2 cihaz denemesi (10.11.2026, kullanıcı)
 - 1.1.2 telefonda sorunsuz açıldı. Bir geçiş reklamı geldi; reklam açılırken oyun "birazcık takılır gibi oldu ama ilerledi". → Reklam gösterimi öncesi/sonrası kısa takılma incelenecek (ör. reklam açılmadan önce ticker/ses duraklatma ve geri dönüşte yeniden çizim maliyeti; Crashlytics/ANR ve Firebase `interstitial` olay süreleriyle doğrulanacak).
+
+## 1.2.0 kapsam onayı (10.11.2026, kullanıcı)
+Kullanıcı 1.2.0 listesinin tamamını onayladı (büyük kaydırılabilir tahta ≈28x45, ince/küçük oklar ve alanla artan ok sayısı, uzun karmaşık kıvrımlar, şekilli "Süper Zor" tahtalar, ok rengi seçimi, oku sonuna kadar götürüp kaybetme, rüzgâr sesi, tek bip titreşim, Play Games lider tablosu, WhatsApp davet (ödülsüz), dokunma ve reklam takılması düzeltmeleri, yeni mağaza görselleri, AdMob mağaza bağlantısı).
+**DEĞİŞİKLİK — zorluk döngüsü (docs/15 §5'in yerine geçer):**
+- 20 seviyelik sabit çark, sonsuza kadar: 5 Kolay → 5 Orta → 5 Zor → 5 Aşırı zor, sonra baştan. (Seviye 1–5 Kolay, 6–10 Orta, 11–15 Zor, 16–20 Aşırı zor, 21–25 Kolay …)
+- Amaç (kullanıcı): oyuncu her 20 seviyede bir "baştan başlıyor" hissiyle oynasın.
+- Tahta büyüklüğü artık uzun vadeli bölüm ilerlemesine değil çarkın içindeki konuma bağlı ("sürekli değişken"): Kolay küçük, Aşırı zor en büyük (≈28x45, kaydırmalı). Her çarkta yeniden küçükten başlar.
+- Açık sorular (kullanıcıya soruldu): bölüm = 20 seviyelik çark mı; ilk çark(lar) yeni oyuncu için daha yumuşak mı.
