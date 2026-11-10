@@ -1,4 +1,6 @@
 # İmza anahtarları ve gizli ayarlar — ASLA depoya girmez
+# Firebase yapılandırması: herkese açık depoda YOK; release.yml GitHub secret GOOGLE_SERVICES_JSON'dan yazar (docs/19)
+google-services.json
 *.jks
 *.keystore
 key.properties

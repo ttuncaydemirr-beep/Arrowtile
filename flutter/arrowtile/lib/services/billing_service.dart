@@ -36,6 +36,10 @@ class BillingService {
 
   bool get available => _available;
 
+  /// Play'in bildirdiği ürün fiyatı (analiz satın alma olayı için; ürün sorgulanmadıysa null).
+  double? get priceValue => _product?.rawPrice;
+  String? get priceCurrency => _product?.currencyCode;
+
   Future<void> start() async {
     try {
       _available = await _iap.isAvailable();

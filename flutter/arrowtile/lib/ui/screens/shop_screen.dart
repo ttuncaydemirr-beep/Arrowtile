@@ -126,6 +126,7 @@ class _ShopScreenState extends State<ShopScreen> {
       return AppButton(loc.shopEquip, fontSize: 16, onTap: () {
         app.save.theme = th.id;
         app.commit();
+        app.themeEquipped(th.id);
       });
     }
     return AppButton(loc.shopBuy, kind: BtnKind.primary, fontSize: 16, onTap: () {
@@ -141,6 +142,7 @@ class _ShopScreenState extends State<ShopScreen> {
         app.save.themesOwned.add(th.id);
         app.save.theme = th.id;
         app.commit();
+        app.themeEquipped(th.id);
         app.sfx.coin();
         app.toast(loc.shopBought);
       }, yesLabel: loc.shopBuy);
@@ -314,6 +316,10 @@ class _AdsCardState extends State<AdsCard> {
     if (!mounted) return;
     setState(() => _busy = false);
     if (r.ok) {
+      // yalnızca GERÇEK başarılı satın alma analiz olayı olur (zaten sahip / test modu / iptal / bekleyen / hata değil)
+      if (!r.already && !r.test) {
+        app.telemetry.purchaseRemoveAds(currency: app.billing.priceCurrency, value: app.billing.priceValue);
+      }
       app.sfx.coin();
       app.toast(loc.adsPurchased + (r.test ? ' · ${loc.adsTestMode}' : ''));
     } else if (r.reason == 'pending') {

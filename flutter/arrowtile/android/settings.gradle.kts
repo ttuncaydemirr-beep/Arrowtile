@@ -23,6 +23,10 @@ plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "9.3.1" apply false
     id("org.jetbrains.kotlin.android") version "2.4.20" apply false
+    // Firebase (docs/19): sürümler burada bildirilir, app/build.gradle.kts bunları YALNIZCA android/app/google-services.json
+    // varsa uygular (dosya depoda yoktur; CI/fork derlemeleri Firebase'siz derlenir, release.yml dosyayı GitHub secret'tan yazar).
+    id("com.google.gms.google-services") version "4.5.0" apply false
+    id("com.google.firebase.crashlytics") version "3.0.8" apply false
 }
 
 include(":app")

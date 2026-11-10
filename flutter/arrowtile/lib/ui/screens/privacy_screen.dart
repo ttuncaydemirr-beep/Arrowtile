@@ -83,6 +83,7 @@ class PrivacyScreen extends StatelessWidget {
     final List<List<String>> sections = <List<String>>[
       <String>[loc.privacyHData, loc.privacyPData],
       <String>[loc.privacyHAds, loc.privacyPAds],
+      <String>[loc.privacyHAnalytics, loc.privacyPAnalytics],
       <String>[loc.privacyHBuy, loc.privacyPBuy],
       <String>[loc.privacyHDelete, loc.privacyPDelete],
       <String>[loc.privacyHContact, loc.privacyPContact],

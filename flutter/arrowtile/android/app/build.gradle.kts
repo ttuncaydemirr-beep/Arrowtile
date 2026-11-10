@@ -6,6 +6,22 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// ---------------------------------------------------------------- Firebase (Analytics + Crashlytics; docs/19)
+// google-services.json DEPODA YOKTUR (herkese açık depo; gerçek kimlikler yalnızca GitHub secret'ında). Dosya varsa eklentiler
+// uygulanır; yoksa (CI, fork, PR, yerel debug) uygulama Firebase'siz derlenir ve Dart tarafı analizi/çökme raporunu devre dışı bırakır.
+val hasGoogleServices = file("google-services.json").exists()
+if (hasGoogleServices) {
+    apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
+    // Yalnızca CI'daki sahte yapılandırma denemesi için: ORG_GRADLE_PROJECT_arrowtileSkipMappingUpload=true ise R8 eşleme dosyası
+    // yüklenmez (sahte uygulama kimliğine ağ isteği atılmasın). Gerçek release derlemesinde yükleme açıktır.
+    if (providers.gradleProperty("arrowtileSkipMappingUpload").orNull == "true") {
+        tasks.configureEach {
+            if (name.startsWith("uploadCrashlyticsMappingFile")) enabled = false
+        }
+    }
+}
+
 // ---------------------------------------------------------------- Sürüm imzalama (android/key.properties)
 // Anahtar deposu bu projede OLUŞTURULMAZ ve depoya konmaz. android/key.properties.example dosyasını
 // key.properties olarak kopyalayıp doldurun (README.md "İmzalama"). Dosya yoksa release derlemesi DEBUG anahtarıyla

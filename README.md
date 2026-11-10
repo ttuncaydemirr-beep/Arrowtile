@@ -48,7 +48,7 @@ node tools/test-daily.js
 | Workflow | Ne zaman çalışır | Ne yapar |
 |---|---|---|
 | `ci.yml` (**CI**) | `main`'e her gönderimde ve her PR'da | Web doğrulamaları → `flutter analyze` + `flutter test` → yayın modunda deneme APK → APK'yı Android emülatöründe açıp çökme denetimi |
-| `release.yml` (**Release AAB (imzalı)**) | Yalnızca elle: Actions → Run workflow | Play Store'a yüklenecek imzalı `app-release.aab`. Anahtar ve AdMob kimlikleri GitHub secrets'tan okunur; eksikse veya test kimliği girilmişse açıklayıcı hatayla durur. Kurulum: [docs/14](docs/14-ci-imzali-derleme.md) |
+| `release.yml` (**Release AAB (imzalı)**) | Yalnızca elle: Actions → Run workflow | Play Store'a yüklenecek imzalı `app-release.aab`. Anahtar, AdMob kimlikleri ve Firebase `google-services.json` GitHub secrets'tan okunur; eksikse veya test kimliği girilmişse açıklayıcı hatayla durur. Kurulum: [docs/14](docs/14-ci-imzali-derleme.md) |
 | `pages.yml` (**Gizlilik sayfası**) | `dist/privacy-site/` değişince ve elle | Gizlilik politikasını GitHub Pages'e yayınlar |
 
 ### Deneme APK (telefonda denemek için)
@@ -57,8 +57,8 @@ Her başarılı `main` derlemesinden sonra **Releases → Deneme APK** altında 
 
 ### Play Store paketi (imzalı AAB)
 
-1. Yükleme anahtarını oluştur ve 8 secret'ı gir: [docs/14-ci-imzali-derleme.md](docs/14-ci-imzali-derleme.md)
-2. Her yüklemeden önce `flutter/arrowtile/pubspec.yaml` içindeki `version: 1.1.1+N` değerinde `N`'i (versionCode) bir artır.
+1. Yükleme anahtarını oluştur ve 9 secret'ı gir (sonuncusu Firebase `GOOGLE_SERVICES_JSON`): [docs/14-ci-imzali-derleme.md](docs/14-ci-imzali-derleme.md)
+2. Her yüklemeden önce `flutter/arrowtile/pubspec.yaml` içindeki `version: 1.1.2+N` değerinde `N`'i (versionCode) bir artır.
 3. **Actions → Release AAB (imzalı) → Run workflow** → bitince **Artifacts → arrowtile-release-aab**.
 4. Play Console'a yükleme adımları ve form yanıtları: [docs/10-play-store-yukleme.md](docs/10-play-store-yukleme.md)
 
@@ -71,10 +71,10 @@ Her başarılı `main` derlemesinden sonra **Releases → Deneme APK** altında 
 
 - [ ] Settings → Pages kaynağını "GitHub Actions" yap ve gizlilik sayfası workflow'unu çalıştır
 - [ ] AdMob'da uygulama + 2 reklam birimi (geçiş, ödüllü) oluştur
-- [ ] Yükleme anahtarını oluştur, yedekle ve 8 secret'ı gir ([docs/14](docs/14-ci-imzali-derleme.md))
+- [ ] Yükleme anahtarını oluştur, yedekle ve 9 secret'ı gir ([docs/14](docs/14-ci-imzali-derleme.md); Firebase konsol adımları ve Veri güvenliği formu: [docs/19](docs/19-firebase.md))
 - [ ] İmzalı AAB'yi derle, Play Console'da uygulamayı oluştur, `remove_ads` ürününü tanımla
 - [ ] Kapalı test: 12 test kullanıcısı, 14 gün; ardından üretime yayın
 
 ## Güvenlik notu
 
-Bu depo herkese açıktır. İmza anahtarları (`*.jks`, `key.properties`) `.gitignore` ile dışarıda tutulur; asla eklemeyin. Gerçek AdMob kimlikleri ve imza şifreleri yalnızca GitHub secrets'ta durur; depodaki kimlikler Google'ın test kimlikleridir.
+Bu depo herkese açıktır. İmza anahtarları (`*.jks`, `key.properties`) `.gitignore` ile dışarıda tutulur; asla eklemeyin. Gerçek AdMob kimlikleri, Firebase `google-services.json` içeriği ve imza şifreleri yalnızca GitHub secrets'ta durur (`google-services.json` `.gitignore`'dadır); depodaki kimlikler Google'ın test kimlikleridir.

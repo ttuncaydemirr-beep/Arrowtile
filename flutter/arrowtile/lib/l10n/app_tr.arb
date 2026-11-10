@@ -643,7 +643,7 @@
   "@privacyHData": {
     "description": "privacy.h_data"
   },
-  "privacyPData": "Arrowtile hesap istemez. İlerlemen (seviyeler, yıldızlar, jetonlar ve ayarlar) yalnızca cihazında saklanır; bize gönderilmez. Oyun, reklam ve satın alma dışında internete bağlanmaz. Bu oyun 13 yaş altındaki çocuklara yönelik değildir.",
+  "privacyPData": "Arrowtile hesap istemez. İlerlemen (seviyeler, yıldızlar, jetonlar ve ayarlar) yalnızca cihazında saklanır; bize gönderilmez (aşağıda anlatılan anonim istatistikler hariç). Oyun; reklam, satın alma ve anonim analiz/çökme raporu dışında internete bağlanmaz. Bu oyun 13 yaş altındaki çocuklara yönelik değildir.",
   "@privacyPData": {
     "description": "privacy.p_data"
   },
@@ -654,6 +654,14 @@
   "privacyPAds": "Android sürümünde reklamlar Google AdMob ile gösterilir. AdMob; reklam kimliği, IP adresi, cihaz ve uygulama bilgileri ile reklam etkileşimleri gibi verileri reklam göstermek, ölçmek ve kötüye kullanımı önlemek için toplayabilir. Avrupa Ekonomik Alanı, Birleşik Krallık ve İsviçre’de kişiselleştirilmiş reklamdan önce onayın istenir ve onayını istediğin zaman değiştirebilirsin. Reklam kimliğini cihaz ayarlarından sıfırlayabilir veya silebilirsin. Google’ın iş ortaklarının sitelerinden veya uygulamalarından elde edilen verileri nasıl kullandığını şuradan öğrenebilirsin: https://policies.google.com/technologies/partner-sites",
   "@privacyPAds": {
     "description": "privacy.p_ads"
+  },
+  "privacyHAnalytics": "Analiz ve çökme raporları",
+  "@privacyHAnalytics": {
+    "description": "privacy.h_analytics"
+  },
+  "privacyPAnalytics": "Arrowtile, oyunu iyileştirmek için Google Firebase Analytics ve Firebase Crashlytics kullanır. Firebase Analytics anonim kullanım istatistikleri toplar: seviye ilerlemesi (başlatma, tamamlama, yıldız, hata ve ipucu sayısı, süre), reklam ve satın alma olayları, dil ve tema gibi ayarlar ile cihaz ve uygulama bilgileri (model, işletim sistemi sürümü, uygulama sürümü, yaklaşık konum için kısaltılmış IP adresi). Firebase Crashlytics çökme raporları toplar: cihaz modeli, işletim sistemi sürümü, hata izi (stack trace) ve kurulum kimliği. Amaç; oyunun zorluğunu ayarlamak, hataları bulmak ve kararlılığı artırmaktır. Adını, e-posta adresini veya serbest metin girdini toplamayız; bu veriler kimliğinle eşleştirilmez ve reklam kişiselleştirme için kullanılmaz. Google bu verileri bizim adımıza işleyen hizmet sağlayıcıdır. Avrupa Ekonomik Alanı, Birleşik Krallık ve İsviçre’de analiz yalnızca onay verirsen çalışır ve onayını istediğin zaman gizlilik seçeneklerinden değiştirebilirsin. Çökme raporları uygulamanın kararlı çalışması için gönderilir. Ayrıntılar: https://firebase.google.com/support/privacy",
+  "@privacyPAnalytics": {
+    "description": "privacy.p_analytics"
   },
   "privacyHBuy": "Satın alımlar",
   "@privacyHBuy": {

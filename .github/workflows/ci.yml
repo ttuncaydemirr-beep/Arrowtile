@@ -246,3 +246,93 @@ jobs:
         with:
           name: emulator-ads-${{ matrix.variant }}
           path: smoke-ads-${{ matrix.variant }}/
+
+  # docs/19 (1.1.2): Firebase Gradle eklentileri (google-services + crashlytics) yalnızca google-services.json varsa uygulanır. Normal
+  # CI derlemelerinde dosya yoktur (eklentiler hiç çalışmaz). Bu iş, GERÇEK release.yml yolunu SAHTE bir yapılandırmayla dener:
+  # eklentiler AGP 9 + R8 ile derleniyor mu, Firebase başlatılıyor mu, onay sinyalleri hesaplanıyor mu. Gerçek kimlik YOKTUR;
+  # sahte proje yalnızca bu işin çalışma kopyasında yazılır ve depoya girmez. Bu APK asla dağıtılmaz.
+  firebase-apk:
+    name: Release APK (sahte Firebase yapılandırmasıyla eklenti denemesi)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: flutter/arrowtile
+    env:
+      ORG_GRADLE_PROJECT_arrowtileSkipMappingUpload: "true" # sahte uygulama kimliğine eşleme dosyası yüklenmesin
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Sahte google-services.json yaz (gerçek değil; depoya girmez)
+        run: |
+          cat > android/app/google-services.json <<'JSON'
+          {
+            "project_info": {"project_number": "123456789012", "project_id": "arrowtile-ci-dummy", "storage_bucket": "arrowtile-ci-dummy.appspot.com"},
+            "client": [{
+              "client_info": {"mobilesdk_app_id": "1:123456789012:android:0123456789abcdef", "android_client_info": {"package_name": "com.arrowtile.puzzle"}},
+              "oauth_client": [],
+              "api_key": [{"current_key": "AIzaSyA0000000000000000000000000000000"}],
+              "services": {"appinvite_service": {"other_platform_oauth_client": []}}
+            }],
+            "configuration_version": "1"
+          }
+          JSON
+          python3 -c "import json; json.load(open('android/app/google-services.json'))"
+      - run: flutter pub get
+      - run: flutter gen-l10n
+      - run: flutter build apk --release
+      - run: cp build/app/outputs/flutter-apk/app-release.apk Arrowtile-firebase-ci.apk
+      - uses: actions/upload-artifact@v5
+        with:
+          name: arrowtile-firebase-ci-apk
+          path: flutter/arrowtile/Arrowtile-firebase-ci.apk
+          retention-days: 3
+
+  smoke-firebase:
+    name: Emülatörde Firebase başlatma + onay sinyali + geri dönüş testi
+    needs: firebase-apk
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: arrowtile-firebase-ci-apk
+      - name: KVM izni
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Firebase etkin APK ile açılış, günlük satırları ve geri dönüş testi
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb install -r Arrowtile-firebase-ci.apk
+            adb logcat -c
+            adb shell monkey -p com.arrowtile.puzzle -c android.intent.category.LAUNCHER 1
+            for i in $(seq 1 60); do
+              adb logcat -d -v brief flutter:V AndroidRuntime:E '*:S' > logcat-fb.txt || true
+              if grep -q "TELEMETRY: init ok" logcat-fb.txt && grep -q "TELEMETRY: consent:" logcat-fb.txt; then break; fi
+              sleep 1
+            done
+            grep -E "TELEMETRY|FATAL" logcat-fb.txt || true
+            if grep -q "FATAL EXCEPTION" logcat-fb.txt; then echo "UYGULAMA ÇÖKTÜ"; exit 1; fi
+            grep -q "TELEMETRY: init ok" logcat-fb.txt || { echo "Firebase başlatılamadı (init ok satırı yok)"; exit 1; }
+            grep -q "TELEMETRY: consent:" logcat-fb.txt || { echo "Onay sinyalleri hesaplanmadı (consent satırı yok)"; exit 1; }
+            bash .github/scripts/smoke-resume.sh firebase 0
+      - uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: emulator-firebase
+          path: |
+            logcat-fb.txt
+            smoke-firebase/

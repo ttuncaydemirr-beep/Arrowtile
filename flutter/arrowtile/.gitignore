@@ -16,6 +16,7 @@ lib/l10n/app_localizations*.dart
 android/.gradle/
 android/local.properties
 android/key.properties
+android/app/google-services.json
 android/**/GeneratedPluginRegistrant.*
 *.jks
 *.keystore

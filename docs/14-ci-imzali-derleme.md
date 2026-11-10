@@ -35,11 +35,26 @@ Depoda **Settings > Secrets and variables > Actions > New repository secret**:
 | `ADMOB_INTERSTITIAL_ID` | geçiş reklamı birimi, `ca-app-pub-…/…` |
 | `ADMOB_REWARDED_ID` | ödüllü reklam birimi, `ca-app-pub-…/…` |
 | `ADMOB_BANNER_ID` | banner reklam birimi (v1.1; yalnızca ana menü ve haritada gösterilir), `ca-app-pub-…/…` |
+| `GOOGLE_SERVICES_JSON` | Firebase `google-services.json` dosyasının **tüm içeriği** (v1.1.2; aşağıdaki §3.1) |
 
-Toplam **8 secret**. AdMob'da (uygulamayı bir kez oluşturduktan sonra) 3 reklam birimi gerekir: geçiş, ödüllü, **banner**. Banner birimi
+Toplam **9 secret**. AdMob'da (uygulamayı bir kez oluşturduktan sonra) 3 reklam birimi gerekir: geçiş, ödüllü, **banner**. Banner birimi
 için "Banner" biçimi seçilir (uygulama uyarlanabilir/adaptive boyutla ister). Workflow üç birim kimliğini de derleme kopyasında
 `lib/config/ads_config.dart` içine yazar (`releaseInterstitialId`, `releaseRewardedId`, `releaseBannerId`); depoya hiçbir gerçek kimlik yazılmaz.
 Banner kimliği de diğerleri gibi biçim denetiminden (`ca-app-pub-XXXX/YYYY`, `/` içerir) ve test-kimliği reddinden geçer.
+
+### 3.1 `GOOGLE_SERVICES_JSON` secret'ını ekleme (adım adım)
+
+Firebase Analytics ve Crashlytics (v1.1.2, [docs/19](19-firebase.md)) Android yapılandırmasını `google-services.json` dosyasından okur.
+Dosya projeye ait kimlikler içerir; depo herkese açık olduğu için **depoya konmaz**, yalnızca bu secret'ta durur.
+
+1. [Firebase konsolu](https://console.firebase.google.com) → Arrowtile projesi → sol üstte dişli simgesi → **Proje ayarları** → **Genel** sekmesi.
+2. Aşağıda **Uygulamalarınız** altında paket adı **`com.arrowtile.puzzle`** olan Android uygulamasını seçin → **`google-services.json` dosyasını indir**.
+3. İndirilen dosyayı bir metin düzenleyicide (Not Defteri, TextEdit, VS Code) açın; **Tümünü seç** (Ctrl+A / Cmd+A) → **Kopyala**. İçerik `{` ile başlayıp `}` ile biter; olduğu gibi, hiçbir şeyi silmeden/değiştirmeden kopyalanır.
+4. GitHub'da depo → **Settings → Secrets and variables → Actions → New repository secret**.
+5. **Name:** `GOOGLE_SERVICES_JSON` (büyük harf, tam bu yazım). **Secret:** kopyaladığınız **tüm** metni yapıştırın → **Add secret**.
+6. Doğrulama: workflow çalışınca "Secrets denetimi" adımı metnin geçerli JSON olduğunu ve `com.arrowtile.puzzle` paket adını içerdiğini denetler; değilse neyin yanlış olduğunu söyleyen kırmızı bir hata ile durur.
+
+Notlar: dosyayı e-postayla/sohbetle paylaşmayın. Secret'ı değiştirmek için aynı adla yeniden kaydedin. Firebase'de uygulamaya SHA-1 eklemek bu iş için gerekmez.
 
 Herhangi biri eksikse veya Google test kimliği (`3940256099942544`) girilmişse workflow açıklayıcı bir hatayla durur.
 

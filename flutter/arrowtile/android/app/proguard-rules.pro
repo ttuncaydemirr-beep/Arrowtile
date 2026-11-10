@@ -11,3 +11,8 @@
 -keep class * extends androidx.room.RoomDatabase { <init>(); }
 -keep class androidx.work.impl.WorkDatabase_Impl { *; }
 -keep class androidx.work.impl.** extends androidx.room.RoomDatabase { *; }
+
+# --- Firebase Crashlytics (docs/19) ---
+# Firebase SDK'ları kendi tüketici kurallarını getirir. Crashlytics: istisna sınıf adları okunur kalsın; SourceFile/LineNumberTable
+# yukarıda korunuyor; R8 eşleme dosyasını Crashlytics Gradle eklentisi release derlemesinde otomatik yükler (google-services.json varsa).
+-keep public class * extends java.lang.Exception

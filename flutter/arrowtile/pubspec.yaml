@@ -2,8 +2,8 @@ name: arrowtile
 description: "Arrowtile — süre yok, internetsiz ok bulmacası. (Flutter sürümü; web referansı: game/)"
 publish_to: "none"
 
-# versionName 1.1.1, versionCode 5 (build numarası). Play'e her yüklemede "+N" kısmını 1 artırın.
-version: 1.1.1+5
+# versionName 1.1.2, versionCode 6 (build numarası). Play'e her yüklemede "+N" kısmını 1 artırın.
+version: 1.1.2+6
 
 environment:
   sdk: ">=3.10.0 <4.0.0" # google_mobile_ads 9.x: Dart >=3.10 / Flutter >=3.38.1; önerilen: Flutter stable >= 3.41
@@ -23,6 +23,11 @@ dependencies:
   audioplayers: ^6.5.0
   vibration: ^3.1.0
   url_launcher: ^6.3.0
+  # Analiz + çökme raporu (docs/19). Yalnızca lib/services/firebase_telemetry.dart kullanır; yapılandırma yoksa uygulama
+  # bunlar olmadan çalışır. Android yapılandırması google-services.json'dır (depoda YOK; release.yml GitHub secret'tan yazar).
+  firebase_core: ^5.1.0
+  firebase_analytics: ^13.0.1
+  firebase_crashlytics: ^6.0.1
 
 dev_dependencies:
   flutter_test:

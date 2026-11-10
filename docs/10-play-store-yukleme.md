@@ -196,6 +196,8 @@ Adım adım:
   `AD_ID` izni kaldırılır; Veri güvenliği formu güncellenir. Bu ayrı bir sürüm işidir ve bana söylemeniz yeterli.
 
 ### Veri güvenliği (Data safety)
+> **Sürüm 1.1.2'den itibaren Firebase Analytics + Crashlytics eklendi: bu bölümdeki tablo eskidir, güncel form yanıtları [docs/19-firebase.md](19-firebase.md) §5'tedir.**
+
 Genel sorular:
 - Uygulama kullanıcı verisi topluyor ya da paylaşıyor mu: **Evet** (reklam SDK'sı nedeniyle).
 - Aktarım sırasında tüm veriler şifreleniyor mu: **Evet** (AdMob ve Play Billing TLS kullanır).

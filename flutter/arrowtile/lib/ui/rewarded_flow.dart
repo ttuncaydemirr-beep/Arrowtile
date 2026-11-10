@@ -85,6 +85,8 @@ Future<bool> playRewarded(BuildContext context, String placement, {required void
     app.rewardBusy = false;
     if (!loadingDone) closeLoading();
   }
+  app.telemetry.rewardedAd(
+      placement: placement, result: res.rewarded ? 'rewarded' : (res.unavailable ? 'unavailable' : 'closed'));
   if (res.rewarded) return true;
   app.sfx.error();
   app.toast(res.unavailable ? adUnavailableText(loc, res.errorCode) : loc.adsNoReward);

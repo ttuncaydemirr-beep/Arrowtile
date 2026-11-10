@@ -11,14 +11,17 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../config/ads_config.dart';
 import '../core/ads_rules.dart';
+import '../core/consent_gate.dart' show TelemetryConsent;
 import '../core/daily.dart' as daily;
 import '../core/economy.dart' as eco;
 import '../core/levelgen.dart';
 import '../core/models.dart';
 import '../core/save_data.dart';
+import '../core/telemetry.dart';
 import '../services/ads_service.dart';
 import '../services/audio_service.dart';
 import '../services/billing_service.dart';
+import '../services/consent_signals.dart';
 import '../services/haptics_service.dart';
 import '../services/save_store.dart';
 
@@ -40,18 +43,24 @@ class AppController extends ChangeNotifier {
     required this.save,
     required this.prebuilt,
     required this.billing,
+    this.telemetry = const NoopTelemetry(),
     AdsPlatform? adsPlatform,
     Duration? showTimeout,
   }) {
     sfx.enabled = save.sound;
     haptics.enabled = save.vibration;
-    platform = FlutterAdsPlatform(billing: billing, onChanged: notifyListeners, inGame: () => _gameDepth > 0);
+    platform = FlutterAdsPlatform(
+        billing: billing,
+        onChanged: notifyListeners,
+        inGame: () => _gameDepth > 0,
+        onConsentStatus: _onConsentStatus);
     // adsPlatform: yalnızca testlerde sahte platform enjekte eder (docs/18); normalde gerçek FlutterAdsPlatform
     mon = Monetization(
         platform: adsPlatform ?? platform,
         getAds: () => save.ads,
         persist: persist,
-        showTimeout: showTimeout ?? kInterstitialShowTimeout);
+        showTimeout: showTimeout ?? kInterstitialShowTimeout,
+        onInterstitialResult: (String r) => telemetry.interstitial(result: r));
     // docs/15 §4: tam ekran reklam gösterilirken ses duraklar (oyun ekranı ayrıca animasyon döngüsünü duraklatır)
     mon.addAdListener((bool active) => sfx.setHeld(active));
     billing.onOwnedChanged = (bool owned) {
@@ -69,6 +78,9 @@ class AppController extends ChangeNotifier {
   SaveData save;
   final List<Level> prebuilt;
   final BillingService billing;
+
+  /// Analiz + çökme raporu (docs/19). Testlerde ve yapılandırma yokken [NoopTelemetry]; arayüz Firebase'e doğrudan dokunmaz.
+  final Telemetry telemetry;
   final AudioService sfx = AudioService();
   final HapticsService haptics = HapticsService();
   late final FlutterAdsPlatform platform;
@@ -90,7 +102,7 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  static Future<AppController> create({AdsPlatform? adsPlatform}) async {
+  static Future<AppController> create({AdsPlatform? adsPlatform, Telemetry? telemetry}) async {
     final SaveStore store = await SaveStore.open();
     final SaveData save = store.load(detectLang());
     if (AdsConfig.autoPlayFrom > 0 && !kReleaseMode) {
@@ -105,15 +117,34 @@ class AppController extends ChangeNotifier {
       for (final dynamic j in raw) Level.fromJson(j as Map<String, dynamic>)
     ];
     final BillingService billing = BillingService(owned: save.ads.adFree && !save.ads.test);
-    return AppController._(store: store, save: save, prebuilt: prebuilt, billing: billing, adsPlatform: adsPlatform);
+    return AppController._(
+        store: store,
+        save: save,
+        prebuilt: prebuilt,
+        billing: billing,
+        telemetry: telemetry ?? const NoopTelemetry(),
+        adsPlatform: adsPlatform);
   }
 
   /// İlk kare çizildikten sonra çağrılır: ses, satın alma, onay/reklam.
   Future<void> startServices() async {
+    telemetry.setLanguage(save.lang);
     unawaited(sfx.init());
     unawaited(billing.start());
     unawaited(platform.refreshOnline());
     unawaited(platform.gatherConsent());
+  }
+
+  /// UMP durumu güncellendi: Firebase Analytics onay sinyallerini (analytics_storage / ad_storage / ad_user_data /
+  /// ad_personalization) türetip uygular. Onay bilinene dek hepsi kapalıdır (AndroidManifest + FirebaseTelemetry varsayılanı).
+  void _onConsentStatus(String umpStatus) {
+    unawaited(() async {
+      try {
+        final TelemetryConsent c = await ConsentSignals.resolve(umpStatus);
+        await telemetry.setConsent(c);
+        telemetry.setLanguage(save.lang); // toplama onayla açıldıysa kullanıcı özelliği şimdi yazılır
+      } catch (_) {}
+    }());
   }
 
   void onAppResumed() {
@@ -162,6 +193,7 @@ class AppController extends ChangeNotifier {
     if (!kLangs.contains(l)) return;
     save.lang = l;
     commit();
+    telemetry.setLanguage(l);
   }
 
   void setSound(bool v) {
@@ -181,18 +213,24 @@ class AppController extends ChangeNotifier {
   void setRelaxed(bool v) {
     save.relaxed = v;
     commit();
+    telemetry.settingChanged(name: 'relaxed_mode', value: v ? 'on' : 'off');
   }
 
   void setAim(bool v) {
     save.aim = v;
     commit();
+    telemetry.settingChanged(name: 'aim_mode', value: v ? 'on' : 'off');
   }
 
   void setAppearance(String m) {
     if (!<String>['auto', 'light', 'dark'].contains(m)) return;
     save.appearance = m;
     commit();
+    telemetry.settingChanged(name: 'appearance', value: m);
   }
+
+  /// Ok teması giyildi / satın alınıp giyildi (Mağaza). Tema kimlikleri sabit bir kümedir (serbest metin değil).
+  void themeEquipped(String themeId) => telemetry.settingChanged(name: 'arrow_theme', value: themeId);
 
   void resetAll() {
     save = eco.resetProgress(save);

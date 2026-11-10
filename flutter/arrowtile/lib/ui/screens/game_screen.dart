@@ -16,7 +16,7 @@ import '../../core/daily.dart' as dl;
 import '../../core/economy.dart' as eco;
 import '../../core/engine.dart';
 import '../../core/ads_rules.dart' show Unsubscribe;
-import '../../core/levelgen.dart' show isCurved, kDesigned;
+import '../../core/levelgen.dart' show chapterOf, isCurved, kDesigned;
 import '../../core/models.dart';
 import '../../core/save_data.dart' show kMaxLevel;
 import '../../l10n/app_localizations.dart';
@@ -87,6 +87,21 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   bool _adPause = false;
   Unsubscribe? _unsubAd;
 
+  // ---- analiz (docs/19): bu denemenin süresi ve kullanılan ipucu sayısı (yeniden başlatınca sıfırlanır)
+  final Stopwatch _attemptClock = Stopwatch();
+  int _hintsUsed = 0;
+
+  /// Yeni bir deneme başladı: sayaçlar sıfırlanır ve level_start gönderilir (günlük bulmaca için level_start yok).
+  void _beginAttempt() {
+    _hintsUsed = 0;
+    _attemptClock
+      ..reset()
+      ..start();
+    if (!lv.isDaily) app.telemetry.levelStart(level: lv.id, tier: lv.diff, chapter: chapterOf(lv.id));
+  }
+
+  int get _attemptSeconds => _attemptClock.elapsed.inSeconds;
+
   bool get daily => lv.isDaily;
   String get levelKey => lv.daily ?? '${lv.id}';
 
@@ -109,6 +124,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     if (!lv.isDaily) app.prefetchNext(lv.id);
     // v1.3: ilk kıvrımlı ok (seviye 4) tek cümlelik baloncukla tanıtılır; bir kez
     if (tut == null && !lv.isDaily && !app.hasTip('curve_tip') && lv.arrows.any(isCurved)) curveTip = true;
+    _beginAttempt();
     if (AdsConfig.autoPlayOn && !lv.isDaily) _startAutoPlay();
     // oyun ekranı açılınca ödüllü reklam önceden yüklenir (docs/15 §4); hazırsa/yükleniyorsa yenisi başlatılmaz
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -597,6 +613,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     final int stars = g.stars();
     final int id = lv.id;
     if (daily) {
+      app.telemetry.dailyPuzzleComplete(stars: stars, mistakes: g.collisions, durationS: _attemptSeconds);
       final r = app.finishDaily(lv.daily!, stars);
       _hideTutorial();
       tut = null;
@@ -607,6 +624,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       });
       return;
     }
+    app.telemetry.levelComplete(
+        level: id,
+        tier: lv.diff,
+        stars: stars,
+        mistakes: g.collisions,
+        hintsUsed: _hintsUsed,
+        durationS: _attemptSeconds);
     final eco.CompleteResult res = app.finishLevel(id, stars, g.relaxed);
     _hideTutorial();
     tut = null;
@@ -711,6 +735,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
 
   Future<void> _onDead() async {
     busy = true;
+    if (!daily) app.telemetry.levelFail(level: lv.id, tier: lv.diff);
     app.sfx.error();
     app.buzz('error');
     final int my = session;
@@ -762,6 +787,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     session++;
     winDone = false;
     model.aimSel = -1;
+    _beginAttempt();
     _hud();
     _repaint.ping();
   }
@@ -813,6 +839,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       return;
     }
     app.persist();
+    _hintsUsed++;
+    if (!daily) app.telemetry.hintUsed(level: lv.id);
     app.sfx.hint();
     app.buzz('button');
     model.hintIdx = i;

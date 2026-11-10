@@ -30,6 +30,13 @@
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="@string/admob_app_id" />
 
+        <!-- Firebase Analytics gizlilik varsayılanları (docs/19): Google sinyalleri ve reklam kişiselleştirme KAPALI; tüm onay sinyalleri
+             varsayılan REDDEDİLMİŞ başlar. Uygulama UMP sonucuna göre Dart'tan setConsent çağırır (core/consent_gate.dart). -->
+        <meta-data android:name="google_analytics_default_allow_ad_personalization_signals" android:value="false" />
+        <meta-data android:name="google_analytics_default_allow_analytics_storage" android:value="false" />
+        <meta-data android:name="google_analytics_default_allow_ad_storage" android:value="false" />
+        <meta-data android:name="google_analytics_default_allow_ad_user_data" android:value="false" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

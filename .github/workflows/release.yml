@@ -4,6 +4,7 @@ name: Release AAB (imzalı)
 # Gerekli GitHub secrets (Ayarlar > Secrets and variables > Actions): docs/14-ci-imzali-derleme.md
 #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
 #   ADMOB_APP_ID, ADMOB_INTERSTITIAL_ID, ADMOB_REWARDED_ID, ADMOB_BANNER_ID
+#   GOOGLE_SERVICES_JSON  (Firebase google-services.json dosyasının TÜM içeriği; docs/14 §3 ve docs/19)
 # Hiçbiri yoksa derleme bilerek durur: release'te test kimliğiyle/debug anahtarıyla paket üretilmez.
 
 on:
@@ -28,13 +29,15 @@ jobs:
       ADMOB_INTERSTITIAL_ID: ${{ secrets.ADMOB_INTERSTITIAL_ID }}
       ADMOB_REWARDED_ID: ${{ secrets.ADMOB_REWARDED_ID }}
       ADMOB_BANNER_ID: ${{ secrets.ADMOB_BANNER_ID }}
+      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
     steps:
       - name: Secrets denetimi
         working-directory: ${{ github.workspace }}
         run: |
           missing=""
           for n in KS_B64:ANDROID_KEYSTORE_BASE64 KS_PASS:ANDROID_KEYSTORE_PASSWORD KEY_ALIAS:ANDROID_KEY_ALIAS KEY_PASS:ANDROID_KEY_PASSWORD \
-                   ADMOB_APP_ID:ADMOB_APP_ID ADMOB_INTERSTITIAL_ID:ADMOB_INTERSTITIAL_ID ADMOB_REWARDED_ID:ADMOB_REWARDED_ID ADMOB_BANNER_ID:ADMOB_BANNER_ID; do
+                   ADMOB_APP_ID:ADMOB_APP_ID ADMOB_INTERSTITIAL_ID:ADMOB_INTERSTITIAL_ID ADMOB_REWARDED_ID:ADMOB_REWARDED_ID ADMOB_BANNER_ID:ADMOB_BANNER_ID \
+                   GOOGLE_SERVICES_JSON:GOOGLE_SERVICES_JSON; do
             var="${n%%:*}"; secret="${n##*:}"
             if [ -z "${!var}" ]; then missing="$missing $secret"; fi
           done
@@ -50,6 +53,23 @@ jobs:
           for v in "$ADMOB_APP_ID" "$ADMOB_INTERSTITIAL_ID" "$ADMOB_REWARDED_ID" "$ADMOB_BANNER_ID"; do
             case "$v" in ca-app-pub-3940256099942544*) echo "::error::Google TEST kimliği verilmiş (3940256099942544). Kendi AdMob kimliğinizi girin."; exit 1;; esac
           done
+          # Firebase yapılandırması: geçerli JSON ve paket adı com.arrowtile.puzzle olmalı (değeri günlüğe yazmaz)
+          printf '%s' "$GOOGLE_SERVICES_JSON" | python3 -c '
+          import json, sys
+          try:
+              d = json.load(sys.stdin)
+          except Exception:
+              print("::error title=GOOGLE_SERVICES_JSON geçersiz::GOOGLE_SERVICES_JSON geçerli bir JSON değil. Firebase konsolundan indirdiğiniz google-services.json dosyasının TÜM içeriğini ({ ile başlayıp } ile biten) olduğu gibi yapıştırın. Adımlar: docs/14-ci-imzali-derleme.md §3.")
+              sys.exit(1)
+          pk = []
+          try:
+              pk = [c["client_info"]["android_client_info"]["package_name"] for c in d["client"]]
+          except Exception:
+              pass
+          if "com.arrowtile.puzzle" not in pk:
+              print("::error title=GOOGLE_SERVICES_JSON paket adı yanlış::google-services.json içinde com.arrowtile.puzzle paket adı yok (bulunan: " + ", ".join(pk) + "). Firebase projesine Android uygulamasını com.arrowtile.puzzle paket adıyla ekleyip dosyayı yeniden indirin.")
+              sys.exit(1)
+          ' || exit 1
           case "$KEY_PASS$KS_PASS$KEY_ALIAS" in *\\*) echo "::error::Şifre/alias içinde ters eğik çizgi (\\) olmamalı (key.properties bozulur)."; exit 1;; esac
 
       - uses: actions/checkout@v5
@@ -101,6 +121,12 @@ jobs:
               os.environ['ADMOB_BANNER_ID'], 'releaseBannerId')
           PY
 
+      - name: Firebase yapılandırmasını yaz (yalnızca derleme çalışma kopyasında; depoya girmez)
+        working-directory: ${{ github.workspace }}
+        run: |
+          printf '%s' "$GOOGLE_SERVICES_JSON" > flutter/arrowtile/android/app/google-services.json
+          test -s flutter/arrowtile/android/app/google-services.json || { echo "::error::GOOGLE_SERVICES_JSON yazılamadı veya boş."; exit 1; }
+
       - run: flutter pub get
       - run: flutter gen-l10n
       - run: flutter build appbundle --release
@@ -117,7 +143,7 @@ jobs:
       - name: Anahtar dosyalarını sil
         if: always()
         working-directory: ${{ github.workspace }}
-        run: rm -f "$RUNNER_TEMP/upload-keystore.jks" flutter/arrowtile/android/key.properties
+        run: rm -f "$RUNNER_TEMP/upload-keystore.jks" flutter/arrowtile/android/key.properties flutter/arrowtile/android/app/google-services.json
 
       - uses: actions/upload-artifact@v5
         with:

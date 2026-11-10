@@ -165,6 +165,10 @@ class Monetization {
   /// Geçiş reklamı gösterim denemesinin ekrana gelmesi için bekleme sınırı (docs/18).
   final Duration showTimeout;
 
+  /// Geçiş reklamı gösterim sonucu (analiz için; docs/19): 'shown' | 'skipped' (zamanı geldi ama hazır değildi) |
+  /// 'failed' (gösterim denendi ama ekrana gelmedi / hata). Yalnızca reklamın zamanı geldiyse çağrılır. Hata fırlatsa bile yutulur.
+  final void Function(String result)? onInterstitialResult;
+
   Monetization({
     required this.platform,
     required this.getAds,
@@ -172,6 +176,7 @@ class Monetization {
     int Function()? now,
     this.nativeTimeout = kNativeTimeout,
     this.showTimeout = kInterstitialShowTimeout,
+    this.onInterstitialResult,
   }) : now = now ?? (() => DateTime.now().millisecondsSinceEpoch);
 
   bool get _bridge => platform.available;
@@ -281,7 +286,10 @@ class Monetization {
     } catch (_) {
       ready = false;
     }
-    if (!ready) return false; // doldurulamadı: hemen devam, sayaç sıfırlanmaz
+    if (!ready) {
+      _reportInterstitial('skipped');
+      return false; // doldurulamadı: hemen devam, sayaç sıfırlanmaz
+    }
     final AdsState a = getAds();
     a.since = 0;
     a.lastAt = now();
@@ -305,14 +313,23 @@ class Monetization {
       } catch (_) {
         finish(false);
       }
-      return await done.future;
+      final bool shown = await done.future;
+      _reportInterstitial(shown ? 'shown' : 'failed');
+      return shown;
     } catch (_) {
+      _reportInterstitial('failed');
       return false;
     } finally {
       preTimer?.cancel();
       capTimer?.cancel();
       _adState(false);
     }
+  }
+
+  void _reportInterstitial(String result) {
+    try {
+      onInterstitialResult?.call(result);
+    } catch (_) {}
   }
 
   // ---- ödüllü reklam (isteğe bağlı; reklamsız sürümde de kullanılabilir) ----

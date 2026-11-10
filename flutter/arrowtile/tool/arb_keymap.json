@@ -135,6 +135,8 @@
  "privacyPData": "privacy.p_data",
  "privacyHAds": "privacy.h_ads",
  "privacyPAds": "privacy.p_ads",
+ "privacyHAnalytics": "privacy.h_analytics",
+ "privacyPAnalytics": "privacy.p_analytics",
  "privacyHBuy": "privacy.h_buy",
  "privacyPBuy": "privacy.p_buy",
  "privacyHDelete": "privacy.h_delete",

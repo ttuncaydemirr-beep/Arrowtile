@@ -24,7 +24,7 @@ import '../core/consent_gate.dart';
 import 'billing_service.dart';
 
 class FlutterAdsPlatform implements AdsPlatform {
-  FlutterAdsPlatform({required this.billing, this.onChanged, this.inGame});
+  FlutterAdsPlatform({required this.billing, this.onChanged, this.inGame, this.onConsentStatus});
 
   final BillingService billing;
 
@@ -33,6 +33,11 @@ class FlutterAdsPlatform implements AdsPlatform {
 
   /// Oyuncu şu an bir oyun ekranında mı (onay formu oyunun üstüne açılmaz).
   final bool Function()? inGame;
+
+  /// UMP onay durumu her güncellendiğinde (açılış, form kapanışı, gizlilik seçenekleri) durum adıyla çağrılır:
+  /// notRequired | required | obtained | unknown. Firebase Analytics onay sinyalleri buradan türetilir (docs/19).
+  /// Geri çağrı reklam akışını ASLA bekletmez ve hata fırlatsa bile yutulur.
+  final void Function(String umpStatus)? onConsentStatus;
 
   static const int _maxAgeMs = 55 * 60 * 1000;
   static const int _retryMinMs = 15000;
@@ -195,9 +200,19 @@ class FlutterAdsPlatform implements AdsPlatform {
         _privacyRequired = req;
         onChanged?.call();
       }
+      unawaited(_reportConsentStatus()); // Firebase onay sinyalleri; reklam başlatmayı beklemez
       if (await ConsentInformation.instance.canRequestAds()) await _initSdk();
     } catch (e) {
       _log('afterConsentUpdate: $e');
+    }
+  }
+
+  Future<void> _reportConsentStatus() async {
+    try {
+      final ConsentStatus st = await ConsentInformation.instance.getConsentStatus();
+      onConsentStatus?.call(st.name);
+    } catch (e) {
+      _log('consent status: $e');
     }
   }
 

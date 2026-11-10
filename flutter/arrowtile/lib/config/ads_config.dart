@@ -60,9 +60,9 @@ class AdsConfig {
 
 class AppInfo {
   AppInfo._();
-  static const String version = '1.1.1'; // pubspec.yaml version: 1.1.1+5 ile aynı
+  static const String version = '1.1.2'; // pubspec.yaml version: 1.1.2+6 ile aynı
   static const String supportEmail = 'nilkaren.tuncay.demir@gmail.com';
-  static const String privacyUpdated = '2026-11-09';
+  static const String privacyUpdated = '2026-11-10';
   // Herkese açık gizlilik politikası adresi (Play Console'a girilen adresle aynı). GitHub Pages: .github/workflows/pages.yml
   static const String privacyPolicyUrl = 'https://ttuncaydemirr-beep.github.io/Arrowtile/privacy.html';
 }

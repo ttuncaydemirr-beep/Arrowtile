@@ -21,6 +21,11 @@ void main() {
       final String ads = arb['privacyPAds'] as String;
       expect(ads.contains(partner), isTrue);
       expect(splitLinks(ads).where(((String, bool) p) => p.$2).map(((String, bool) p) => p.$1), <String>[partner]);
+      // 1.1.2 (docs/19): Firebase Analytics + Crashlytics açıklaması ve Google gizlilik bağlantısı
+      final String an = arb['privacyPAnalytics'] as String;
+      expect(an.contains('Firebase Analytics'), isTrue);
+      expect(an.contains('Crashlytics'), isTrue);
+      expect(splitLinks(an).where(((String, bool) p) => p.$2).map(((String, bool) p) => p.$1), <String>['https://firebase.google.com/support/privacy']);
       final String data = arb['privacyPData'] as String;
       const Map<String, String> under13 = <String, String>{
         'tr': '13 yaş altındaki çocuklara yönelik değildir',
