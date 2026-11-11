@@ -52,6 +52,11 @@ void _setView(WidgetTester t, {double insetBottom = 0}) {
   addTearDown(t.view.reset);
 }
 
+Future<void> _finish(WidgetTester t) async {
+  await t.pumpWidget(const SizedBox.shrink());
+  await t.pump(const Duration(seconds: 5)); // bekleyen ipucu/bildirim zamanlayıcıları bitsin
+}
+
 void main() {
   tearDown(() {
     BoardModel.testClock = null;
@@ -66,6 +71,7 @@ void main() {
     expect(paint.height, greaterThan(915 * 0.6), reason: 'tahta alanı ekranın büyük kısmını doldurmalı');
     expect(paint.bottom, lessThanOrEqualTo(tool.top + 1));
     expect(t.takeException(), isNull);
+    await _finish(t);
   });
 
   testWidgets('yazı ölçeği 1,5, 412x915: taşma yok, araç çubuğu altta', (WidgetTester t) async {
@@ -78,5 +84,6 @@ void main() {
     expect(tool.bottom, greaterThan(915 * 0.8));
     final Rect paint = t.getRect(find.byWidgetPredicate((Widget w) => w is CustomPaint && w.painter is BoardPainter));
     expect(paint.height, greaterThan(915 * 0.6));
+    await _finish(t);
   });
 }
