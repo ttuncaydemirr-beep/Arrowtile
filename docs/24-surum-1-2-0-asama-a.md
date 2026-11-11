@@ -102,7 +102,7 @@ Puan (`measure2`) = 40·doluluk + 8·ort. dönüş + 2·ort. uzunluk + 30·(1 �
 | Zor 28x45 | 135 | 15,5 | 15,1 | 31,5 | 52 |
 | **Aşırı zor 28x45** | 135 | **22,1** | 19,3 | **39,9** | 59 |
 
-Hedef "p95 ≪ 1,5 sn" fazlasıyla sağlanıyor (eski üretici 22x31 Aşırı zor: ort. 562 ms, p95 1,7 sn). Kademe koşulları ilk turda sağlanıyor (ortalama 1,0–1,2 tur, en çok 8). Tarayıcı (Chromium) ölçümü için §5'e bakın.
+Hedef "p95 ≪ 1,5 sn" fazlasıyla sağlanıyor (eski üretici 22x31 Aşırı zor: ort. 562 ms, p95 1,7 sn). Kademe koşulları ilk turda sağlanıyor (ortalama 1,0–1,2 tur, en çok 8). Tarayıcıda (Chromium, başsız) 28x45: Kolay ort. 11 ms, Orta 5 ms, Zor 15 ms (en çok 27 ms), Aşırı zor 14 ms (en çok 18 ms). 28x45 tahtada kaydırma sırasında kare çizimi (dpr 3): ort. 0,8 ms, en çok 2,5 ms (başsız Chromium; gerçek cihazda ölçülmedi).
 
 ## 4. Doğrulama
 - `node tools/validate-i18n.js` — 239 anahtar × 4 dil.

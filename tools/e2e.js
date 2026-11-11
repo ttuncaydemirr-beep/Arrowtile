@@ -98,7 +98,7 @@ async function overflowReport(page) {
       if (cs.textOverflow === 'ellipsis') out.push('ellipsis: ' + label);
       if (n.matches('.btn:not(.tiny), .tab, .lang-btn') && parseFloat(cs.fontSize) < 14) out.push('font<14: ' + label);
       for (const tn of n.childNodes) { if (tn.nodeType !== 3 || n.matches('a')) continue; const re = /\S+/g; let m;
-        while ((m = re.exec(tn.textContent))) { if (m[0].length < 4) continue; const rg = document.createRange(); rg.setStart(tn, m.index); rg.setEnd(tn, m.index + m[0].length);
+        while ((m = re.exec(tn.textContent))) { if (m[0].length < 4 || /[-\/]/.test(m[0])) continue; /* tire/eğik çizgide satır kırılması kelime bölünmesi değildir */ const rg = document.createRange(); rg.setStart(tn, m.index); rg.setEnd(tn, m.index + m[0].length);
           const tops = new Set([...rg.getClientRects()].filter(x => x.width > 0.5).map(x => Math.round(x.top / 3))); if (tops.size > 1) out.push('kelime bölündü: "' + m[0] + '"'); } }
     }));
     return [...new Set(out)];
