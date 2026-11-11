@@ -49,7 +49,6 @@ function checkStructure(level) {
     if (!DIRS[a.dir]) { errs.push(`ok ${i}: geçersiz yön ${a.dir}`); return; }
     const cs = cellsOf(a), L = cs.length;
     if (!(L >= 1 && L <= 48)) errs.push(`ok ${i}: uzunluk ${L}`); // 1.2.0: 1-48 (uzun kıvrımlı oklar)
-    if (L >= 2) { const [hx, hy] = DIRS[a.dir]; if (cs[L - 1][0] - cs[L - 2][0] !== hx || cs[L - 1][1] - cs[L - 2][1] !== hy) errs.push(`ok ${i}: baş yönü son gövde adımıyla aynı değil`); }
     if (!a.cells && !(Number.isInteger(a.len) && a.len >= 1)) errs.push(`ok ${i}: len ${a.len}`);
     for (let k = 1; k < L; k++) if (Math.abs(cs[k][0] - cs[k - 1][0]) + Math.abs(cs[k][1] - cs[k - 1][1]) !== 1) errs.push(`ok ${i}: hücre ${k} komşu değil`);
     { const own = new Set(cs.map(c => c[0] + ',' + c[1])); if (own.size !== L) errs.push(`ok ${i}: kendi üstünden geçiyor`);

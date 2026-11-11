@@ -237,7 +237,7 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
     {
       const P = track(await newPage(browser, { ...VP, seed: base({ coins: 0 }) })); const page = P.page;
       const id = LEVELS.findIndex((Lx, k) => k >= 3 && blockedArrow(Lx)) + 1, L = LEVELS[id - 1], b = blockedArrow(L);
-      const runs = [[2, 1, 15], [1, 2, 8], [0, 3, 7]], got = []; // sv4 Orta ×1,5: ★15, ★★23, ★★★30 (fark 15 / 8 / 7)
+      const runs = [[2, 1, 10], [1, 2, 5], [0, 3, 5]], got = []; // 1.2.0: sv4 Kolay ×1: ★10, ★★15, ★★★20 (fark 10 / 5 / 5)
       for (const [coll, expStars, expCoins] of runs) {
         const c0 = (await sstate(page)).coins;
         const ly = await startLevel(page, id);
@@ -301,18 +301,18 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
   } catch (e) { check('TEST ÇALIŞTIRILAMADI ('+group+')', false, String(e).slice(0,160)); }
   try {
     // bölüm bonusu
-    const st11 = {}; for (let k = 1; k <= 9; k++) st11[k] = 1;
+    const st11 = {}; for (let k = 1; k <= 19; k++) st11[k] = 1; // 1.2.0: bölüm = 20 seviye
     const P = track(await newPage(browser, { seed: base({ coins: 0, stars: st11 }) })); const page = P.page;
-    let ly = await startLevel(page, 10); await solveByTouch(page, ly, 10);
+    let ly = await startLevel(page, 20); await solveByTouch(page, ly, 20);
     let s = await sstate(page);
-    check('bölüm bonusu: 10. seviye (son eksik, Aşırı zor ×3) bitince +60 +150 (tek bölüm bonusu)', s.coins === 210 && s.chapterBonus.includes(1), String(s.coins));
+    check('bölüm bonusu: 20. seviye (son eksik, Aşırı zor ×3) bitince +60 +150 (tek bölüm bonusu)', s.coins === 210 && s.chapterBonus.includes(1), String(s.coins));
     check('bölüm sonu etiketi gösteriliyor', await page.isVisible('#end-sheet .tag'));
-    await page.evaluate(() => { const st = Object.assign({}, window.__ok.state().stars); st[10] = 1; window.__ok.debugPatch({ stars: st }); }); // yıldız artırma tekrarında bonus tekrar verilmemeli
-    ly = await startLevel(page, 10); await solveByTouch(page, ly, 10); s = await sstate(page);
+    await page.evaluate(() => { const st = Object.assign({}, window.__ok.state().stars); st[20] = 1; window.__ok.debugPatch({ stars: st }); }); // yıldız artırma tekrarında bonus tekrar verilmemeli
+    ly = await startLevel(page, 20); await solveByTouch(page, ly, 20); s = await sstate(page);
     check('bölüm bonusu ikinci kez verilmez (★ 1 → 3: yalnızca +30 fark)', s.coins === 210 + 30, String(s.coins));
     // bölüm tamamlanmadan bonus yok (bölüm 2'de yalnızca 1 seviye)
-    ly = await startLevel(page, 11); await solveByTouch(page, ly, 11); s = await sstate(page);
-    check('bölüm eksikken bonus yok (sv11 Kolay → +20)', s.coins === 260, String(s.coins));
+    ly = await startLevel(page, 21); await solveByTouch(page, ly, 21); s = await sstate(page);
+    check('bölüm eksikken bonus yok (sv21 Kolay → +20)', s.coins === 260, String(s.coins));
     await P.ctx.close();
   } catch (e) { check('TEST ÇALIŞTIRILAMADI ('+group+')', false, String(e).slice(0,160)); }
   try {
@@ -436,7 +436,8 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
   function residue(str, l) {
     // sözlük değerlerini (yer tutucular serbest) metinden çıkar; kalan harfler = sabit metin
     let s = str;
-    const vals = dictVals(l).concat(Object.values(I18N[l]).filter(() => false)).sort((a, b) => b.length - a.length);
+    const vals = dictVals(l).concat(Object.keys(I18N[l]).filter(k => k.startsWith('cel.')).flatMap(k => I18N[l][k].split('|'))) // 1.2.0: kutlama mesajları "|" ile ayrılmış seçeneklerdir
+      .sort((a, b) => b.length - a.length);
     for (const v of vals) {
       const re = new RegExp(v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\{[a-z]+\\\}/g, '[\\d\\/]+'), 'g');
       s = s.replace(re, ' ');
@@ -558,7 +559,7 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
         const st = await gstate(page);
         const moved = st.alive.map((v, k) => v ? null : k).filter(k => k !== null);
         check(`ar: ekranın sağındaki oka (ok${target}, x=${tailX(L.arrows[target])}) dokununca o ok hareket etti`, moved.length === 1 && moved[0] === target, 'çıkan: ' + moved.join(','));
-        const blk = blockedArrow(L);
+        const blk = (() => { const al = L.arrows.map((_, k) => k !== target); for (let i = 0; i < L.arrows.length; i++) { if (i === target) continue; const o = obstacle(L, al, i); if (o) return { i, ...o }; } return null; })(); // hedef ok çıktıktan sonra da engelli olan ok
         await tapArrow(page, ly, L, blk.i); await idle(page);
         const st2 = await gstate(page);
         check('ar: kapalı oka dokununca çarpışma (yanlış ok değil)', st2.lives === 2 && st2.alive.filter(Boolean).length === st.alive.filter(Boolean).length);

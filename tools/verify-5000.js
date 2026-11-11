@@ -15,7 +15,7 @@ const vm = require('vm');
 const os = require('os');
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const LG = require('../game/js/levelgen.js');
-const { checkLevelData, checkChapter } = require('./level-checks');
+const { checkLevelData, checkChapter, growTol } = require('./level-checks');
 
 const TIER_ORDER = ['easy', 'medium', 'hard', 'extreme'];
 const TR = { easy: 'Kolay', medium: 'Orta', hard: 'Zor', extreme: 'Aşırı zor' };
@@ -105,7 +105,7 @@ async function main() {
   for (let k = 1; k < chapters.length; k++) {
     const a = chapters[k - 1], b = chapters[k];
     if (b.ch !== a.ch + 1 || (b.ch - 1) % LG.GROW_CHAPTERS === 0) continue;
-    for (const t of TIER_ORDER) if (a.n[t] != null && b.n[t] != null && a.by[t].length === 5 && !(b.n[t] > a.n[t])) { bad(`${TR[t]}: bölüm ${b.ch} ok sayısı (${b.n[t].toFixed(0)}) bölüm ${a.ch} (${a.n[t].toFixed(0)}) değerinden fazla değil`); growFails++; }
+    for (const t of TIER_ORDER) if (a.n[t] != null && b.n[t] != null && a.by[t].length === 5 && !(b.n[t] > a.n[t] * growTol(t))) { bad(`${TR[t]}: bölüm ${b.ch} ok sayısı (${b.n[t].toFixed(0)}) bölüm ${a.ch} (${a.n[t].toFixed(0)}) değerinden fazla değil`); growFails++; }
   }
   // şekilli tahtalar: yeterince büyük bölümlerde Aşırı zor seviyelerin en az 3'ü şekilli
   chapters.forEach(c => { if (LG.sizeOfChapter(c.ch).w >= 14 && c.by.extreme.length === 5 && c.by.extreme.filter(r => r.shaped).length < 3) bad(`bölüm ${c.ch}: şekilli Aşırı zor tahta < 3`); });

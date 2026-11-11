@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const LG = require('../game/js/levelgen.js');
-const { checkLevelData, checkChapter, TIER_ORDER: ORDER, TR } = require('./level-checks');
+const { checkLevelData, checkChapter, growTol, TIER_ORDER: ORDER, TR } = require('./level-checks');
 
 const args = process.argv.slice(2), MD = args.includes('--md'), SAMPLE = !args.includes('--no-sample');
 const file = args.find(a => !a.startsWith('--')) || path.join(__dirname, '..', 'game', 'js', 'levels.js');
@@ -76,7 +76,7 @@ for (const t of ORDER) {
   for (let k = 1; k < chapters.length; k++) {
     const a = chapters[k - 1], b = chapters[k];
     if (b.ch !== a.ch + 1 || (b.ch - 1) % GROW === 0 || a.n[t] == null || b.n[t] == null) continue;
-    if (!(b.n[t] > a.n[t])) bad(`${TR[t]}: bölüm ${b.ch} ok sayısı (${b.n[t].toFixed(0)}) bölüm ${a.ch} (${a.n[t].toFixed(0)}) değerinden fazla değil`);
+    if (!(b.n[t] > a.n[t] * growTol(t))) bad(`${TR[t]}: bölüm ${b.ch} ok sayısı (${b.n[t].toFixed(0)}) bölüm ${a.ch} (${a.n[t].toFixed(0)}) değerinden fazla değil`);
   }
 }
 // zor kademelerde uzun, çok dönüşlü oklar (docs/17 §12)

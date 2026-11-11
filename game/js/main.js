@@ -284,6 +284,11 @@
         });
       })(id, locked);
       path.appendChild(nb);
+      if (i % 5 === 0) { // 1.2.0: her kademe diliminin başında küçük etiket (Kolay / Orta / Zor / Aşırı zor)
+        var tl = el('span', 'tier-label d-' + tier); tl.textContent = t('diff.' + tier);
+        tl.style.left = (pts[i][0] + (pts[i][0] > 50 ? -30 : 30)) + '%'; tl.style.top = pts[i][1] + 'px';
+        path.appendChild(tl);
+      }
     }
     var wrap = el('div', 'chapter-in'); wrap.appendChild(head); wrap.appendChild(path); ch.appendChild(wrap);
     return ch;
@@ -1618,6 +1623,7 @@
     tapArrow: function (i) { var r = tapArrow(i); return r ? JSON.parse(JSON.stringify(r)) : null; },
     busy: function () { return locked(); },
     view: function () { return { s: view.s, x: view.x, y: view.y, cell: lay.cell, sMin: lay.sMin, sMax: lay.sMax, W: lay.W, H: lay.H, ox: lay.ox, oy: lay.oy, pannable: pannable(), overview: overview(), tray: trayBox() }; },
+    boardPoint: function (u, v) { var r = cv.getBoundingClientRect(); return { x: r.left + (lay.ox + u * lay.cell) * view.s + view.x, y: r.top + (lay.oy + v * lay.cell) * view.s + view.y }; },
     hitTest: function (x, y) { var r = cv.getBoundingClientRect(); return hitTest(x - r.left, y - r.top); },
     celebration: function () { var f = $('cel-flame'); return f ? { size: f.getAttribute('data-size'), perf: f.getAttribute('data-perf'), gold: f.classList.contains('gold'), sparks: f.classList.contains('sparks'), msg: $('cel-msg').textContent, fast: !!$('cel-fast') } : null; },
     setPlayMs: function (v) { playMs = v; },

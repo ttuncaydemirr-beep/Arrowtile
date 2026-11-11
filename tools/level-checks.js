@@ -31,6 +31,8 @@ function checkLevelData(lv) {
     const lim = LG.freeLimit(tier, m.arrows);
     if (m.initialFree > lim) errs.push(`başta çıkabilen ${m.initialFree} > ${lim}`);
     if (m.initialFree < Math.min(T.minFree, 1)) errs.push('başta çıkabilen ok yok');
+    // 1.2.0 üreticisi: baş yönü her zaman son gövde adımıyla aynıdır (ok ucu çizginin devamıdır)
+    if (lv.arrows.some(a => { const c = LG.cellsOf(a), n = c.length, d = S.DIRS[a.dir]; return n >= 2 && (c[n - 1][0] - c[n - 2][0] !== d[0] || c[n - 1][1] - c[n - 2][1] !== d[1]); })) errs.push('baş yönü son gövde adımıyla aynı olmayan ok var');
     if (m.maxLen > LG.MAX_ARROW_LEN) errs.push(`en uzun ok ${m.maxLen} > ${LG.MAX_ARROW_LEN}`);
     soft = m.meanTurns >= T.minTurns; // yumuşak kısıt: ok başına ortalama dönüş (üretici 8 turda sağlayamazsa en iyi aday)
   }
@@ -38,7 +40,8 @@ function checkLevelData(lv) {
 }
 
 /**
- * Bölüm kuralları (rows: [{ id, tier, score, n, turns, len }]): bölüm içinde Kolay < Orta < Zor < Aşırı zor (ortalama puan, ort. dönüş ve ort. uzunluk).
+ * Bölüm kuralları (rows: [{ id, tier, score, n, turns, len }]): bölüm içinde Kolay < Orta < Zor < Aşırı zor (ortalama puan ve ort. dönüş kesin; ort. uzunluk %10 toleranslı).
+ * growTol(tier): büyüme döngüsünde ok sayısı artış denetimi toleransı — Aşırı zor şekilli tahtalarda alan değiştiği için 0,85.
  * Dönen: hata metinleri.
  */
 function checkChapter(ch, rows) {
@@ -50,10 +53,12 @@ function checkChapter(ch, rows) {
     if (prev) {
       if (!(cur.score > prev.score)) errs.push(`bölüm ${ch}: ${TR[t]} puanı (${cur.score.toFixed(1)}) ${TR[prev.t]} (${prev.score.toFixed(1)}) ortalamasından yüksek değil`);
       if (!(cur.turns > prev.turns)) errs.push(`bölüm ${ch}: ${TR[t]} ort. dönüş (${cur.turns.toFixed(2)}) ${TR[prev.t]} (${prev.turns.toFixed(2)}) değerinden yüksek değil`);
-      if (!(cur.len > prev.len)) errs.push(`bölüm ${ch}: ${TR[t]} ort. ok uzunluğu (${cur.len.toFixed(1)}) ${TR[prev.t]} (${prev.len.toFixed(1)}) değerinden yüksek değil`);
+      // uzunluk: %10 tolerans (şekilli/dar tahtada Aşırı zor okları Zor'a yakın kalabilir; dönüş ve puan kesin sıralıdır)
+      if (!(cur.len > prev.len * 0.9)) errs.push(`bölüm ${ch}: ${TR[t]} ort. ok uzunluğu (${cur.len.toFixed(1)}) ${TR[prev.t]} (${prev.len.toFixed(1)}) değerinin %90'ından yüksek değil`);
     }
     prev = cur;
   }
   return errs;
 }
-module.exports = { checkLevelData, checkChapter, TIER_ORDER, TR };
+const growTol = (t) => (t === 'extreme' ? 0.85 : 1);
+module.exports = { growTol, checkLevelData, checkChapter, TIER_ORDER, TR };
