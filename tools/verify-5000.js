@@ -15,7 +15,7 @@ const vm = require('vm');
 const os = require('os');
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const LG = require('../game/js/levelgen.js');
-const { checkLevelData, checkChapter, growTol } = require('./level-checks');
+const { checkLevelData, checkChapter, growTol, tierGrew } = require('./level-checks');
 
 const TIER_ORDER = ['easy', 'medium', 'hard', 'extreme'];
 const TR = { easy: 'Kolay', medium: 'Orta', hard: 'Zor', extreme: 'Aşırı zor' };
@@ -105,7 +105,7 @@ async function main() {
   for (let k = 1; k < chapters.length; k++) {
     const a = chapters[k - 1], b = chapters[k];
     if (b.ch !== a.ch + 1 || (b.ch - 1) % LG.GROW_CHAPTERS === 0) continue;
-    for (const t of TIER_ORDER) if (a.n[t] != null && b.n[t] != null && a.by[t].length === 5 && !(b.n[t] > a.n[t] * growTol(t))) { bad(`${TR[t]}: bölüm ${b.ch} ok sayısı (${b.n[t].toFixed(0)}) bölüm ${a.ch} (${a.n[t].toFixed(0)}) değerinden fazla değil`); growFails++; }
+    for (const t of TIER_ORDER) if (a.n[t] != null && b.n[t] != null && a.by[t].length === 5 && tierGrew(t, b.ch) && !(b.n[t] > a.n[t] * growTol(t))) { bad(`${TR[t]}: bölüm ${b.ch} ok sayısı (${b.n[t].toFixed(0)}) bölüm ${a.ch} (${a.n[t].toFixed(0)}) değerinden fazla değil`); growFails++; }
   }
   // şekilli tahtalar: yeterince büyük bölümlerde Aşırı zor seviyelerin en az 3'ü şekilli
   chapters.forEach(c => { if (LG.sizeOfChapter(c.ch).w >= 14 && c.by.extreme.length === 5 && c.by.extreme.filter(r => r.shaped).length < 3) bad(`bölüm ${c.ch}: şekilli Aşırı zor tahta < 3`); });
@@ -127,7 +127,7 @@ async function main() {
   const stat = (arr) => { const a = arr.slice().sort((x, y) => x - y); return { n: a.length, avg: a.reduce((s, x) => s + x, 0) / a.length, p50: a[Math.floor(a.length * 0.5)], p95: a[Math.floor(a.length * 0.95)], max: a[a.length - 1] }; };
   const timeBy = {};
   TIER_ORDER.forEach(t => { const rs = R.filter(r => r.tier === t && r.id > 3); if (rs.length) timeBy[t] = stat(rs.map(r => r.ms)); });
-  const maxBoard = R.filter(r => r.w === LG.MAX_W && r.h === LG.MAX_H);
+  const maxBoard = R.filter(r => { const cs = LG.sizeOfChapter(LG.chapterOf(r.id)); return cs.w === LG.MAX_W && cs.h === LG.MAX_H; }); // en büyük bölüm (1.2.0 #2: Kolay/Orta daha küçük tahtada)
   const maxBy = {}; TIER_ORDER.forEach(t => { const rs = maxBoard.filter(r => r.tier === t); if (rs.length) maxBy[t] = stat(rs.map(r => r.ms)); });
   const extStat = maxBy.extreme || null;
   if (extStat && extStat.p95 > 1500) bad(`Aşırı zor, en büyük tahta: üretim p95 ${extStat.p95.toFixed(0)} ms > 1500 ms`);
@@ -141,7 +141,7 @@ async function main() {
   console.log(`seviye hatası (yapı/çözülebilirlik/bant/biçim): ${R.filter(r => r.errs.length).length}; bölüm içi sıra ihlali: ${orderFails}; ok sayısı büyüme ihlali: ${growFails}; yumuşak kısıt (ort. dönüş) dışında kalan: ${notOk.length}; şekilli tahta: ${R.filter(r => r.shaped).length}`);
   console.log('\nüretim süresi (ms)        adet     ort     p50     p95    maks');
   TIER_ORDER.forEach(t => { const s = timeBy[t]; if (s) console.log(`  ${TR[t].padEnd(20)} ${String(s.n).padStart(5)} ${f1(s.avg)} ${f1(s.p50)} ${f1(s.p95)} ${f1(s.max)}`); });
-  TIER_ORDER.forEach(t => { const s = maxBy[t]; if (s) console.log(`  ${(TR[t] + ' ' + LG.MAX_W + 'x' + LG.MAX_H).padEnd(20)} ${String(s.n).padStart(5)} ${f1(s.avg)} ${f1(s.p50)} ${f1(s.p95)} ${f1(s.max)}`); });
+  TIER_ORDER.forEach(t => { const s = maxBy[t], sz = LG.sizeOf((LG.GROW_CHAPTERS - 1) * LG.PER_CHAPTER + TIER_ORDER.indexOf(t) * 5 + 1); if (s) console.log(`  ${(TR[t] + ' ' + sz.w + 'x' + sz.h).padEnd(20)} ${String(s.n).padStart(5)} ${f1(s.avg)} ${f1(s.p50)} ${f1(s.p95)} ${f1(s.max)}`); });
   console.log(`  en yavaş seviye: ${slowest.id} (${slowest.ms.toFixed(0)} ms, ${TR[slowest.tier]}, ${slowest.w}x${slowest.h})`);
   console.log('\nbölüm   ızgara   puan Kolay / Orta / Zor / Aşırı zor        ok sayısı K / O / Z / A');
   const printCh = (c) => console.log(`${String(c.ch).padStart(5)}   ${c.size.padEnd(6)} ${TIER_ORDER.map(t => (c.mean[t] == null ? '-' : c.mean[t].toFixed(1)).padStart(7)).join(' ')}      ${TIER_ORDER.map(t => (c.n[t] == null ? '-' : c.n[t].toFixed(0)).padStart(5)).join(' ')}`);

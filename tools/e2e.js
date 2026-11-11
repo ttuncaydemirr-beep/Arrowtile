@@ -132,7 +132,7 @@ async function overflowReport(page) {
     // v1.2 (docs/08): geri alma yok, çarpışma kalıcı can kaybı
     check('v1.2: oyun ekranında geri alma düğmesi yok, araç çubuğunda yalnızca ipucu + baştan', !(await page.$('#btn-undo')) && (await page.$$('.toolbar .tool:not([hidden])')).length === 2);
     await page.tap('#btn-hint'); await wait(100);
-    check('ipucu: base() kaydında 2 ücretsiz hak (mevcut oyuncu), kullanınca 2→1', (await ss(page)).freeHints === 1);
+    { const s2 = await ss(page); check('ipucu (1.1.6): yeni oyuncu 0 ücretsiz hakla başlar, ipucu 50 jeton düşer (70→20)', s2.freeHints === 0 && s2.coins === 20, JSON.stringify({ f: s2.freeHints, c: s2.coins })); }
     for (let k = 0; k < 3; k++) { await tapArrowTouch(page, b); await wait(80); await idle(page); }
     await page.waitForSelector('#dead-sheet', { timeout: 3000 }).catch(() => {});
     check('can bitince "Canın bitti" penceresi', await page.isVisible('#dead-sheet'));
@@ -477,7 +477,7 @@ async function overflowReport(page) {
     const vz = await page.evaluate(() => window.__ok.view());
     check('G2: iki parmakla yakınlaştırma çalışır, Sığdır düğmesi görünür, hiçbir ok oynamadı', vz.s > 1.5 && await page.isVisible('#btn-fit') && (await gs(page)).alive.every(Boolean), 'ölçek ' + vz.s.toFixed(2));
     await page.screenshot({ path: path.join(SHOTS, 'tr-zoom.png') });
-    await page.tap('#btn-fit'); await wait(100);
+    await page.tap('#btn-fit'); await wait(450); // Sığdır geçişi 280 ms: bitmeden yakınlaştırılırsa kuyruk hücresi ekran dışında kalabilir
     const fz = (await gs(page)).free[0];
     await page.evaluate(i => { const r = document.getElementById('board').getBoundingClientRect(), c = window.__ok.cellCenter(i);
       window.__ok.zoomAt(c.x - r.left, c.y - r.top, 2.2); }, fz); await wait(100);
@@ -887,8 +887,8 @@ async function overflowReport(page) {
           isAdFree() { return false; }, isOnline() { return true; }, isRewardedReady() { return window.__ready; }, isInterstitialReady() { return !!window.__iready; },
           loadRewarded(id) { __calls.push('loadRewarded'); setTimeout(() => { window.__ready = true; Monetization.onNative({ id, event: 'loaded' }); }, window.__loadDelay); return true; },
           loadInterstitial(id) { __calls.push('loadInterstitial'); setTimeout(() => { window.__iready = true; Monetization.onNative({ id, event: 'loaded' }); }, 30); return true; },
-          showRewarded(id, pl) { __calls.push('rewarded:' + pl); window.__ready = false; window.__during = { paused: window.__ok.ads().paused, snd: window.SFX.isPaused() }; setTimeout(() => { Monetization.onNative({ id, event: 'rewarded' }); Monetization.onNative({ id, event: 'closed' }); }, 400); return true; },
-          showInterstitial(id) { __calls.push('interstitial'); window.__iready = false; window.__during = { paused: window.__ok.ads().paused, snd: window.SFX.isPaused() }; setTimeout(() => Monetization.onNative({ id, event: 'closed' }), 300); return true; },
+          showRewarded(id, pl) { __calls.push('rewarded:' + pl); window.__ready = false; window.__pre = window.SFX.isPaused(); setTimeout(() => { Monetization.onNative({ id, event: 'shown' }); window.__during = { paused: window.__ok.ads().paused, snd: window.SFX.isPaused(), pre: window.__pre }; }, 20); setTimeout(() => { Monetization.onNative({ id, event: 'rewarded' }); Monetization.onNative({ id, event: 'closed' }); }, 400); return true; },
+          showInterstitial(id) { __calls.push('interstitial'); window.__iready = false; window.__pre = window.SFX.isPaused(); setTimeout(() => { Monetization.onNative({ id, event: 'shown' }); window.__during = { paused: window.__ok.ads().paused, snd: window.SFX.isPaused(), pre: window.__pre }; }, 20); setTimeout(() => Monetization.onNative({ id, event: 'closed' }), 300); return true; },
           purchaseRemoveAds(id) { return false; }, restorePurchases(id) { return false; }
         };`;
       const P = await newPage(browser, 'tr-TR', { init: FAKE_PRE, seed: base({ unlocked: 40, ads: { since: 2, lastAt: 0, adFree: false, test: false } }) });
@@ -905,7 +905,7 @@ async function overflowReport(page) {
       check('önceden yükleme: geçiş reklamı seviye bitmeden (son okların çıkışında) yüklendi, tek kez', (await calls()).filter(c => c === 'loadInterstitial').length === 1, JSON.stringify(await calls()));
       await page.tap('#end-next'); await wait(150);
       const during = await page.evaluate(() => window.__during);
-      check('reklam gösterilirken oyun döngüsü + ses duraklar (geçiş)', during && during.paused === true && during.snd === true, JSON.stringify(during));
+      check('reklam gösterilirken oyun döngüsü duraklar; ses yalnızca reklam ekrana gelince ("shown") susar (geçiş, 1.1.3+)', during && during.paused === true && during.pre === false && during.snd === true, JSON.stringify(during));
       await wait(500);
       const after = await page.evaluate(() => [window.__ok.ads().paused, window.SFX.isPaused()]);
       check('reklam kapanınca devam: döngü ve ses sürer, sonraki seviye açıldı', after[0] === false && after[1] === false && (await page.evaluate(() => window.__ok.level().id)) === 22, JSON.stringify(after));
@@ -927,7 +927,7 @@ async function overflowReport(page) {
       check('"Reklam yükleniyor…" 300 ms\'den önce görünmez, uzun beklemede (>300 ms) görünür', ov1 === false && ov2 === true, JSON.stringify([ov1, ov2]));
       await wait(900);
       const dur2 = await page.evaluate(() => window.__during);
-      check('ödüllü gösterilirken oyun döngüsü + ses duraklar, sonra devam eder', dur2 && dur2.paused === true && dur2.snd === true && !(await page.evaluate(() => window.__ok.ads().paused)) && !(await page.evaluate(() => window.SFX.isPaused())), JSON.stringify(dur2));
+      check('ödüllü gösterilirken oyun döngüsü duraklar, ses "shown" ile susar, sonra devam eder (1.1.3+)', dur2 && dur2.paused === true && dur2.pre === false && dur2.snd === true && !(await page.evaluate(() => window.__ok.ads().paused)) && !(await page.evaluate(() => window.SFX.isPaused())), JSON.stringify(dur2));
       check('ödüllü: yükleme tamamlanınca kaplama kalkar', !(await page.evaluate(() => !!document.getElementById('ad-loading'))));
       check('reklam duraklatma: konsol hatası yok', P.errors.length === 0, P.errors.join(' | '));
       await P.ctx.close();

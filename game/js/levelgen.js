@@ -430,7 +430,7 @@
     easy:    { fill: 0.60, band: [0.50, 0.70], free: 0.15, maxFree: 0.24, minFree: 3, len: [2, 5],  turns: [0, 1], turn: 0.25, same: 0.5,  hug: 0.15, deep: 0.0,  ext: 0, filler: 2, tries: 1, minTurns: 0.10, mult: 1 },
     medium:  { fill: 0.72, band: [0.64, 0.80], free: 0.09, maxFree: 0.14, minFree: 3, len: [3, 9],  turns: [1, 3], turn: 0.45, same: 0.5,  hug: 0.35, deep: 0.3,  ext: 1, filler: 2, tries: 2, minTurns: 0.6,  mult: 1.5 },
     hard:    { fill: 0.82, band: [0.75, 0.89], free: 0.05, maxFree: 0.08, minFree: 2, len: [5, 16], turns: [2, 6], turn: 0.6,  same: 0.6,  hug: 0.6,  deep: 0.6,  ext: 1, filler: 2, tries: 4, minTurns: 1.5,  mult: 2 },
-    extreme: { fill: 0.90, band: [0.83, 0.96], free: 0.03, maxFree: 0.05, minFree: 2, len: [8, 28], turns: [4, 9], turn: 0.75, same: 0.65, hug: 0.9,  deep: 0.85, ext: 1, filler: 2, tries: 8, minTurns: 2.2,  mult: 3 }
+    extreme: { fill: 0.90, band: [0.83, 0.96], free: 0.03, maxFree: 0.05, minFree: 2, len: [8, 28], turns: [4, 9], turn: 0.75, same: 0.65, hug: 0.9,  deep: 0.85, ext: 1, filler: 2, tries: 8, minTurns: 2.6,  mult: 3 }
   };
   // Eski kademe tablosu (v1.5): YALNIZCA günlük bulmaca (daily.js, eski build/generate) kullanır — değiştirmeyin, günlük bulmaca değişir.
   var TIERS = {
@@ -454,15 +454,29 @@
     if (d <= 0) return { w: MAX_W, h: MAX_H };
     return { w: MIN_W + Math.floor(((MAX_W - MIN_W) * g * 2 + d) / (2 * d)), h: MIN_H + Math.floor(((MAX_H - MIN_H) * g * 2 + d) / (2 * d)) };
   }
+  /**
+   * AYAR (1.2.0 sahip kararı #2, docs/26): bölüm içinde Kolay/Orta seviyeler bölüm tahtasından KÜÇÜK tahtada oynanır
+   * ("bölüm nefes alır"; büyük tahta Zor ve Aşırı zor içindir). Değer = kenar uzunluğu yüzdesi (en-boy oranı korunur):
+   * Kolay %71 (alanın ≈ %50'si), Orta %85 (≈ %72), Zor %95 (≈ %90), Aşırı zor %100. Hiçbir kenar en küçük tahtanın altına inmez.
+   * Yalnızca tamsayı işlemleri (yarım yukarı yuvarlama) → Dart'ta aynı sonuç.
+   */
+  var TIER_SIZE_PCT = { easy: 71, medium: 85, hard: 95, extreme: 100 };
+  function scaleDim(v, pct, min) { var r = Math.floor((v * pct * 2 + 100) / 200); return r < min ? min : r; }
+  /** Seviyenin tahta boyu: bölüm tahtası × kademe ölçeği (TIER_SIZE_PCT). */
+  function sizeOf(id) {
+    var cs = sizeOfChapter(chapterOf(id)), pct = TIER_SIZE_PCT[tierOf(id)];
+    if (pct >= 100) return { w: cs.w, h: cs.h };
+    return { w: scaleDim(cs.w, pct, MIN_W), h: scaleDim(cs.h, pct, MIN_H) };
+  }
   /** Aşırı zor seviyelerin tahta biçimi (bölüm içi sıra 15..19): yeterince büyük tahtada şekilli. */
   var SHAPES = ['organic', 'ring', 'full', 'ringOrganic', 'ring'], SHAPE_MIN_W = 14;
   function shapeOf(id) {
-    var sz = sizeOfChapter(chapterOf(id));
+    var sz = sizeOf(id);
     if (tierOf(id) !== 'extreme' || sz.w < SHAPE_MIN_W) return 'full';
     return SHAPES[(indexOf(id) - 15 + chapterOf(id)) % SHAPES.length];
   }
   function specFor(id) {
-    var ch = chapterOf(id), tier = tierOf(id), sz = sizeOfChapter(ch);
+    var ch = chapterOf(id), tier = tierOf(id), sz = sizeOf(id);
     return { id: id, chapter: ch, index: indexOf(id), tier: tier, w: sz.w, h: sz.h, shape: shapeOf(id), p: TIER2[tier], seed: seedFor(id, 0) };
   }
   /** Seviye no → sabit tohum (herkes için aynı seviye). round: aynı seviyenin yedek denemeleri. */
@@ -728,12 +742,12 @@
   }
   function levelHash(lv) { return ('0000000' + hash(canon(lv)).toString(16)).slice(-8); }
 
-  var VERSION = 'v20.0'; // üretici/özellik kuralı değişirse artır (oyundaki sonsuz seviye önbelleği geçersizleşir)
+  var VERSION = 'v20.1'; // üretici/özellik kuralı değişirse artır (oyundaki sonsuz seviye önbelleği geçersizleşir)
   var LevelGen = { VERSION: VERSION, rng: rng, hash: hash, build: build, generate: generate, measure: measure, analyze: analyze, label: label, BANDS: BANDS, cellsOf: cellsOf, headOf: headOf, lenOf: lenOf, norm: norm, isCurved: isCurved, ownLineOk: ownLineOk,
     TIER2: TIER2, TIER_ORDER: TIER_ORDER, GROW_CHAPTERS: GROW_CHAPTERS, MIN_W: MIN_W, MIN_H: MIN_H, MAX_ARROW_LEN: MAX_ARROW_LEN, build2: build2, measure2: measure2,
     makeMask: makeMask, maskCount: maskCount, turnsOf: turnsOf, shapeOf: shapeOf, freeLimit: freeLimit, ROUNDS: ROUNDS,
     CYCLE: CYCLE, TIERS: TIERS, PER_CHAPTER: PER_CHAPTER, PREBUILT: PREBUILT, DESIGNED: DESIGNED, CHAPTERS: CHAPTERS, CHAPTER_BONUS: CHAPTER_BONUS, MAX_W: MAX_W, MAX_H: MAX_H, TUTORIAL: TUTORIAL,
-    chapterOf: chapterOf, indexOf: indexOf, tierOf: tierOf, sizeOfChapter: sizeOfChapter, specFor: specFor, seedFor: seedFor, makeLevel: makeLevel, levelJob: levelJob, genJob: genJob, ENDLESS_ROUNDS: ENDLESS_ROUNDS,
+    chapterOf: chapterOf, indexOf: indexOf, tierOf: tierOf, sizeOfChapter: sizeOfChapter, sizeOf: sizeOf, TIER_SIZE_PCT: TIER_SIZE_PCT, specFor: specFor, seedFor: seedFor, makeLevel: makeLevel, levelJob: levelJob, genJob: genJob, ENDLESS_ROUNDS: ENDLESS_ROUNDS,
     canon: canon, levelHash: levelHash };
   root.LevelGen = LevelGen;
   if (typeof module !== 'undefined' && module.exports) module.exports = LevelGen;

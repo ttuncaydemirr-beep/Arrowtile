@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 const LG = require('../game/js/levelgen.js');
-const { checkLevelData, checkChapter, growTol, TIER_ORDER: ORDER, TR } = require('./level-checks');
+const { checkLevelData, checkChapter, growTol, tierGrew, TIER_ORDER: ORDER, TR } = require('./level-checks');
 
 const args = process.argv.slice(2), MD = args.includes('--md'), SAMPLE = !args.includes('--no-sample');
 const file = args.find(a => !a.startsWith('--')) || path.join(__dirname, '..', 'game', 'js', 'levels.js');
@@ -35,6 +35,21 @@ for (let c = 1; c <= GROW * 2; c++) {
   if (g > 0) { const p = LG.sizeOfChapter(c - 1); if (!(a.w > p.w && a.h > p.h)) bad(`bölüm ${c}: tahta (${a.w}x${a.h}) önceki bölümden (${p.w}x${p.h}) büyük değil`); }
 }
 if (LG.MAX_W !== 28 || LG.MAX_H !== 45) bad('en büyük tahta 28x45 olmalı');
+// 1.2.0 #2: bölüm içinde Kolay ≤ Orta ≤ Zor ≤ Aşırı zor tahta; Aşırı zor = bölüm tahtası; hiçbir tahta en küçükten küçük değil;
+// büyük bölümlerde Kolay alanı bölüm alanının %45–55'i, Orta %68–78'i, Zor %85–95'i
+for (let c = 1; c <= GROW * 2; c++) {
+  const cs = LG.sizeOfChapter(c), A = cs.w * cs.h; let prev = null;
+  ORDER.forEach((t, ti) => {
+    const s = LG.sizeOf((c - 1) * PER + ti * 5 + 1), s2 = LG.sizeOf((c - 1) * PER + ti * 5 + 5);
+    if (s.w !== s2.w || s.h !== s2.h) bad(`bölüm ${c} ${TR[t]}: kademe içinde tahta değişiyor`);
+    if (s.w < LG.MIN_W || s.h < LG.MIN_H) bad(`bölüm ${c} ${TR[t]}: tahta ${s.w}x${s.h} en küçükten küçük`);
+    if (prev && (s.w < prev.w || s.h < prev.h)) bad(`bölüm ${c} ${TR[t]}: tahta önceki kademeden küçük`);
+    if (t === 'extreme' && (s.w !== cs.w || s.h !== cs.h)) bad(`bölüm ${c}: Aşırı zor tahtası bölüm tahtası değil`);
+    const band = { easy: [0.45, 0.55], medium: [0.68, 0.78], hard: [0.85, 0.95] }[t];
+    if (band && cs.w >= 14) { const r = s.w * s.h / A; if (r < band[0] || r > band[1]) bad(`bölüm ${c} ${TR[t]}: alan oranı %${(r * 100).toFixed(0)} bant dışı`); }
+    prev = s;
+  });
+}
 if (LG.CHAPTERS * PER !== LG.DESIGNED) bad('5.000 seviye = 250 bölüm olmalı');
 
 const rows = []; // { lv, m, ch, tier }
@@ -75,7 +90,7 @@ for (const ch of [...new Set(rows.map(r => r.ch))].sort((a, b) => a - b)) {
 for (const t of ORDER) {
   for (let k = 1; k < chapters.length; k++) {
     const a = chapters[k - 1], b = chapters[k];
-    if (b.ch !== a.ch + 1 || (b.ch - 1) % GROW === 0 || a.n[t] == null || b.n[t] == null) continue;
+    if (b.ch !== a.ch + 1 || (b.ch - 1) % GROW === 0 || a.n[t] == null || b.n[t] == null || !tierGrew(t, b.ch)) continue;
     if (!(b.n[t] > a.n[t] * growTol(t))) bad(`${TR[t]}: bölüm ${b.ch} ok sayısı (${b.n[t].toFixed(0)}) bölüm ${a.ch} (${a.n[t].toFixed(0)}) değerinden fazla değil`);
   }
 }

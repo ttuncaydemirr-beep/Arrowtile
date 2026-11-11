@@ -61,4 +61,10 @@ function checkChapter(ch, rows) {
   return errs;
 }
 const growTol = (t) => (t === 'extreme' ? 0.85 : 1);
-module.exports = { growTol, checkLevelData, checkChapter, TIER_ORDER, TR };
+/** 1.2.0 #2: kademenin tahtası bir önceki bölüme göre büyüdü mü (Kolay/Orta küçük bölümlerde en küçük tahtada kalabilir). */
+function tierGrew(t, ch) {
+  const first = (c) => (c - 1) * LG.PER_CHAPTER + TIER_ORDER.indexOf(t) * 5 + 1;
+  const a = LG.sizeOf(first(ch - 1)), b = LG.sizeOf(first(ch));
+  return b.w * b.h >= a.w * a.h * 1.1; // en az %10 büyüme (9x13 → 9x14 gibi tek satırlık artışta ok sayısı dalgalanabilir)
+}
+module.exports = { growTol, tierGrew, checkLevelData, checkChapter, TIER_ORDER, TR };
