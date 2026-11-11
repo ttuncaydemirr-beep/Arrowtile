@@ -94,6 +94,10 @@ abstract class Telemetry {
   void banner({required String result, int code = -1, required String screen}) =>
       _log('banner', <String, Object>{'result': result, 'code': code, 'screen': screen});
 
+  /// 1.1.6: oyun alanı beklenenden çok küçük (ekranın <%60'ı, klavye yokken). [screenH]/[boardH]/[insetB]/[padB] tam sayı piksel, [scale] x100.
+  void layoutShrunk({required int screenH, required int boardH, required int insetB, required int padB, required int scale}) =>
+      _log('layout_shrunk', <String, Object>{'screen_h': screenH, 'board_h': boardH, 'inset_b': insetB, 'pad_b': padB, 'scale': scale});
+
   /// "Reklamları kaldır" satın alımı BAŞARIYLA tamamlandı (iptal/bekleyen/hata için çağrılmaz).
   void purchaseRemoveAds({String? currency, double? value}) {
     try {

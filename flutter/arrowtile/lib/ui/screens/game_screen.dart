@@ -112,6 +112,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   void initState() {
     super.initState();
     app = AppScope.read(context);
+    FocusManager.instance.primaryFocus?.unfocus(); // 1.1.6: takılı odak/IME payı oyuna taşınmasın
     app.gameEntered();
     app.mon.closeLevelEnd(); // 1.1.3: yeni seviye başladı: önceki seviye sonu yerleştirmesi geçersiz (seviye sırasında reklam yok)
     WidgetsBinding.instance.addObserver(this);
@@ -1011,13 +1012,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         if (!busy) unawaited(_openPause());
       },
       child: ScreenScaffold(
-        child: Column(children: <Widget>[
+        // 1.1.6 (docs/23): oyun arayüzünde (üst çubuk/araç çubuğu) yazı ölçeği en çok 1,3 — büyük yazı tahtayı ve düğmeleri taşırmasın.
+        child: MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: MediaQuery.textScalerOf(context).clamp(maxScaleFactor: 1.3)),
+          child: Column(children: <Widget>[
           _topBar(loc, pal),
           Expanded(
             child: LayoutBuilder(builder: (BuildContext ctx, BoxConstraints bc) {
               final Size sz = Size(bc.maxWidth, bc.maxHeight);
               if (sz != _lastSize) {
                 _lastSize = sz;
+                _checkShrunk(ctx, sz);
                 _layout(sz.width, sz.height);
                 WidgetsBinding.instance.addPostFrameCallback((_) => _oneTimeTips());
               }
@@ -1047,8 +1052,31 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
           ),
           _toolbar(loc, pal),
         ]),
+        ),
       ),
     );
+  }
+
+  bool _shrunkLogged = false;
+
+  /// 1.1.6 (docs/23): oyun alanı yüksekliği ekranın <%60'ı ise (klavye payı yokken) Tanılama + Firebase'e bir kez yaz.
+  void _checkShrunk(BuildContext ctx, Size sz) {
+    final MediaQueryData mq = MediaQuery.of(ctx);
+    final FlutterView view = View.of(ctx); // ScreenScaffold alt payı gövdeden sildiği için ham değer pencereden okunur
+    final double inset = view.viewInsets.bottom / view.devicePixelRatio;
+    final double avail = mq.size.height - mq.viewPadding.top - mq.viewPadding.bottom - 64 - 90;
+    if (_shrunkLogged || avail <= 0 || sz.height >= avail * 0.6) return;
+    _shrunkLogged = true;
+    final int scale = (mq.textScaler.scale(100)).round();
+    diag('layout', 'layout_shrunk', <String, Object?>{
+      'screen': '${mq.size.width.round()}x${mq.size.height.round()}',
+      'board': '${sz.width.round()}x${sz.height.round()}',
+      'rawInsetB': inset.round(),
+      'viewPadding': mq.viewPadding.toString(),
+      'textScale': scale,
+    });
+    app.telemetry.layoutShrunk(
+        screenH: mq.size.height.round(), boardH: sz.height.round(), insetB: inset.round(), padB: mq.viewPadding.bottom.round(), scale: scale);
   }
 
   Widget _hand(int target) {

@@ -333,6 +333,9 @@ class ScreenScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Palette pal = Palette.of(context);
+    // 1.1.6 (docs/23): hiçbir tam ekran sayfada metin girişi yok (TextField yalnızca showSheet iletişim penceresinde; Dialog klavyeyi kendi
+    // payıyla karşılar). Scaffold'un varsayılanı resizeToAvoidBottomInset:true idi: viewInsets.bottom (klavye / reklam sonrası takılı IME payı)
+    // gövdeyi küçültüyor, oyun arayüzü ekranın üst %55'ine sıkışıyordu. Kapalı + gövdede de alt pay silinir.
     final Brightness icons = pal.dark ? Brightness.light : Brightness.dark;
     // web'deki setSystemBarsDark karşılığı: durum/gezinme çubuğu simgeleri tema rengine göre
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -344,8 +347,13 @@ class ScreenScaffold extends StatelessWidget {
       ),
       child: Scaffold(
         backgroundColor: pal.bgC,
-        body: SafeArea(
-          child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480), child: child)),
+        resizeToAvoidBottomInset: false,
+        body: MediaQuery.removeViewInsets(
+          context: context,
+          removeBottom: true,
+          child: SafeArea(
+            child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480), child: child)),
+          ),
         ),
       ),
     );
