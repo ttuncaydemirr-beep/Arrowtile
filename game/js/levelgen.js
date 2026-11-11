@@ -400,75 +400,319 @@
    */
   function generate(spec, seed) { var j = genJob(spec, seed); while (!j.step()); return j.result(); }
 
-  // ---- v1.5 (docs/15 §5) bölüm yapısı: bölüm = 10 seviye, ZORLUK SEVİYE BAZINDA döner ----
-  // Bölüm içi sıra: 1-2-3 Kolay, 4-5-6 Orta, 7-8 Zor, 9-10 Aşırı zor. Tahta bölüm bölüm büyür (bölüm içinde sabit).
-  // specFor(id) SAF bir fonksiyondur (yalnızca seviye numarasına bağlı); tools/generate-levels.js, tools/verify-5000.js ve
-  // oyun içi üretici (levelJob) aynı fonksiyonu kullanır. Dart portu aynı tamsayı işlemlerini birebir yeniden üretmelidir.
-  var CYCLE = ['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard', 'extreme', 'extreme'];
-  // fill = hedef doluluk (bant ortası), band = [en az, en çok], maxFree = başta çıkabilen oranı üst sınırı, curve = kıvrımlı oran
+  // =====================================================================================================
+  // v2 — sürüm 1.2.0 "Aşama A" (docs/17, docs/24): bölüm = 20 seviye (5 Kolay → 5 Orta → 5 Zor → 5 Aşırı zor),
+  // tahta bölümden bölüme büyür (GROW_CHAPTERS bölümde en küçükten en büyüğe ≈ 28x45), sonra en küçüğe döner.
+  // Yeni üretici (build2): uzun, çok kıvrımlı, iç içe oklar + şekilli (maskeli) tahtalar.
+  // Günlük bulmaca eski üreticiyi (build/generate + TIERS) kullanmaya devam eder → değişmez.
+  //
+  // YÖNTEM (build2) — bağımlılık çizgesi artımlı olarak DÖNGÜSÜZ tutulur, bu yüzden her çıktı kurgu gereği çözülebilir:
+  //   X oku, başının baktığı doğru (ışın) üzerindeki tüm oklara bağımlıdır (onlar çıkmadan çıkamaz).
+  //   Yeni ok için önce baş hücresi + yön seçilir; ışındaki oklardan başlayarak X'in bağımlı olduğu tüm oklar (Desc) bulunur.
+  //   Desc içindeki okların ışınlarının geçtiği hücreler X'in gövdesine YASAKTIR (yoksa Desc→X kenarı döngü kurardı).
+  //   Gövde, yasak olmayan boş hücrelerde baştan geriye serbestçe büyür (uzunluk/dönüş/sarmal eğilimi kademeye göre).
+  //   Işını boş ok (başta çıkabilen) yalnızca kademe bütçesi kadar yerleştirilir → başta çıkabilen sayısı kurgu gereği sınırlı.
+  // Yalnızca tamsayı işlemleri, rand() karşılaştırmaları, IEEE-kesin + − × ÷ ve √ kullanılır (Dart portu bit-bit aynı olmalı).
+  var PER_CHAPTER = 20, PREBUILT = 100, DESIGNED = 5000, CHAPTERS = 250, CHAPTER_BONUS = 150;
+  /** AYAR: en küçük tahtadan en büyüğe kaç bölümde varılır (sonraki bölüm yine en küçüğe döner). Sahip onayıyla değişir. */
+  var GROW_CHAPTERS = 9;
+  var MIN_W = 9, MIN_H = 13, MAX_W = 28, MAX_H = 45;
+  var TIER_ORDER = ['easy', 'medium', 'hard', 'extreme'], TIER_SPAN = 5;
+  var CYCLE = []; (function () { for (var i = 0; i < PER_CHAPTER; i++) CYCLE.push(TIER_ORDER[Math.floor(i / TIER_SPAN)]); })();
+  /**
+   * Kademe ayarları (AYAR tablosu). band = doluluk bandı (maske hücrelerine oranla), fill = hedef;
+   * free = başta çıkabilen oranı bütçesi, maxFree = doğrulayıcı üst sınırı (en az 1 ok), minFree = en az bu kadar ok başta çıkabilir kalır;
+   * len = [en kısa, en uzun] gövde, turns = [en az, en çok] dönüş, turn = dönme eğilimi, same = aynı yöne dönme (sarmal) olasılığı,
+   * hug = dolu hücrelere yaslanma (sıkı kıvrım), deep = derin zincire bağlanma olasılığı, ext = kuyruk uzatma, filler = dolgu oku en çok uzunluk, tries = gövde denemesi (en uzun/en kıvrımlı seçilir),
+   * minTurns = ok başına ortalama dönüş alt sınırı (seviye kabulü), mult = jeton çarpanı.
+   */
+  var TIER2 = {
+    easy:    { fill: 0.60, band: [0.50, 0.70], free: 0.15, maxFree: 0.24, minFree: 3, len: [2, 5],  turns: [0, 1], turn: 0.25, same: 0.5,  hug: 0.15, deep: 0.0,  ext: 0, filler: 2, tries: 1, minTurns: 0.10, mult: 1 },
+    medium:  { fill: 0.72, band: [0.64, 0.80], free: 0.09, maxFree: 0.14, minFree: 3, len: [3, 9],  turns: [1, 3], turn: 0.45, same: 0.5,  hug: 0.35, deep: 0.3,  ext: 1, filler: 2, tries: 2, minTurns: 0.6,  mult: 1.5 },
+    hard:    { fill: 0.82, band: [0.75, 0.89], free: 0.05, maxFree: 0.08, minFree: 2, len: [5, 16], turns: [2, 6], turn: 0.6,  same: 0.6,  hug: 0.6,  deep: 0.6,  ext: 1, filler: 2, tries: 4, minTurns: 1.5,  mult: 2 },
+    extreme: { fill: 0.90, band: [0.83, 0.96], free: 0.03, maxFree: 0.05, minFree: 2, len: [8, 28], turns: [4, 9], turn: 0.75, same: 0.65, hug: 0.9,  deep: 0.85, ext: 1, filler: 2, tries: 8, minTurns: 2.2,  mult: 3 }
+  };
+  // Eski kademe tablosu (v1.5): YALNIZCA günlük bulmaca (daily.js, eski build/generate) kullanır — değiştirmeyin, günlük bulmaca değişir.
   var TIERS = {
     easy:    { fill: 0.675, band: [0.65, 0.70], maxFree: 0.12, curve: 0.30, mult: 1 },
     medium:  { fill: 0.775, band: [0.75, 0.80], maxFree: 0.07, curve: 0.45, mult: 1.5 },
     hard:    { fill: 0.840, band: [0.82, 0.86], maxFree: 0.04, curve: 0.55, mult: 2 },
     extreme: { fill: 0.905, band: [0.88, 0.93], maxFree: 0.02, curve: 0.65, mult: 3 }
   };
-  // Derinlik penceresi (docs/15 §5): her kademenin derinliği tahta büyüklüğüne göre beklenen "kolay" derinliğinin
-  // (E = 6,3 + 0,0677·hücre) katı aralığında olmalı; pencereler ayrıktır → bölüm içinde Kolay < Orta < Zor < Aşırı zor.
-  var DEPTH_WIN = { easy: [0, 1.10], medium: [1.12, 1.24], hard: [1.25, 1.42], extreme: [1.45, Infinity] };
-  var PER_CHAPTER = 10, PREBUILT = 200, DESIGNED = 5000, CHAPTERS = 500, CHAPTER_BONUS = 150, MAX_W = 22, MAX_H = 31;
+  var MAX_ARROW_LEN = 48; // yapı denetimi üst sınırı (kuyruk uzatma dahil)
   var TUTORIAL = [ // seviye 1-3 (elle tasarlanmış, değişmez; düz oklar). Biçim: eski {x,y,dir,len} → toCells ile {cells,dir}
     { w: 3, h: 3, arrows: [{ x: 2, y: 0, dir: 'D', len: 2 }, { x: 2, y: 2, dir: 'L', len: 2 }] },
     { w: 3, h: 3, arrows: [{ x: 0, y: 2, dir: 'R', len: 2 }, { x: 2, y: 2, dir: 'U', len: 1 }, { x: 2, y: 0, dir: 'L', len: 2 }] },
     { w: 4, h: 4, arrows: [{ x: 3, y: 1, dir: 'D', len: 2 }, { x: 2, y: 3, dir: 'R', len: 2 }, { x: 0, y: 2, dir: 'R', len: 2 }, { x: 1, y: 0, dir: 'D', len: 2 }] }
   ];
   function chapterOf(id) { return Math.floor((id - 1) / PER_CHAPTER) + 1; }
-  function indexOf(id) { return (id - 1) % PER_CHAPTER; }              // bölüm içi sıra, 0..9
+  function indexOf(id) { return (id - 1) % PER_CHAPTER; }              // bölüm içi sıra, 0..19
   function tierOf(id) { return CYCLE[(id - 1) % PER_CHAPTER]; }        // SEVİYE kademesi
-  // Tahta boyu yalnızca bölüme bağlıdır (tamsayı işlemleri): bölüm 1 = 7x9, bölüm 21+ = 22x31 (sabit)
+  /** Tahta boyu yalnızca bölüme bağlıdır (tamsayı işlemleri): büyüme döngüsünün g. adımı, doğrusal + yuvarlama. */
   function sizeOfChapter(ch) {
-    var t = ch - 1;
-    return { w: Math.min(MAX_W, 7 + Math.floor((t * 3 + 2) / 4)), h: Math.min(MAX_H, 9 + Math.floor((t * 11 + 5) / 10)) };
+    var d = GROW_CHAPTERS - 1, g = (ch - 1) % GROW_CHAPTERS;
+    if (d <= 0) return { w: MAX_W, h: MAX_H };
+    return { w: MIN_W + Math.floor(((MAX_W - MIN_W) * g * 2 + d) / (2 * d)), h: MIN_H + Math.floor(((MAX_H - MIN_H) * g * 2 + d) / (2 * d)) };
   }
-  /** Seviye numarasından üretim özellikleri (saf fonksiyon). seed = seedFor(id, 0); yedek turlar seedFor(id, r). */
+  /** Aşırı zor seviyelerin tahta biçimi (bölüm içi sıra 15..19): yeterince büyük tahtada şekilli. */
+  var SHAPES = ['organic', 'ring', 'full', 'ringOrganic', 'ring'], SHAPE_MIN_W = 14;
+  function shapeOf(id) {
+    var sz = sizeOfChapter(chapterOf(id));
+    if (tierOf(id) !== 'extreme' || sz.w < SHAPE_MIN_W) return 'full';
+    return SHAPES[(indexOf(id) - 15 + chapterOf(id)) % SHAPES.length];
+  }
   function specFor(id) {
-    var ch = chapterOf(id), tier = tierOf(id), T = TIERS[tier], sz = sizeOfChapter(ch);
-    var maxLen = Math.min(8, 4 + Math.floor(sz.w / 4));
-    var sp = { id: id, chapter: ch, index: indexOf(id), tier: tier, w: sz.w, h: sz.h, fill: T.fill, fillMax: T.band[1], maxFree: T.maxFree, curve: T.curve, maxLen: maxLen,
-      tries: 3, effort: 12, passes: 6, cycles: 2, seed: seedFor(id, 0) }; // hafif onarım: ölçüm — uzun onarım tur başına süreyi ikiye katlar, başarı oranını artırmaz
-    var E = 6.3 + 0.0677 * (sz.w * sz.h), dw = DEPTH_WIN[tier];
-    sp.minDepth = dw[0] ? Math.ceil(dw[0] * E - 1e-9) : 0;
-    sp.maxDepth = dw[1] === Infinity ? null : Math.max(Math.floor(dw[1] * E + 1e-9), sp.minDepth + 2); // küçük tahtada pencere en az 3 derinlik genişliğinde
-    return sp;
+    var ch = chapterOf(id), tier = tierOf(id), sz = sizeOfChapter(ch);
+    return { id: id, chapter: ch, index: indexOf(id), tier: tier, w: sz.w, h: sz.h, shape: shapeOf(id), p: TIER2[tier], seed: seedFor(id, 0) };
   }
   /** Seviye no → sabit tohum (herkes için aynı seviye). round: aynı seviyenin yedek denemeleri. */
-  function seedFor(id, round) { return hash('arrowtile-v15-' + id + '-' + (round || 0)); }
+  function seedFor(id, round) { return hash('arrowtile-v20-' + id + '-' + (round || 0)); }
   function toCells(a) { return { cells: cellsOf(a).map(function (c) { return [c[0], c[1]]; }), dir: a.dir }; }
   function tutorialLevel(id) {
     var t = TUTORIAL[id - 1], arrows = t.arrows.map(toCells);
     return { id: id, w: t.w, h: t.h, par: arrows.length, diff: 'easy', chapter: 1, arrows: arrows, ok: true, rounds: 0 };
   }
+  function turnsOf(a) {
+    var c = cellsOf(a), t = 0;
+    for (var i = 2; i < c.length; i++) if (c[i][0] - c[i - 1][0] !== c[i - 1][0] - c[i - 2][0] || c[i][1] - c[i - 1][1] !== c[i - 1][1] - c[i - 2][1]) t++;
+    return t;
+  }
+
+  // ---- maske (şekilli tahta): Uint8Array(w*h), 1 = oynanabilir hücre. Yalnızca rand(), tamsayı ve √.
+  function profile(n, amp, rand) { // 0..amp arası yumuşak tamsayı profil (parçalı doğrusal)
+    var out = [], step = 4, a = Math.floor(rand() * (amp + 1)), b = a, k;
+    for (var i = 0; i < n; i++) {
+      k = i % step;
+      if (k === 0) { a = b; b = Math.floor(rand() * (amp + 1)); }
+      out.push(Math.floor((a * (step - k) + b * k + (step >> 1)) / step));
+    }
+    return out;
+  }
+  function makeMask(w, h, kind, rand) {
+    var N = w * h, m = new Uint8Array(N), x, y, i;
+    for (i = 0; i < N; i++) m[i] = 1;
+    if (kind === 'full') return m;
+    var organic = kind === 'organic' || kind === 'ringOrganic', ring = kind === 'ring' || kind === 'ringOrganic';
+    if (organic) {
+      var amp = Math.max(1, Math.floor(w / 9)), L = profile(h, amp, rand), R = profile(h, amp, rand), T = profile(w, amp, rand), B = profile(w, amp, rand);
+      var cc = Math.max(2, Math.floor(w / 6)); // köşe kesiği
+      for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+        var dx = Math.min(x, w - 1 - x), dy = Math.min(y, h - 1 - y);
+        if (x < L[y] || x >= w - R[y] || y < T[x] || y >= h - B[x] || dx + dy < cc) m[y * w + x] = 0;
+      }
+    }
+    if (ring) {
+      var cx = (w - 1) / 2 + (rand() - 0.5) * 2, cy = (h - 1) / 2 + (rand() - 0.5) * 3;
+      var rx = w * (0.24 + rand() * 0.05), ry = h * (0.19 + rand() * 0.05), jit = profile(h, 2, rand);
+      var ix = Math.max(1.6, rx * 0.42), iy = Math.max(2.1, ry * 0.36);
+      for (y = 0; y < h; y++) {
+        var ty = (y - cy) / ry; if (ty < -1 || ty > 1) continue;
+        var half = rx * Math.sqrt(1 - ty * ty) + (jit[y] - 1) * 0.6;
+        for (x = 0; x < w; x++) {
+          if (Math.abs(x - cx) > half) continue;
+          var ex = (x - cx) / ix, ey = (y - cy) / iy;
+          if (ex * ex + ey * ey <= 1) continue; // ortadaki ada
+          m[y * w + x] = 0;
+        }
+      }
+    }
+    return m;
+  }
+  function maskRows(m, w, h) { var rows = []; for (var y = 0; y < h; y++) { var s = ''; for (var x = 0; x < w; x++) s += m[y * w + x] ? '1' : '0'; rows.push(s); } return rows; }
+  function maskCount(lv) { if (!lv.mask) return lv.w * lv.h; var c = 0; lv.mask.forEach(function (r) { for (var i = 0; i < r.length; i++) if (r.charCodeAt(i) === 49) c++; }); return c; }
+
+  var DXC = [0, 0, -1, 1], DYC = [-1, 1, 0, 0], DNAME = ['U', 'D', 'L', 'R'], TL = [2, 3, 1, 0], TR = [3, 2, 0, 1];
   /**
-   * Seviye işi: tohum = seviye numarası (seedFor(id, tur)); kısıtları sağlayan ilk tur seçilir (en çok ENDLESS_ROUNDS tur,
-   * sağlanamazsa en iyi aday). step() tek build yapar → arka planda dilimlenebilir. Zaman sınırı yok, yalnızca adım sayısı →
-   * aynı seviye her cihazda aynıdır. Hem hazır paket (ilk 200) hem sonsuz seviyeler bu işle üretilir.
+   * build2({ w, h, mask, rand, p }) → { arrows: [{cells, dir}], cells, maskCells } — her zaman çözülebilir (döngüsüz kurgu).
    */
-  var ENDLESS_ROUNDS = 12;
+  function build2(o) {
+    var w = o.w, h = o.h, N = w * h, rand = o.rand, P = o.p, mask = o.mask, i;
+    var g = new Int16Array(N), hd = new Int8Array(N), M = 0;
+    for (i = 0; i < N; i++) { hd[i] = -1; if (!mask || mask[i]) { g[i] = -1; M++; } else g[i] = -2; }
+    var A = [], forb = new Int32Array(N), own = new Int32Array(N), ep = 0, oep = 0, seenA = new Int32Array(N + 1), queue = new Int32Array(N + 1);
+    var nFree = 0, filled = 0, target = P.fill * M;
+    var avgLen = (P.len[0] + P.len[1]) / 2 * 0.7 + 1;
+    var budget = Math.max(P.minFree, Math.floor(P.free * target / avgLen + 0.5));
+    // ışın taraması: (c'den d yönünde kenara dek) dolu hücre sayısı + en büyük kat
+    function rayInfo(c, d) {
+      var x = c % w + DXC[d], y = Math.floor(c / w) + DYC[d], cnt = 0, lv = 0;
+      while (x >= 0 && y >= 0 && x < w && y < h) { var k = g[y * w + x]; if (k >= 0) { cnt++; if (A[k].lvl > lv) lv = A[k].lvl; } x += DXC[d]; y += DYC[d]; }
+      return [cnt, lv];
+    }
+    // X'in (baş c, yön d) bağımlı olduğu tüm okların ışınlarını (ve kendi ışınını) yasakla (forb = ep)
+    function markDesc(c, d) {
+      ep++;
+      var qh = 0, qt = 0, x = c % w + DXC[d], y = Math.floor(c / w) + DYC[d], k, q;
+      while (x >= 0 && y >= 0 && x < w && y < h) { q = y * w + x; forb[q] = ep; k = g[q]; if (k >= 0 && seenA[k] !== ep) { seenA[k] = ep; queue[qt++] = k; } x += DXC[d]; y += DYC[d]; }
+      while (qh < qt) {
+        var a = A[queue[qh++]], hc = a.cells[a.cells.length - 1], ad = a.d;
+        x = hc % w + DXC[ad]; y = Math.floor(hc / w) + DYC[ad];
+        while (x >= 0 && y >= 0 && x < w && y < h) { q = y * w + x; forb[q] = ep; k = g[q]; if (k >= 0 && seenA[k] !== ep) { seenA[k] = ep; queue[qt++] = k; } x += DXC[ad]; y += DYC[ad]; }
+      }
+    }
+    function okCell(x, y) { if (x < 0 || y < 0 || x >= w || y >= h) return false; var q = y * w + x; return g[q] === -1 && forb[q] !== ep && own[q] !== oep; }
+    function solid(x, y) { if (x < 0 || y < 0 || x >= w || y >= h) return 1; var q = y * w + x; return (g[q] !== -1 || own[q] === oep) ? 1 : 0; }
+    // gövde: baştan geriye büyür. Dönen: hücre indeksleri kuyruk→baş
+    function body(c, d, L, maxTurns) {
+      var cells = [c], x = c % w, y = Math.floor(c / w), s = d, run = 1, turns = 0, last = 0;
+      oep++; own[c] = oep;
+      while (cells.length < L) {
+        var cand = [], wts = [], tot = 0, k;
+        for (k = 0; k < 3; k++) {
+          var ns = k === 0 ? s : k === 1 ? TL[s] : TR[s];
+          if (k > 0 && (cells.length === 1 || turns >= maxTurns)) continue;
+          var nx = x - DXC[ns], ny = y - DYC[ns];
+          if (!okCell(nx, ny)) continue;
+          var occ = solid(nx + 1, ny) + solid(nx - 1, ny) + solid(nx, ny + 1) + solid(nx, ny - 1) - 1; // geldiğimiz hücre hariç
+          var wt;
+          if (k === 0) wt = run < 2 ? 6 : 1;
+          else wt = P.turn * (run < 2 ? 0.08 : 1) * (last === 0 ? 1 : (last === k ? 2 * P.same : 2 * (1 - P.same)));
+          wt *= 1 + P.hug * occ;
+          if (occ >= 3 && cells.length + 1 < L) wt *= 0.3; // çıkmaz sokak
+          cand.push(k); wts.push(wt); tot += wt;
+        }
+        if (!cand.length) break;
+        var r = rand() * tot, pick = cand[cand.length - 1];
+        for (k = 0; k < cand.length; k++) { r -= wts[k]; if (r <= 0) { pick = cand[k]; break; } }
+        if (pick !== 0) { s = pick === 1 ? TL[s] : TR[s]; turns++; last = pick; run = 1; } else run++;
+        x -= DXC[s]; y -= DYC[s];
+        var q = y * w + x; own[q] = oep; cells.push(q);
+      }
+      cells.reverse();
+      return { cells: cells, turns: turns };
+    }
+    // hücre c dolunca: ışını c'den geçen okların engel sayacını artır (list verilirse yalnızca şu an serbest olanları toplar)
+    function crossers(c, list) {
+      var cx = c % w, cy = Math.floor(c / w), x, y, q;
+      for (x = cx - 1; x >= 0; x--) { q = cy * w + x; if (hd[q] === 3) hit(g[q], list); }
+      for (x = cx + 1; x < w; x++) { q = cy * w + x; if (hd[q] === 2) hit(g[q], list); }
+      for (y = cy - 1; y >= 0; y--) { q = y * w + cx; if (hd[q] === 1) hit(g[q], list); }
+      for (y = cy + 1; y < h; y++) { q = y * w + cx; if (hd[q] === 0) hit(g[q], list); }
+    }
+    function hit(k, list) { if (list) { if (!A[k].blk && list.indexOf(k) < 0) list.push(k); } else if (A[k].blk++ === 0) nFree--; }
+    function wouldBlock(cells) { var list = []; for (var k = 0; k < cells.length; k++) crossers(cells[k], list); return list.length; } // kaç serbest ok kapanır
+    function commit(cells, d, blk, lvl) {
+      var id = A.length, k;
+      A.push({ cells: cells, d: d, blk: blk, lvl: lvl });
+      for (k = 0; k < cells.length; k++) g[cells[k]] = id;
+      hd[cells[cells.length - 1]] = d;
+      for (k = 0; k < cells.length; k++) crossers(cells[k], null);
+      if (!blk) nFree++;
+      filled += cells.length;
+    }
+    function tryPlace(c, lenMin, lenLo, lenHi, turnLo, turnHi) {
+      var order = shuffle([0, 1, 2, 3], rand), k, cx = c % w, cy = Math.floor(c / w), info = [], cands = [];
+      var allowFree = nFree < budget;
+      for (k = 0; k < 4; k++) {
+        var d = order[k], bx = cx - DXC[d], by = cy - DYC[d];
+        if (lenMin >= 2 && !(bx >= 0 && by >= 0 && bx < w && by < h && g[by * w + bx] === -1)) continue;
+        var ri = rayInfo(c, d);
+        if (!ri[0] && !allowFree) continue;
+        cands.push(d); info[d] = ri;
+      }
+      if (!cands.length) return false;
+      if (cands.length > 1 && rand() < P.deep) cands.sort(function (a, b) { return (info[b][1] - info[a][1]) || (a - b); });
+      for (k = 0; k < cands.length; k++) {
+        var dd = cands[k];
+        markDesc(c, dd);
+        if (forb[c] === ep) continue; // baş hücresi bağımlı olunan bir okun ışınında: döngü
+        var L = lenLo + Math.floor(rand() * (lenHi - lenLo + 1)), mt = turnLo + Math.floor(rand() * (turnHi - turnLo + 1));
+        var b = body(c, dd, L, mt), tr = 1;
+        for (; tr < P.tries && lenMin > 1 && (b.cells.length < L || b.turns < mt); tr++) { // en uzun + en kıvrımlı deneme
+          var b2 = body(c, dd, L, mt);
+          if (b2.cells.length + 2 * b2.turns > b.cells.length + 2 * b.turns) b = b2;
+        }
+        if (b.cells.length < lenMin) continue;
+        if (lenMin > 1 && turnLo >= 1 && b.cells.length >= 4 && !b.turns) continue; // kıvrım isteyen kademede uzun düz ok yok
+        var free = !info[dd][0];
+        if (P.minFree) { var nb = wouldBlock(b.cells); if (nb && nFree - nb + (free ? 1 : 0) < P.minFree) continue; }
+        commit(b.cells, dd, info[dd][0], info[dd][1] + 1);
+        return true;
+      }
+      return false;
+    }
+    function empties() { var e = []; for (var q = 0; q < N; q++) if (g[q] === -1) e.push(q); return shuffle(e, rand); }
+    function sweep(lenMin, lenLo, lenHi, tLo, tHi) {
+      var e = empties(), added = 0;
+      for (var k = 0; k < e.length && filled < target; k++) { if (g[e[k]] !== -1) continue; if (tryPlace(e[k], lenMin, lenLo, lenHi, tLo, tHi)) added++; }
+      return added;
+    }
+    // kuyruk uzatma: boş hücre bir okun kuyruğuna komşuysa ve döngü kurmuyorsa oka eklenir (tek hücrelik dolgu yerine kıvrım)
+    function extend(maxLen) {
+      var e = empties(), added = 0, k, j;
+      for (k = 0; k < e.length && filled < target; k++) {
+        var c = e[k]; if (g[c] !== -1) continue;
+        var cx = c % w, cy = Math.floor(c / w);
+        for (j = 0; j < 4; j++) {
+          var nx = cx + DXC[j], ny = cy + DYC[j]; if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+          var a = g[ny * w + nx]; if (a < 0) continue;
+          var ar = A[a]; if (ar.cells[0] !== ny * w + nx || ar.cells.length >= maxLen) continue;
+          if (ar.cells.length === 1 && !(DXC[ar.d] === nx - cx && DYC[ar.d] === ny - cy)) continue; // tek hücrelik ok: gövde başın tam arkasına
+          markDesc(ar.cells[ar.cells.length - 1], ar.d); // a'nın bağımlı olduklarının ışınları + kendi ışını
+          if (forb[c] === ep) continue;
+          if (P.minFree) { var nb = wouldBlock([c]); if (nb && nFree - nb < P.minFree) continue; }
+          ar.cells.unshift(c); g[c] = a; crossers(c, null); filled++; added++;
+          break;
+        }
+      }
+      return added;
+    }
+    var lo = P.len[0], hi = P.len[1], guard;
+    // 1) uzun kıvrımlı oklar, 2) orta boy, 3) kuyruk uzatma (tek hücrelik boşlukları kıvrıma katar),
+    // 4) kısa dolgu okları YALNIZCA doluluk bandın alt sınırına (+0,03) ulaşmadıysa → kısa düz oklar azınlıkta kalır
+    for (guard = 0; guard < 4 && filled < target; guard++) if (!sweep(lo, lo, hi, P.turns[0], P.turns[1])) break;
+    var mid = Math.max(2, lo >> 1), mid2 = Math.max(mid, 3);
+    for (guard = 0; guard < 3 && filled < target; guard++) if (!sweep(mid2, mid2, Math.max(mid2, hi >> 1), Math.min(1, P.turns[0]), P.turns[1])) break;
+    if (P.ext) for (guard = 0; guard < 6 && filled < target; guard++) if (!extend(hi + 8)) break;
+    var full = target; target = Math.min(full, (P.band[0] + 0.03) * M);
+    for (guard = 0; guard < 3 && filled < target; guard++) if (!sweep(mid, mid, Math.max(mid, 3), 0, 1)) break;
+    for (guard = 0; guard < 3 && filled < target; guard++) if (!sweep(1, 1, P.filler, 0, 1)) break;
+    target = full;
+    if (P.ext) for (guard = 0; guard < 3 && filled < target; guard++) if (!extend(hi + 12)) break;
+    return { maskCells: M, cells: filled, arrows: A.map(function (a) { return { cells: a.cells.map(function (q) { return [q % w, Math.floor(q / w)]; }), dir: DNAME[a.d] }; }) };
+  }
+  /** Kampanya ölçüsü (v2): doluluk maske hücrelerine oranla; puan = 40·doluluk + 8·ort. dönüş + 2·ort. uzunluk + 30·(1 − 5·serbest oran) + 0,1·derinlik. */
+  function measure2(L) {
+    var n = L.arrows.length, an = analyze(L);
+    if (an.stuck.length || !n) return { solvable: false, depth: an.depth, initialFree: an.free.length };
+    var cells = totalCells(L), M = maskCount(L), turns = 0, curved = 0, maxLen = 0;
+    L.arrows.forEach(function (a) { var t = turnsOf(a); turns += t; if (t) curved++; if (lenOf(a) > maxLen) maxLen = lenOf(a); });
+    var fill = cells / M, freeRatio = an.free.length / n, meanTurns = turns / n, meanLen = cells / n;
+    var fr5 = freeRatio * 5 > 1 ? 1 : freeRatio * 5;
+    var score = 40 * fill + 8 * meanTurns + 2 * meanLen + 30 * (1 - fr5) + 0.1 * an.depth;
+    return { solvable: true, depth: an.depth, initialFree: an.free.length, freeRatio: freeRatio, fill: fill, arrows: n, curved: curved, curvedRatio: curved / n,
+      meanTurns: meanTurns, meanLen: meanLen, maxLen: maxLen, score: score };
+  }
+  function freeLimit(tier, n) { return Math.max(TIER2[tier].minFree, 1, Math.floor(TIER2[tier].maxFree * n + 1e-9)); }
+  /**
+   * Seviye işi: tohum = seviye numarası (seedFor(id, tur)); kademe koşullarını sağlayan ilk tur seçilir (en çok ROUNDS tur,
+   * sağlanamazsa en iyi aday). step() tek build2 yapar → arka planda dilimlenebilir. Zaman sınırı yok, yalnızca adım sayısı →
+   * aynı seviye her cihazda aynıdır. Hem hazır paket hem oyun içi seviyeler bu işle üretilir.
+   */
+  var ROUNDS = 8, ENDLESS_ROUNDS = ROUNDS;
   function levelJob(id) {
     if (id <= TUTORIAL.length) { var tl = tutorialLevel(id); return { id: id, step: function () { return true; }, result: function () { return tl; } }; }
-    var sp = specFor(id), r = 0, job = genJob(sp, seedFor(id, 0)), best = null, out = null;
-    function finish() {
-      out = { id: id, w: sp.w, h: sp.h, par: best.g.arrows.length, diff: sp.tier, chapter: sp.chapter, arrows: best.g.arrows, ok: best.g.ok, rounds: r + 1, m: best.g.m };
-      return true;
-    }
+    var sp = specFor(id), P = sp.p, r = 0, best = null, out = null;
     function step() {
       if (out) return true;
-      if (!job.step()) return false;
-      var g = job.result();
-      if (g) { var key = (g.ok ? 2e6 : 0) + (g.band ? 1e6 : 0) + g.m.score; if (!best || key > best.key) best = { key: key, g: g }; }
-      // bitiş: tüm koşullar sağlandı, ya da ENDLESS_ROUNDS tur sonunda kademe bandı (doluluk + başta çıkabilen) sağlayan en iyi aday;
-      // bant da sağlanamadıysa en çok 2×ENDLESS_ROUNDS tura dek sürer (çok nadir)
-      if (best && (best.g.ok || (r + 1 >= ENDLESS_ROUNDS && best.g.band) || r + 1 >= ENDLESS_ROUNDS * 2)) return finish();
-      r++; job = genJob(sp, seedFor(id, r));
+      var rand = rng(seedFor(id, r));
+      var mask = sp.shape === 'full' ? null : makeMask(sp.w, sp.h, sp.shape, rand);
+      var b = build2({ w: sp.w, h: sp.h, mask: mask, rand: rand, p: P });
+      var L = { id: id, w: sp.w, h: sp.h, arrows: shuffle(b.arrows, rand) };
+      if (mask) L.mask = maskRows(mask, sp.w, sp.h);
+      var m = measure2(L);
+      if (m.solvable) {
+        var ok = m.fill >= P.band[0] - 1e-9 && m.fill <= P.band[1] + 1e-9 && m.initialFree <= freeLimit(sp.tier, m.arrows) && m.meanTurns >= P.minTurns;
+        var key = (ok ? 1e6 : 0) + m.score;
+        if (!best || key > best.key) best = { key: key, L: L, m: m, ok: ok };
+      }
+      r++;
+      if (!best && r >= ROUNDS * 4) throw new Error('levelgen: çözülebilir aday yok (seviye ' + id + ')');
+      if (best && (best.ok || r >= ROUNDS)) {
+        out = { id: id, w: sp.w, h: sp.h, par: best.L.arrows.length, diff: sp.tier, chapter: sp.chapter, arrows: best.L.arrows, ok: best.ok, rounds: r, m: best.m };
+        if (best.L.mask) out.mask = best.L.mask;
+        return true;
+      }
       return false;
     }
     return { id: id, step: step, result: function () { return out; } };
@@ -480,12 +724,14 @@
   function canon(lv) {
     return lv.id + ':' + lv.w + 'x' + lv.h + ':' + (lv.diff || tierOf(lv.id)) + ':' + lv.arrows.map(function (a) {
       return cellsOf(a).map(function (c) { return c[0] + ',' + c[1]; }).join(';') + '>' + a.dir;
-    }).join('|');
+    }).join('|') + (lv.mask ? ':m' + lv.mask.join('/') : '');
   }
   function levelHash(lv) { return ('0000000' + hash(canon(lv)).toString(16)).slice(-8); }
 
-  var VERSION = 'v15.0'; // üretici/özellik kuralı değişirse artır (oyundaki sonsuz seviye önbelleği geçersizleşir)
+  var VERSION = 'v20.0'; // üretici/özellik kuralı değişirse artır (oyundaki sonsuz seviye önbelleği geçersizleşir)
   var LevelGen = { VERSION: VERSION, rng: rng, hash: hash, build: build, generate: generate, measure: measure, analyze: analyze, label: label, BANDS: BANDS, cellsOf: cellsOf, headOf: headOf, lenOf: lenOf, norm: norm, isCurved: isCurved, ownLineOk: ownLineOk,
+    TIER2: TIER2, TIER_ORDER: TIER_ORDER, GROW_CHAPTERS: GROW_CHAPTERS, MIN_W: MIN_W, MIN_H: MIN_H, MAX_ARROW_LEN: MAX_ARROW_LEN, build2: build2, measure2: measure2,
+    makeMask: makeMask, maskCount: maskCount, turnsOf: turnsOf, shapeOf: shapeOf, freeLimit: freeLimit, ROUNDS: ROUNDS,
     CYCLE: CYCLE, TIERS: TIERS, PER_CHAPTER: PER_CHAPTER, PREBUILT: PREBUILT, DESIGNED: DESIGNED, CHAPTERS: CHAPTERS, CHAPTER_BONUS: CHAPTER_BONUS, MAX_W: MAX_W, MAX_H: MAX_H, TUTORIAL: TUTORIAL,
     chapterOf: chapterOf, indexOf: indexOf, tierOf: tierOf, sizeOfChapter: sizeOfChapter, specFor: specFor, seedFor: seedFor, makeLevel: makeLevel, levelJob: levelJob, genJob: genJob, ENDLESS_ROUNDS: ENDLESS_ROUNDS,
     canon: canon, levelHash: levelHash };

@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#E3E9EE" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0F1B27" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#EFEAE2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14171C" media="(prefers-color-scheme: dark)">
 <meta name="format-detection" content="telephone=no">
 <!-- Savunma derinliği (test raporu H7): yalnızca paket içi dosyalar; ağ bağlantısı yok -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
@@ -69,13 +69,13 @@
     <div id="board-wrap">
       <canvas id="board"></canvas>
       <span id="game-diff" class="diff-tag game-diff" hidden></span>
-      <button id="btn-fit" class="fit-btn" type="button" hidden><span class="ic" data-icon="fit"></span><span data-i18n="game.fit"></span></button>
       <div id="hand" class="hand" hidden><span class="ic" data-icon="hand"></span></div>
       <div id="bubble" class="bubble" hidden><span id="bubble-text" class="bubble-text"></span><button class="btn tiny" id="bubble-skip" type="button" data-i18n="tut.skip"></button></div>
     </div>
     <footer class="toolbar">
       <button class="tool" id="btn-hint" type="button"><span class="ic" data-icon="bulb"></span><span class="tool-label" data-i18n="game.hint"></span><span class="tool-sub" id="hint-sub"></span></button>
       <button class="tool" id="btn-restart" type="button"><span class="ic" data-icon="restart"></span><span class="tool-label" data-i18n="game.restart"></span><span class="tool-sub">&nbsp;</span></button>
+      <button class="tool tool-icon" id="btn-fit" type="button" data-i18n-aria="game.fit" hidden><span class="ic" data-icon="fit"></span></button>
     </footer>
   </section>
 

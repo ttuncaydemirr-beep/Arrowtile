@@ -13,39 +13,39 @@
 
     colors: {
       light: {
-        bg:         '#E3E9EE', // porselen gri-mavi zemin
-        board:      '#F6F8FA', // tahta yüzü
-        boardEdge:  '#C9D3DC', // tahta kenarı / alt kalınlık
-        cell:       '#E6ECF1', // hücre çukuru
-        cellDot:    '#C3CED8', // hücre köşe noktası
-        ink:        '#1D2C3B', // ana metin (lacivert mürekkep)
-        inkSoft:    '#5B6B7B', // ikincil metin
-        accent:     '#2456A6', // kobalt — birincil buton
+        bg:         '#EFEAE2', // porselen gri-mavi zemin
+        board:      '#FBF9F5', // tahta yüzü
+        boardEdge:  '#D8D0C3', // tahta kenarı / alt kalınlık
+        cell:       '#EEE8DE', // hücre çukuru
+        cellDot:    '#CFC6B8', // hücre köşe noktası
+        ink:        '#22252B', // ana metin (lacivert mürekkep)
+        inkSoft:    '#6A6760', // ikincil metin
+        accent:     '#1E7A78', // kobalt — birincil buton
         accentInk:  '#FFFFFF',
-        star:       '#E8A317', // safran yıldız
-        starEmpty:  '#C9D3DC',
-        coin:       '#D99A1E',
-        danger:     '#C9372F', // can / hata
-        success:    '#2E8B57',
+        star:       '#E3A008', // safran yıldız
+        starEmpty:  '#D8D0C3',
+        coin:       '#D4951A',
+        danger:     '#D2453B', // can / hata
+        success:    '#2F8F5B',
         highlight:  '#FFFFFF', // ipucu halkası iç
-        highlightRing: '#E8A317',
-        shadow:     'rgba(29,44,59,0.18)'
+        highlightRing: '#E3A008',
+        shadow:     'rgba(34,37,43,0.16)'
       },
       dark: {
-        bg:         '#0F1B27',
-        board:      '#172736',
-        boardEdge:  '#0A131C',
-        cell:       '#1E3245',
-        cellDot:    '#2C4560',
-        ink:        '#E9EFF4',
-        inkSoft:    '#93A5B6',
-        accent:     '#5B8DE0',
-        accentInk:  '#0F1B27',
+        bg:         '#14171C',
+        board:      '#1E2229',
+        boardEdge:  '#0C0E12',
+        cell:       '#272C35',
+        cellDot:    '#3A414D',
+        ink:        '#F2EEE6',
+        inkSoft:    '#A19D94',
+        accent:     '#4DB6AC',
+        accentInk:  '#14171C',
         star:       '#F2B632',
-        starEmpty:  '#2C4560',
+        starEmpty:  '#3A414D',
         coin:       '#F0B23A',
-        danger:     '#EF5B52',
-        success:    '#4DBB7F',
+        danger:     '#F0685E',
+        success:    '#55C08A',
         highlight:  '#FFFFFF',
         highlightRing: '#F2B632',
         shadow:     'rgba(0,0,0,0.45)'
@@ -57,7 +57,7 @@
     // names: dil bazlı tema adları (i18n.js'e de kopyalanabilir)
     arrowThemes: [
       { id: 'emaye',  name: 'Emaye', names: { tr: 'Emaye', en: 'Enamel', de: 'Emaille', ar: 'مينا' },  price: 0,
-        colors: ['#2456A6', '#C9372F', '#E09A12', '#2E8B57', '#6B4C9A'],
+        colors: ['#1F8A8A', '#E0703C', '#D9A21B', '#4B5FC1', '#A0508F'], // 1.2.0 (docs/24 §7): araştırmaya dayalı varsayılan ok paleti; kırmızı (çarpma) ve altın (ipucu) anlam renklerinden ayrık
         chevron: 'rgba(255,255,255,0.78)' },
       { id: 'lokum',  name: 'Lokum', names: { tr: 'Lokum', en: 'Delight', de: 'Lokum', ar: 'راحة الحلقوم' },  price: 300,
         colors: ['#E77FA0', '#F2A65A', '#7FB8A4', '#A78BD4', '#E7C65A'],
@@ -77,8 +77,11 @@
     // v1.2 (docs/08 §2): ince oklar. Gövde hücrenin ~%28'i, ok başı ~%55'i; şevron ve uç noktası orantılı küçüldü.
     shape: {
       margin:      0.12,  // okun hücre kenarından içeride kalma payı (kuyruk ve uç)
-      bodyWidth:   0.18,  // gövde kalınlığı (v1.3, docs/09: %28 → %18)
-      headWidth:   0.42,  // ok başı genişliği (v1.3: %55 → %42; en az headMinPx)
+      bodyWidth:   0.15,  // gövde kalınlığı (1.2.0, docs/24: %18 → %15 — daha ince oklar)
+      headWidth:   0.40,  // ok başı genişliği (1.2.0: %42 → %40; en az headMinPx)
+      monoBody:    0.085, // 1.2.0 tek renk kipi: ince çizgi gövde (en az monoMinPx)
+      monoHead:    0.34,  // tek renk kipi: küçük ok başı genişliği
+      monoMinPx:   1.6,
       headLength:  0.30,  // ok başı uzunluğu
       headMinPx:   7,     // ok başı en az 7 px genişlikte kalır (küçük hücrede yön okunur)
       chevronMinCell: 22, // hücre bundan küçükse gövde şevronları çizilmez; yönü ok başı verir
@@ -102,7 +105,11 @@
       slidePerCell:  55,   // ok kayışı: hücre başına
       slideMin:      160,
       slideEase:     'cubic-bezier(0.45, 0, 0.85, 0.35)', // hızlanarak çıkış
-      exitFade:      120,  // tahta dışına çıkınca sönme
+      exitFade:      120,  // (eski) tahta dışına çıkınca sönme — 1.2.0'da kullanılmaz
+      exitPerCell:   26,   // 1.2.0 çıkış: sabit hız, hücre başına ms (ok kendi yolunu izleyerek tahta kenarına dek gider)
+      exitMin:       260,  // en kısa çıkış süresi
+      exitMax:       1100, // en uzun çıkış süresi (çok uzun yol: hız artar, yine sabit)
+      tapGap:        110,  // çıkış başladıktan sonra sıradaki dokunuşa kadar en kısa ara
       bumpForward:   90,   // çarpışma noktasına gidiş
       bumpBack:      220,  // geri sekme
       bumpEase:      'cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -120,20 +127,22 @@
     },
 
     vibrate: {
-      tap:      [8],
-      slideOut: [12],
-      bump:     [30, 40, 30],
-      levelWin: [20, 60, 20, 60, 40],
-      error:    [60],
-      button:   [6]
+      // 1.2.0 (docs/17 §7): titreşim tüm olaylarda TEK kısa darbe
+      tap:      [16],
+      slideOut: [16],
+      bump:     [16],
+      levelWin: [16],
+      error:    [16],
+      button:   [16]
     },
 
     font: {
       // Dış font yok: yalnızca cihazda bulunan sistem fontları.
       stacks: {
-        latin:  'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, Arial, sans-serif',
-        arabic: '"Noto Naskh Arabic", "Noto Sans Arabic", "Geeza Pro", "Segoe UI", Tahoma, "Droid Arabic Naskh", sans-serif',
-        numeric: 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, Roboto, sans-serif'
+        // 1.2.0 (docs/24 §7): Readex Pro (SIL OFL 1.1) — Latin (tr/en/de) + Arapça tek aile; pakette (assets/fonts), CDN yok
+        latin:  '"Readex Pro", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif',
+        arabic: '"Readex Pro", "Noto Sans Arabic", "Geeza Pro", "Segoe UI", Tahoma, sans-serif',
+        numeric: '"Readex Pro", ui-rounded, system-ui, -apple-system, Roboto, sans-serif'
       },
       byLang: { tr: 'latin', en: 'latin', de: 'latin', ar: 'arabic' },
       // Arapça glifler aynı px'te daha küçük görünür, satır yüksekliği daha fazla ister
@@ -171,6 +180,8 @@
     } catch (e) { return hex; }
   }
   THEME.shade = shade;
+  var shadeCache = {};
+  function shadeOf(c) { return shadeCache[c] || (shadeCache[c] = shade(c, -0.35)); }
 
   THEME.forceMode = null; // G7: 'light' | 'dark' | null (otomatik = sistem)
   THEME.palette = function (mode) {
@@ -220,7 +231,8 @@
     }
     var n = cells.length, off = o.off || 0;
     var S = THEME.shape, color = o.color || THEME.arrowThemes[0].colors[0];
-    var mg = S.margin, bw = Math.max(2, S.bodyWidth * cell), hw = Math.max(S.headMinPx || 0, S.headWidth * cell);
+    var mono = !!o.mono; // 1.2.0: tek renk ince çizgi (gölge, şevron, nokta yok)
+    var mg = S.margin, bw = mono ? Math.max(S.monoMinPx, S.monoBody * cell) : Math.max(2, S.bodyWidth * cell), hw = mono ? Math.max(5, S.monoHead * cell) : Math.max(S.headMinPx || 0, S.headWidth * cell);
     var hl = Math.max(hw * 0.72, S.headLength * cell);
     // iz noktası (hücre merkezleri, hücre biriminde): -1 = kuyruğun arkasındaki sanal nokta
     var back = n > 1 ? [cells[0][0] - cells[1][0], cells[0][1] - cells[1][1]] : [-D[0], -D[1]];
@@ -264,8 +276,9 @@
       whole(0, bw + cell * 0.20, pal.highlightRing, true);
       whole(0, bw + cell * 0.08, pal.highlight, true);
     }
-    whole(S.depth * cell, bw, shade(color, -0.35), true); // alt kalınlık (ekran aşağısı)
+    if (!mono) whole(S.depth * cell, bw, shadeOf(color), true); // alt kalınlık (ekran aşağısı)
     whole(0, bw, color, true);                           // yüz
+    if (mono) { ctx.restore(); return; }
     // şevronlar: her gövde hücresinde akış yönünde ">" (köşe ve baş hücresi hariç)
     if (cell >= (S.chevronMinCell || 0)) {
       var cs = S.chevronSize * cell;
