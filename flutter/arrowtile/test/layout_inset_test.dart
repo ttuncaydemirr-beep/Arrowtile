@@ -39,6 +39,11 @@ Future<AppController> _boot(WidgetTester t, String lang) async {
   ));
   app.navKey.currentState!.push(fadeRoute<void>(GameScreen(level: app.getLevel(89)!)));
   await t.pump(const Duration(milliseconds: 400));
+  final Object? ex = t.takeException();
+  // ignore: avoid_print
+  print('LAYOUTDBG game=${find.byType(GameScreen).evaluate().length} ex=$ex texts=${t.allWidgets.whereType<Text>().map((Text w) => w.data).take(12).toList()} '
+      'icons=${t.allWidgets.whereType<Icon>().map((Icon w) => w.icon?.codePoint).take(12).toList()}');
+  expect(ex, isNull);
   return app;
 }
 
