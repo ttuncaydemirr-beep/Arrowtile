@@ -7,6 +7,7 @@
 // kuralları ve isabet hesabı birebir korunur.
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' show FlutterView;
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
