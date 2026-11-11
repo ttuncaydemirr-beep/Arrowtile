@@ -26,8 +26,9 @@
   // v1.5 (docs/15 §5): bölüm = 10 seviye; zorluk SEVİYE bazında döner (1-3 Kolay, 4-6 Orta, 7-8 Zor, 9-10 Aşırı zor).
   // Seviye jetonu taban 10/15/20 (1/2/3 yıldız) × seviye kademesi çarpanı; bölüm bonusu tek: 150 jeton.
   // Döngü levelgen.js CYCLE ile aynı.
-  var PER_CHAPTER = 10;
-  var CYCLE = ['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard', 'extreme', 'extreme'];
+  // 1.2.0 (docs/24): bölüm = 20 seviye; sıra 5 Kolay → 5 Orta → 5 Zor → 5 Aşırı zor (levelgen.js CYCLE ile aynı).
+  var PER_CHAPTER = 20;
+  var CYCLE = []; (function () { var T = ['easy', 'medium', 'hard', 'extreme']; for (var i = 0; i < PER_CHAPTER; i++) CYCLE.push(T[Math.floor(i / 5)]); })();
   var TIER_MULT = { easy: 1, medium: 1.5, hard: 2, extreme: 3 };
   var CHAPTER_BONUS = 150; // her bölüm için tek bonus
   var TOTAL_LEVELS = (window.LEVELS && window.LEVELS.length) || 36; // pakette hazır seviyeler; sonrası oyunda üretilir
@@ -56,6 +57,7 @@
       appearance: 'auto',   // G7: auto | light | dark
       relaxed: false,       // G3: rahat mod
       aim: false,           // G1: önce seç, sonra fırlat
+      arrowColor: 'color',  // 1.2.0: ok rengi — color (renkli) | mono (tek renk ince çizgi)
       tips: [],             // tek seferlik ipuçları (aim_suggest, zoom_tip …)
       dp: { done: {}, streak: 0, best: 0, last: null, trophies: 0 } // G5: günlük bulmaca
     };
@@ -112,6 +114,7 @@
     if (['auto', 'light', 'dark'].indexOf(raw.appearance) >= 0) s.appearance = raw.appearance;
     if (typeof raw.relaxed === 'boolean') s.relaxed = raw.relaxed;
     if (typeof raw.aim === 'boolean') s.aim = raw.aim;
+    if (raw.arrowColor === 'color' || raw.arrowColor === 'mono') s.arrowColor = raw.arrowColor;
     if (raw.dp && typeof raw.dp === 'object') {
       var D = /^\d{4}-\d{2}-\d{2}$/;
       if (raw.dp.done && typeof raw.dp.done === 'object' && !Array.isArray(raw.dp.done)) Object.keys(raw.dp.done).slice(-400).forEach(function (k) {

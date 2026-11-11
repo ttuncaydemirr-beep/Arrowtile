@@ -42,11 +42,14 @@ function canExit(level, i, grid) {
 function checkStructure(level) {
   const errs = [];
   const seen = new Map();
-  if (!(level.w >= 3 && level.h >= 3 && level.w <= 22 && level.h <= 31)) errs.push(`ızgara ${level.w}x${level.h} sınır dışı`); // v1.3: en fazla 22x31
+  if (!(level.w >= 3 && level.h >= 3 && level.w <= 28 && level.h <= 45)) errs.push(`ızgara ${level.w}x${level.h} sınır dışı`); // 1.2.0: en fazla 28x45
+  const mask = level.mask; // 1.2.0: şekilli tahta — satır dizgileri, '1' = oynanabilir hücre
+  if (mask && (!Array.isArray(mask) || mask.length !== level.h || mask.some(r => typeof r !== 'string' || r.length !== level.w || /[^01]/.test(r)))) errs.push('maske biçimi bozuk');
   level.arrows.forEach((a, i) => {
     if (!DIRS[a.dir]) { errs.push(`ok ${i}: geçersiz yön ${a.dir}`); return; }
     const cs = cellsOf(a), L = cs.length;
-    if (!(L >= 1 && L <= 8)) errs.push(`ok ${i}: uzunluk ${L}`); // v1.3: 1-8
+    if (!(L >= 1 && L <= 48)) errs.push(`ok ${i}: uzunluk ${L}`); // 1.2.0: 1-48 (uzun kıvrımlı oklar)
+    if (L >= 2) { const [hx, hy] = DIRS[a.dir]; if (cs[L - 1][0] - cs[L - 2][0] !== hx || cs[L - 1][1] - cs[L - 2][1] !== hy) errs.push(`ok ${i}: baş yönü son gövde adımıyla aynı değil`); }
     if (!a.cells && !(Number.isInteger(a.len) && a.len >= 1)) errs.push(`ok ${i}: len ${a.len}`);
     for (let k = 1; k < L; k++) if (Math.abs(cs[k][0] - cs[k - 1][0]) + Math.abs(cs[k][1] - cs[k - 1][1]) !== 1) errs.push(`ok ${i}: hücre ${k} komşu değil`);
     { const own = new Set(cs.map(c => c[0] + ',' + c[1])); if (own.size !== L) errs.push(`ok ${i}: kendi üstünden geçiyor`);
@@ -54,6 +57,7 @@ function checkStructure(level) {
       while (x >= 0 && y >= 0 && x < level.w && y < level.h) { if (own.has(x + ',' + y)) { errs.push(`ok ${i}: başı kendi gövdesine bakıyor`); break; } x += dx; y += dy; } }
     for (const [x, y] of cs) {
       if (x < 0 || y < 0 || x >= level.w || y >= level.h) errs.push(`ok ${i}: (${x},${y}) tahta dışında`);
+      else if (mask && Array.isArray(mask) && mask[y] && mask[y][x] !== '1') errs.push(`ok ${i}: (${x},${y}) maske dışında`);
       const k = x + ',' + y;
       if (seen.has(k)) errs.push(`ok ${i} ile ok ${seen.get(k)} (${k}) hücresinde çakışıyor`);
       seen.set(k, i);
