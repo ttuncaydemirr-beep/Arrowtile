@@ -529,14 +529,14 @@ async function overflowReport(page) {
     await page.evaluate(() => window.__ok.show('settings')); await wait(250);
     await page.tap('#app-dark'); await wait(200);
     const dk = await page.evaluate(() => [document.documentElement.getAttribute('data-theme'), getComputedStyle(document.body).backgroundColor]);
-    check('G7: "Koyu" seçilince koyu tema (sistem açıkken)', dk[0] === 'dark' && dk[1] === 'rgb(15, 27, 39)', dk.join(' '));
+    check('G7: "Koyu" seçilince koyu tema (sistem açıkken)', dk[0] === 'dark' && dk[1] === 'rgb(20, 23, 28)', dk.join(' '));
     await page.evaluate(() => window.__ok.startLevel(5)); await wait(300);
     const px = await page.evaluate(() => { const c = document.getElementById('board'); const d = c.getContext('2d').getImageData(4, 4, 1, 1).data; return [d[0], d[1], d[2], d[3]]; });
     await page.screenshot({ path: path.join(SHOTS, 'tr-dark-game.png') });
     await page.evaluate(() => window.__ok.show('settings')); await wait(250);
     await page.tap('#app-light'); await wait(200);
     const lt = await page.evaluate(() => [document.documentElement.getAttribute('data-theme'), getComputedStyle(document.body).backgroundColor]);
-    check('G7: "Açık" seçilince açık tema', lt[0] === 'light' && lt[1] === 'rgb(227, 233, 238)', lt.join(' '));
+    check('G7: "Açık" seçilince açık tema', lt[0] === 'light' && lt[1] === 'rgb(239, 234, 226)', lt.join(' '));
     await page.tap('#app-auto'); await wait(150);
     check('G7: "Otomatik" kaydedilir', (await ss(page)).appearance === 'auto');
     // G6: dışa / içe aktar

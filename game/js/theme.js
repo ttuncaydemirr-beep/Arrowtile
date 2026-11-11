@@ -13,39 +13,39 @@
 
     colors: {
       light: {
-        bg:         '#E3E9EE', // porselen gri-mavi zemin
-        board:      '#F6F8FA', // tahta yüzü
-        boardEdge:  '#C9D3DC', // tahta kenarı / alt kalınlık
-        cell:       '#E6ECF1', // hücre çukuru
-        cellDot:    '#C3CED8', // hücre köşe noktası
-        ink:        '#1D2C3B', // ana metin (lacivert mürekkep)
-        inkSoft:    '#5B6B7B', // ikincil metin
-        accent:     '#2456A6', // kobalt — birincil buton
+        bg:         '#EFEAE2', // porselen gri-mavi zemin
+        board:      '#FBF9F5', // tahta yüzü
+        boardEdge:  '#D8D0C3', // tahta kenarı / alt kalınlık
+        cell:       '#EEE8DE', // hücre çukuru
+        cellDot:    '#CFC6B8', // hücre köşe noktası
+        ink:        '#22252B', // ana metin (lacivert mürekkep)
+        inkSoft:    '#6A6760', // ikincil metin
+        accent:     '#1E7A78', // kobalt — birincil buton
         accentInk:  '#FFFFFF',
-        star:       '#E8A317', // safran yıldız
-        starEmpty:  '#C9D3DC',
-        coin:       '#D99A1E',
-        danger:     '#C9372F', // can / hata
-        success:    '#2E8B57',
+        star:       '#E3A008', // safran yıldız
+        starEmpty:  '#D8D0C3',
+        coin:       '#D4951A',
+        danger:     '#D2453B', // can / hata
+        success:    '#2F8F5B',
         highlight:  '#FFFFFF', // ipucu halkası iç
-        highlightRing: '#E8A317',
-        shadow:     'rgba(29,44,59,0.18)'
+        highlightRing: '#E3A008',
+        shadow:     'rgba(34,37,43,0.16)'
       },
       dark: {
-        bg:         '#0F1B27',
-        board:      '#172736',
-        boardEdge:  '#0A131C',
-        cell:       '#1E3245',
-        cellDot:    '#2C4560',
-        ink:        '#E9EFF4',
-        inkSoft:    '#93A5B6',
-        accent:     '#5B8DE0',
-        accentInk:  '#0F1B27',
+        bg:         '#14171C',
+        board:      '#1E2229',
+        boardEdge:  '#0C0E12',
+        cell:       '#272C35',
+        cellDot:    '#3A414D',
+        ink:        '#F2EEE6',
+        inkSoft:    '#A19D94',
+        accent:     '#4DB6AC',
+        accentInk:  '#14171C',
         star:       '#F2B632',
-        starEmpty:  '#2C4560',
+        starEmpty:  '#3A414D',
         coin:       '#F0B23A',
-        danger:     '#EF5B52',
-        success:    '#4DBB7F',
+        danger:     '#F0685E',
+        success:    '#55C08A',
         highlight:  '#FFFFFF',
         highlightRing: '#F2B632',
         shadow:     'rgba(0,0,0,0.45)'
@@ -57,7 +57,7 @@
     // names: dil bazlı tema adları (i18n.js'e de kopyalanabilir)
     arrowThemes: [
       { id: 'emaye',  name: 'Emaye', names: { tr: 'Emaye', en: 'Enamel', de: 'Emaille', ar: 'مينا' },  price: 0,
-        colors: ['#2456A6', '#C9372F', '#E09A12', '#2E8B57', '#6B4C9A'],
+        colors: ['#1F8A8A', '#E0703C', '#D9A21B', '#4B5FC1', '#A0508F'], // 1.2.0 (docs/24 §7): araştırmaya dayalı varsayılan ok paleti; kırmızı (çarpma) ve altın (ipucu) anlam renklerinden ayrık
         chevron: 'rgba(255,255,255,0.78)' },
       { id: 'lokum',  name: 'Lokum', names: { tr: 'Lokum', en: 'Delight', de: 'Lokum', ar: 'راحة الحلقوم' },  price: 300,
         colors: ['#E77FA0', '#F2A65A', '#7FB8A4', '#A78BD4', '#E7C65A'],
@@ -139,9 +139,10 @@
     font: {
       // Dış font yok: yalnızca cihazda bulunan sistem fontları.
       stacks: {
-        latin:  'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Ubuntu, Arial, sans-serif',
-        arabic: '"Noto Naskh Arabic", "Noto Sans Arabic", "Geeza Pro", "Segoe UI", Tahoma, "Droid Arabic Naskh", sans-serif',
-        numeric: 'ui-rounded, "SF Pro Rounded", system-ui, -apple-system, Roboto, sans-serif'
+        // 1.2.0 (docs/24 §7): Readex Pro (SIL OFL 1.1) — Latin (tr/en/de) + Arapça tek aile; pakette (assets/fonts), CDN yok
+        latin:  '"Readex Pro", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif',
+        arabic: '"Readex Pro", "Noto Sans Arabic", "Geeza Pro", "Segoe UI", Tahoma, sans-serif',
+        numeric: '"Readex Pro", ui-rounded, system-ui, -apple-system, Roboto, sans-serif'
       },
       byLang: { tr: 'latin', en: 'latin', de: 'latin', ar: 'arabic' },
       // Arapça glifler aynı px'te daha küçük görünür, satır yüksekliği daha fazla ister

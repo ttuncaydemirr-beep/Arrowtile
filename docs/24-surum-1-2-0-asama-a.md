@@ -125,3 +125,51 @@ Hedef "p95 ≪ 1,5 sn" fazlasıyla sağlanıyor (eski üretici 22x31 Aşırı zo
 - `levelgen.dart`: `build2`, `makeMask`, `measure2`, `specFor`, `levelJob` birebir (aynı `rng`, `shuffle`, tamsayı bölmeler; `Math.floor(rand()*n)` sıraları korunmalı). Altın test: `tools/level-hashes.json` (maske özetin parçası).
 - Seviye modeline `mask` alanı; tepsi çizimi maske birleşimi; `InteractiveViewer` yerine mevcut dönüşüm mantığı (sMin/sMax, kenarda durma, atalet).
 - Kutlama metinleri `cel.*` ARB'ye; alev/kıvılcım/havai fişek `CustomPainter` ya da basit animasyon.
+
+## 7. Görsel araştırma: renk paleti ve yazı tipi (sahip kuralı: hazır/varsayılan renk ve yazı tipi kullanılmaz)
+
+### 7.1 Bulgular (web araştırması, 11.11.2026)
+| Kaynak | Bulgu |
+|---|---|
+| Türün lideri **Arrows – Puzzle Escape** (Lessmore UG): 100 milyon+ indirme, 4,7★ / ~2,1 milyon oy — [AppGoblin](https://appgoblin.info/apps/com.ecffri.arrows), [inceleme sayfası](https://appireview.pages.dev/com.ecffri.arrows), [oyun tanıtımı](https://cceditorial-games.pages.dev/games/arrows-puzzle-escape) | Mağaza metni ve incelemeler aynı şeyi öne çıkarıyor: "bulmacaya odaklanmayı sağlayan temiz, minimalist tasarım", "görsel stil bilerek sade; dikkat efektlerde değil bulmacada", "süre yok, rahatlatıcı". Şikâyetler görsellikten değil reklamdan: 20. seviyeden sonra iki seviyede bir reklam ve 10 $'lık reklam kaldırma pahalı bulunuyor. |
+| **Arrow Cube Escape** incelemesi — [Shacknews](https://www.shacknews.com/article/149355/arrow-cube-escape-review-score) | Beğenilen: "temiz cam" estetiği, kalın çizgilerle dengeli sade görünüm, rengin anlam taşıması (yanlış ok kırmızı, ipucu mavi). Beğenilmeyen: **kaydırma olmaması yüzünden yanlış dokunuşlar** ve ok yolunun önceden görülememesi. |
+| Rahatlatıcı ("cosy") oyunların görsel dili — [UX Collective](https://uxdesign.cc/the-calm-and-charm-of-cosy-games-in-a-chaotic-world-7f29dbd8f4d9) | Pastel / yumuşak (doygunluğu düşük) paletler, yuvarlatılmış köşeler ve yuvarlak hatlı yazı tipleri sakinlik hissi veriyor. |
+| **Readex Pro** — [GitHub (OFL 1.1)](https://github.com/ThomasJockin/readexpro) | Depo açıklamasına göre Lexend Latin ailesinden türetilmiş, Arapçası Nadine Chahine tarafından çizilmiş aile (Thomas Jockin ile). Tek ailede Latin + Arapça, değişken ağırlık (160–700), SIL OFL 1.1. |
+
+Not: Kaynaklar rakiplerin kesin renk kodlarını vermiyor; aşağıdaki renkler bu bulgulardan çıkarılan ilkelere göre seçildi (birebir kopya değil). Sahibin paylaştığı referans ekran ("Süper Zor": açık zemin, ince siyah çizgi oklar) da aynı yönde.
+
+### 7.2 Çıkarılan ilkeler
+1. **Zemin sade ve nötr, kahraman oklar.** Arayüz süssüz; doygun renk yalnızca oklarda ve anlam taşıyan yerlerde.
+2. **Renk anlam taşır.** Kırmızı yalnızca çarpma/can, altın yalnızca ipucu/yıldız; ok paletinde saf kırmızı ve altın sarısı yok (karışmasın).
+3. **Yumuşak, sıcak, düşük doygunluk** (uzun oturumda göz yormayan "kâğıt ve mürekkep"); koyu temada saf siyah yerine kömür.
+4. **Yuvarlak hatlı, okunaklı tek yazı tipi ailesi**; 4 dilde aynı karakter (Latin ve Arapça yan yana uyumlu).
+5. **Yanlış dokunuşu azalt** (rakipteki en somut görsel-etkileşim şikâyeti): kaydırma + hücre bazlı isabet (§1.3) ve "önce seç" kipinde yol gösterimi.
+
+### 7.3 Seçilen palet — "Kum ve Mürekkep" (`game/js/theme.js` `colors`, `game/css/style.css` `:root`)
+| Rol | Açık tema | Koyu tema | Gerekçe |
+|---|---|---|---|
+| Zemin | `#EFEAE2` kum | `#14171C` kömür | Sıcak nötr; soğuk gri-mavi yerine kâğıt hissi (ilke 3) |
+| Tahta / kart | `#FBF9F5` | `#1E2229` | Zeminden bir ton açık: tahta "kâğıt levha" gibi ayrışır |
+| Kenar / gölge | `#D8D0C3` | `#0C0E12` | Yumuşak alt kalınlık |
+| Hücre / ızgara noktası | `#EEE8DE` / `#CFC6B8` | `#272C35` / `#3A414D` | Çok hafif; okları bastırmaz (ilke 1) |
+| Mürekkep (metin + tek renk oklar) | `#22252B` | `#F2EEE6` | Referanstaki siyah çizgi görünümü; saf siyah/beyaz değil (ilke 3) |
+| İkincil metin | `#6A6760` | `#A19D94` | |
+| Vurgu (birincil düğme) | `#1E7A78` derin çam yeşili-turkuaz | `#4DB6AC` | Sakin, kırmızı/altınla çakışmaz; beyaz metinle kontrast yaklaşık 5:1 |
+| Yıldız / ipucu | `#E3A008` | `#F2B632` | Yalnızca ödül/ipucu (ilke 2) |
+| Tehlike (can, çarpma) | `#D2453B` | `#F0685E` | Yalnızca hata/can (ilke 2) |
+| Başarı | `#2F8F5B` | `#55C08A` | |
+
+**Varsayılan ok paleti (Renkli kip, "Emaye" teması):** `#1F8A8A` turkuaz · `#E0703C` kiremit · `#D9A21B` hardal · `#4B5FC1` çivit · `#A0508F` erik. Beşi de orta doygunlukta, hem açık hem koyu tahtada okunur, birbirinden ton + parlaklıkla ayrışır (yön her zaman ok başı şekliyle de okunur → renk körlüğünde renk şart değil). Komşu oklar aynı rengi almaz (`OkEngine.colorize`).
+**Tek renk kip:** oklar tema mürekkebiyle (`#22252B` / `#F2EEE6`), gövde hücrenin %8,5'i — referanstaki "ince siyah çizgi" görünümü; koyu temada kömür üstünde kırık beyaz.
+Mağazadaki diğer ok temaları (Lokum, Çini, Bakır, Gece Lambası) satın alınabilir içerik olduğundan değiştirilmedi.
+
+### 7.4 Yazı tipi — Readex Pro (pakette, `game/assets/fonts/ReadexPro-VF.ttf`, 272 KB; lisans `OFL.txt`)
+- Tek dosya, tek aile: Türkçe (ğ ş İ ı), Almanca (ä ö ü ß ẞ) ve Arapça gliflerin tamamı doğrulandı (fontTools ile; 761 kod noktası). Rakamlar da aynı aileden.
+- Lisans SIL OFL 1.1 → Flutter uygulamasına gömülebilir (`pubspec.yaml` `fonts:`; OFL.txt lisans sayfasına eklenir).
+- Ağdan yüklenmez: `@font-face` yerel dosya; CSP `font-src 'self'` değişmedi. Sistem yazı tipleri yalnızca yedek.
+- Neden bu aile: yuvarlak hatlı ve sakin (ilke 4), okunaklılık için tasarlanmış, Latin ile Arapça aynı çizgi kalınlığı ve x-yüksekliğinde; ağırlık ekseni 160–700 (başlıklar 700).
+- Değerlendirilen diğerleri: Baloo Bhaijaan 2 (daha oyuncu/çocuksu, "premium ve sakin" hedefe uzak), Cairo (daha köşeli, Latin tarafı sıradan), Noto Sans + Noto Naskh (sistem varsayılanı hissi → kural gereği elendi).
+
+### 7.5 Diğer görsel ayrıntılar
+- Uygulama simgesi (mavi) bu aşamada değişmedi: mağaza kimliği ayrı karar; yeni paletle uyumlu simge Aşama B "yeni mağaza görselleri" işine bırakıldı.
+- `theme-color` (durum çubuğu) yeni zemin renklerine güncellendi.

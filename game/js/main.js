@@ -54,7 +54,7 @@
     bulb: '<svg viewBox="0 0 24 24"><path d="M12 2.5a6.8 6.8 0 0 0-4 12.3c.7.5 1 1.2 1 2V18h6v-1.2c0-.8.4-1.5 1-2A6.8 6.8 0 0 0 12 2.5z" fill="var(--star)"/><rect x="9" y="19" width="6" height="2.6" rx="1.2" fill="var(--ink-soft)"/><path d="M10 9.5a2.4 2.4 0 0 1 2-2" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>',
     restart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 3.5v5h-5"/></svg>',
     lock: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>',
-    hand: '<svg viewBox="0 0 24 24"><path d="M9.2 3.2c.9 0 1.6.7 1.6 1.6v6.4l.9-.2c.9-.1 1.7.4 1.9 1.3l.1.2.6-.1c.8-.1 1.6.4 1.8 1.2l.7-.1c.8-.1 1.6.5 1.7 1.3l.5 3.3c.3 2.6-1.6 4.9-4.2 4.9h-2.9c-1.6 0-3-.8-3.9-2.1l-3.1-4.6c-.5-.7-.3-1.6.4-2.1.6-.4 1.4-.3 1.9.2l1.6 1.7V4.8c0-.9.7-1.6 1.6-1.6z" fill="#fff" stroke="#1D2C3B" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+    hand: '<svg viewBox="0 0 24 24"><path d="M9.2 3.2c.9 0 1.6.7 1.6 1.6v6.4l.9-.2c.9-.1 1.7.4 1.9 1.3l.1.2.6-.1c.8-.1 1.6.4 1.8 1.2l.7-.1c.8-.1 1.6.5 1.7 1.3l.5 3.3c.3 2.6-1.6 4.9-4.2 4.9h-2.9c-1.6 0-3-.8-3.9-2.1l-3.1-4.6c-.5-.7-.3-1.6.4-2.1.6-.4 1.4-.3 1.9.2l1.6 1.7V4.8c0-.9.7-1.6 1.6-1.6z" fill="#fff" stroke="#22252B" stroke-width="1.5" stroke-linejoin="round"/></svg>',
     noads: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 15l2-6 2 6M8.7 13h2.6M14.5 9v6h1.2a2.3 2.3 0 0 0 0-6z"/><path d="M3.5 3.5l17 17" stroke="var(--danger)"/></svg>',
     trophy: '<svg viewBox="0 0 24 24"><path d="M7 3h10v5a5 5 0 0 1-10 0z" fill="var(--star)"/><path d="M7 5H4a3 3 0 0 0 3 4M17 5h3a3 3 0 0 1-3 4" fill="none" stroke="var(--star)" stroke-width="2"/><path d="M10.5 13h3l.5 4h-4z" fill="var(--star)"/><rect x="7.5" y="17" width="9" height="3.5" rx="1.2" fill="var(--coin)"/></svg>',
     calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke-linecap="round"/><circle cx="12" cy="15" r="2" fill="currentColor" stroke="none"/></svg>',
@@ -678,7 +678,7 @@
     document.documentElement.setAttribute('data-theme', m);
     T.forceMode = m === 'auto' ? null : m;
     var dark = m === 'dark' || (m === 'auto' && mqDark && mqDark.matches);
-    document.querySelectorAll('meta[name="theme-color"]').forEach(function (n) { n.setAttribute('content', dark ? '#0F1B27' : '#E3E9EE'); });
+    document.querySelectorAll('meta[name="theme-color"]').forEach(function (n) { n.setAttribute('content', dark ? '#14171C' : '#EFEAE2'); });
     try { if (window.AndroidBridge && typeof window.AndroidBridge.setSystemBarsDark === 'function') window.AndroidBridge.setSystemBarsDark(!!dark); } catch (e) {}
     if (typeof draw === 'function' && LV) draw();
   }

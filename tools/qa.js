@@ -62,7 +62,7 @@ const INIT = `(() => {
       const im = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
       const W = cv.width, H = cv.height, colC = new Array(W).fill(0), rowC = new Array(H).fill(0);
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const p = (y * W + x) * 4;
-        if (Math.abs(im[p] - 246) <= 2 && Math.abs(im[p + 1] - 248) <= 2 && Math.abs(im[p + 2] - 250) <= 2 && im[p + 3] > 250) { colC[x]++; rowC[y]++; } }
+        if (Math.abs(im[p] - 251) <= 2 && Math.abs(im[p + 1] - 249) <= 2 && Math.abs(im[p + 2] - 245) <= 2 && im[p + 3] > 250) { colC[x]++; rowC[y]++; } }
       const xs = colC.map((c, i) => c > 6 ? i : -1).filter(i => i >= 0), ys = rowC.map((c, i) => c > 6 ? i : -1).filter(i => i >= 0);
       if (!xs.length) return null;
       const pd = w >= 21 ? 0.1 : 0.3; // v1.3: geniş tahtada tepsi dolgusu 0,1 hücre (theme.js boardPadFor)
@@ -74,8 +74,8 @@ const INIT = `(() => {
       const cv = document.getElementById('board'), ctx = cv.getContext('2d');
       const x = Math.round((lay.ox + (cx + 0.5) * lay.cell) * lay.dpr), y = Math.round((lay.oy + (cy + 0.5) * lay.cell) * lay.dpr);
       const p = ctx.getImageData(x, y, 1, 1).data;
-      // v1.2: tahta tek düz yüzey (hücre çukuru yok); boş hücre merkezi tahta rengindedir (246,248,250)
-      return Math.abs(p[0] - 246) + Math.abs(p[1] - 248) + Math.abs(p[2] - 250) > 30;
+      // v1.2: tahta tek düz yüzey (hücre çukuru yok); boş hücre merkezi tahta rengindedir (251,249,245)
+      return Math.abs(p[0] - 251) + Math.abs(p[1] - 249) + Math.abs(p[2] - 245) > 30;
     },
     color(lay, cx, cy, dx) { const cv = document.getElementById('board');
       const x = Math.round((lay.ox + (cx + 0.5 + (dx || 0)) * lay.cell) * lay.dpr), y = Math.round((lay.oy + (cy + 0.5) * lay.cell) * lay.dpr);
@@ -549,7 +549,7 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
         let dirOk = true;
         if (hr >= 0) { const a = L.arrows[hr], hc = headC(a), s = a.dir === 'R' ? 1 : -1;
           const tip = await page.evaluate(([ly, x, y, s]) => [__qa.color(ly, x, y, s * 0.30), __qa.color(ly, x, y, -s * 0.45)], [ly, hc[0], hc[1], s]);
-          const isCell = c => Math.abs(c[0] - 246) + Math.abs(c[1] - 248) + Math.abs(c[2] - 250) < 30; dirOk = !isCell(tip[0]); }
+          const isCell = c => Math.abs(c[0] - 251) + Math.abs(c[1] - 249) + Math.abs(c[2] - 245) < 30; dirOk = !isCell(tip[0]); }
         check('ar: ok başları gösterdiği yönde çiziliyor (R/L ters değil)', dirOk);
         check('ar: tahta yerleşimi İngilizce ile birebir aynı', Math.abs(lays.ar.ox - lays.en.ox) < 1 && Math.abs(lays.ar.cell - lays.en.cell) < 0.5);
         // Dokunuş: sağ yarıdaki ve sol yarıdaki birer açık oka dokun
