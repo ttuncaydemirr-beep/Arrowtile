@@ -29,7 +29,7 @@ class _DailyRewardBody extends StatelessWidget {
     Widget box(int d) {
       final bool past = st.canClaim ? d < st.day : (d < activeDay || (st.claimedToday && d == activeDay));
       final bool today = d == activeDay;
-      final Color fg = today ? const Color(0xFF1D2C3B) : pal.inkC;
+      final Color fg = today ? const Color(0xFF22252B) : pal.inkC;
       final Widget content = Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: <Widget>[
         Text(loc.dailyDay(d), style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w700)),
         const SizedBox(height: 2),

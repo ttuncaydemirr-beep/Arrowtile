@@ -98,7 +98,7 @@ async function overflowReport(page) {
       if (cs.textOverflow === 'ellipsis') out.push('ellipsis: ' + label);
       if (n.matches('.btn:not(.tiny), .tab, .lang-btn') && parseFloat(cs.fontSize) < 14) out.push('font<14: ' + label);
       for (const tn of n.childNodes) { if (tn.nodeType !== 3 || n.matches('a')) continue; const re = /\S+/g; let m;
-        while ((m = re.exec(tn.textContent))) { if (m[0].length < 4) continue; const rg = document.createRange(); rg.setStart(tn, m.index); rg.setEnd(tn, m.index + m[0].length);
+        while ((m = re.exec(tn.textContent))) { if (m[0].length < 4 || /[-\/]/.test(m[0])) continue; /* tire/eğik çizgide satır kırılması kelime bölünmesi değildir */ const rg = document.createRange(); rg.setStart(tn, m.index); rg.setEnd(tn, m.index + m[0].length);
           const tops = new Set([...rg.getClientRects()].filter(x => x.width > 0.5).map(x => Math.round(x.top / 3))); if (tops.size > 1) out.push('kelime bölündü: "' + m[0] + '"'); } }
     }));
     return [...new Set(out)];
@@ -130,9 +130,9 @@ async function overflowReport(page) {
     const lost = await page.evaluate(() => document.querySelectorAll('#hearts .lost').length);
     check('çarpışma: can 3→2, ok yerinde, HUD güncellendi', g.lives === 2 && g.collisions === 1 && g.remaining === 2 && lost === 1, JSON.stringify({ l: g.lives, lost }));
     // v1.2 (docs/08): geri alma yok, çarpışma kalıcı can kaybı
-    check('v1.2: oyun ekranında geri alma düğmesi yok, araç çubuğunda yalnızca ipucu + baştan', !(await page.$('#btn-undo')) && (await page.$$('.toolbar .tool')).length === 2);
+    check('v1.2: oyun ekranında geri alma düğmesi yok, araç çubuğunda yalnızca ipucu + baştan', !(await page.$('#btn-undo')) && (await page.$$('.toolbar .tool:not([hidden])')).length === 2);
     await page.tap('#btn-hint'); await wait(100);
-    check('ipucu: base() kaydında 2 ücretsiz hak (mevcut oyuncu), kullanınca 2→1', (await ss(page)).freeHints === 1);
+    { const s2 = await ss(page); check('ipucu (1.1.6): yeni oyuncu 0 ücretsiz hakla başlar, ipucu 50 jeton düşer (70→20)', s2.freeHints === 0 && s2.coins === 20, JSON.stringify({ f: s2.freeHints, c: s2.coins })); }
     for (let k = 0; k < 3; k++) { await tapArrowTouch(page, b); await wait(80); await idle(page); }
     await page.waitForSelector('#dead-sheet', { timeout: 3000 }).catch(() => {});
     check('can bitince "Canın bitti" penceresi', await page.isVisible('#dead-sheet'));
@@ -421,43 +421,38 @@ async function overflowReport(page) {
   // ============================================================ G1 G2 G3 G7 G6 (aşama 4)
   if (want('feat')) {
     const { ctx, page, errors } = await newPage(browser, 'tr-TR', { seed: base({ unlocked: 40 }) });
-    // G1: iki komşu okun tam sınırına dokunuş hiçbir oku oynatmaz; genişletilmiş alan
-    let found = null;
-    for (let id = 4; id <= 36 && !found; id++) {
-      const L = LEVELS[id - 1], g = S.buildGrid(L, L.arrows.map(() => true));
-      for (let i = 0; i < L.arrows.length && !found; i++) {
-        const a = L.arrows[i], ac = S.cellsOf(a); if (ac.length !== 1) continue;
-        // sağ komşu hücre tek hücrelik başka bir dikey okun (eksenler paralel) → sınır belirsiz
-        const ax = ac[0][0], ay = ac[0][1], j = g[ay * L.w + ax + 1];
-        if (ax + 1 < L.w && j >= 0 && j !== i && S.cellsOf(L.arrows[j]).length === 1 && (a.dir === 'U' || a.dir === 'D') && (L.arrows[j].dir === 'U' || L.arrows[j].dir === 'D')) found = { id, i, j };
-      }
-    }
-    if (found) {
-      await page.evaluate(i => window.__ok.startLevel(i), found.id); await wait(300);
-      const v = await page.evaluate(() => window.__ok.view());
-      const ci = await page.evaluate(i => window.__ok.cellCenter(i), found.i);
-      await page.touchscreen.tap(ci.x + v.cell / 2, ci.y); await wait(350);
-      const g1 = await gs(page);
-      check('G1: iki okun tam arasına dokunuş hiçbir oku oynatmaz (çarpışma da yok)', g1.alive[found.i] && g1.alive[found.j] && g1.lives === 3 && g1.collisions === 0, `sv${found.id} ok${found.i}/ok${found.j}`);
-    } else check('G1: test için komşu ok çifti bulundu', false);
+    // G1 (1.2.0, docs/24): isabet HÜCRE bazlı — okun kapladığı hücrenin herhangi bir yeri o oku seçer (ince çizgi değil)
     {
-      // genişletilmiş alan: açık okun başının hemen önündeki boş hücrenin yarısına dokun
-      let tgt = null;
-      for (let id = 4; id <= 36 && !tgt; id++) {
-        const L = LEVELS[id - 1], al = L.arrows.map(() => true), g = S.buildGrid(L, al);
-        L.arrows.forEach((a, i) => { if (tgt || !S.canExit(L, i, g)) return; const h = S.headOf(a), d = S.DIRS[a.dir], nx = h[0] + d[0], ny = h[1] + d[1];
-          if (nx >= 0 && ny >= 0 && nx < L.w && ny < L.h && g[ny * L.w + nx] === -1) {
-            const near = L.arrows.some((b, k) => k !== i && S.cellsOf(b).some(c => Math.abs(c[0] - nx) + Math.abs(c[1] - ny) <= 1));
-            if (!near) { const t0 = S.cellsOf(a)[0]; tgt = { id, i, d, hx: h[0] - t0[0], hy: h[1] - t0[1] }; } } });
-      }
-      if (tgt) {
-        await page.evaluate(i => window.__ok.startLevel(i), tgt.id); await wait(300);
-        const v = await page.evaluate(() => window.__ok.view());
-        const c0 = await page.evaluate(i => window.__ok.cellCenter(i), tgt.i);
-        // baş hücresinin merkezinden yön boyunca 0,45 hücre ötesi (isabet eşiği 0,5; v1.3 kıvrımlı oklar da)
-        await page.touchscreen.tap(c0.x + (tgt.hx + tgt.d[0] * 0.45) * v.cell, c0.y + (tgt.hy + tgt.d[1] * 0.45) * v.cell); await wait(80);
-        check('G1: okun gövde eksenine 0,45 hücre uzaklıkta dokunuş o oku oynatır', !(await gs(page)).alive[tgt.i], `sv${tgt.id} ok${tgt.i}`);
-      } else check('G1: genişletilmiş alan testi için ok bulundu', false);
+      await page.evaluate(() => window.__ok.startLevel(22)); await wait(300);
+      const f0 = (await gs(page)).free[0];
+      const v = await page.evaluate(() => window.__ok.view());
+      const c0 = await page.evaluate(i => window.__ok.cellCenter(i), f0);
+      await page.touchscreen.tap(c0.x + 0.44 * v.cell, c0.y + 0.44 * v.cell); await wait(80);
+      check('G1: okun hücresinin köşesine (çizgiden uzağa) dokunuş o oku oynatır', !(await gs(page)).alive[f0], `sv22 ok${f0}`);
+      await idle(page);
+      // tüm hazır seviyelerde: her ok hücresinin dört köşesi de o oku verir; boş hücrede iki farklı oka eşit uzaklık → belirsiz (hiçbiri)
+      const res = await page.evaluate(async () => {
+        const sleep = ms => new Promise(r => setTimeout(r, ms)), out = { cells: 0, miss: 0, amb: 0, ambOk: 0, near: 0, nearOk: 0 };
+        for (const id of [22, 47, 58, 96]) {
+          window.__ok.startLevel(id); await sleep(120);
+          const L = window.__ok.level(), g = new Array(L.w * L.h).fill(-1);
+          L.arrows.forEach((a, i) => a.cells.forEach(c => { g[c[1] * L.w + c[0]] = i; }));
+          const at = (x, y) => (x < 0 || y < 0 || x >= L.w || y >= L.h) ? -1 : g[y * L.w + x];
+          const hit = (u, v) => { const p = window.__ok.boardPoint(u, v); return window.__ok.hitTest(p.x, p.y); };
+          for (let y = 0; y < L.h; y++) for (let x = 0; x < L.w; x++) {
+            const k = at(x, y);
+            if (k >= 0) { for (const [fx, fy] of [[0.06, 0.06], [0.94, 0.06], [0.06, 0.94], [0.94, 0.94], [0.5, 0.5]]) { out.cells++; if (hit(x + fx, y + fy).i !== k) out.miss++; } continue; }
+            const l = at(x - 1, y), u = at(x, y - 1), r = at(x + 1, y), d = at(x, y + 1);
+            if (l >= 0 && u >= 0 && l !== u) { out.amb++; const h = hit(x + 0.2, y + 0.2); if (h.i === -1 && h.amb) out.ambOk++; }
+            if (l >= 0 && u < 0 && d < 0 && at(x - 1, y - 1) === l && at(x - 1, y + 1) === l) { out.near++; if (hit(x + 0.3, y + 0.5).i === l) out.nearOk++; }
+            if (l < 0 && r < 0 && u < 0 && d < 0) { if (hit(x + 0.5, y + 0.5).i !== -1) out.miss++; }
+          }
+        }
+        return out;
+      });
+      check('G1: her ok hücresinin köşeleri ve merkezi o oku verir (4 seviye, tüm hücreler)', res.cells > 1000 && res.miss === 0, JSON.stringify(res));
+      check('G1: boş hücrede iki farklı oka eşit uzaklıktaki dokunuş belirsizdir (hiçbir ok oynamaz)', res.amb > 0 && res.ambOk === res.amb, JSON.stringify(res));
+      check('G1: boş hücrede tek oka yakın (0,3 hücre) dokunuş o oku verir', res.near === res.nearOk, JSON.stringify(res));
     }
     // G1: önce seç, sonra fırlat
     await page.evaluate(() => window.__ok.debugPatch({ aim: true }));
@@ -482,15 +477,40 @@ async function overflowReport(page) {
     const vz = await page.evaluate(() => window.__ok.view());
     check('G2: iki parmakla yakınlaştırma çalışır, Sığdır düğmesi görünür, hiçbir ok oynamadı', vz.s > 1.5 && await page.isVisible('#btn-fit') && (await gs(page)).alive.every(Boolean), 'ölçek ' + vz.s.toFixed(2));
     await page.screenshot({ path: path.join(SHOTS, 'tr-zoom.png') });
-    await page.tap('#btn-fit'); await wait(100);
+    await page.tap('#btn-fit'); await wait(450); // Sığdır geçişi 280 ms: bitmeden yakınlaştırılırsa kuyruk hücresi ekran dışında kalabilir
     const fz = (await gs(page)).free[0];
     await page.evaluate(i => { const r = document.getElementById('board').getBoundingClientRect(), c = window.__ok.cellCenter(i);
       window.__ok.zoomAt(c.x - r.left, c.y - r.top, 2.2); }, fz); await wait(100);
     await tapArrowTouch(page, fz); await wait(80);
     const gz = await gs(page);
     check('G2: yakınken dokunuş doğru oka gider', !gz.alive[fz] && gz.alive.filter(x => !x).length === 1, `ok${fz} → çıkan ${gz.alive.map((v, i) => v ? -1 : i).filter(i => i >= 0)} ${JSON.stringify(await page.evaluate(i => [window.__ok.cellCenter(i), window.__ok.view()], fz))}`);
-    await idle(page); await page.tap('#btn-fit'); await wait(150);
-    check('G2: "Sığdır" tahtayı yeniden tam ekrana sığdırır', (await page.evaluate(() => window.__ok.view().s)) === 1 && !(await page.isVisible('#btn-fit')));
+    await idle(page); await page.tap('#btn-fit'); await wait(500);
+    check('G2: "Sığdır" tahtayı yeniden tam ekrana sığdırır', Math.abs((await page.evaluate(() => window.__ok.view().s)) - 1) < 1e-6 && !(await page.isVisible('#btn-fit')));
+    // G2 (1.2.0): büyük tahta (28x45) kaydırılır — varsayılan hücre ≥ 20 px, kaydırma dokunuş sayılmaz, Sığdır tüm tahtayı gösterir
+    await page.evaluate(() => window.__ok.startLevel(176)); await page.waitForFunction(() => window.__ok.level() && window.__ok.level().id === 176, null, { timeout: 8000 }); await wait(400);
+    const vb = await page.evaluate(() => window.__ok.view());
+    check('G2 büyük tahta: 28x45, varsayılan hücre ≥ 20 px, tahta ekrandan büyük (kaydırılabilir), Sığdır düğmesi görünür', vb.cell * vb.s >= 20 && vb.pannable && (vb.tray[2] - vb.tray[0]) * vb.s > vb.W && (vb.tray[3] - vb.tray[1]) * vb.s > vb.H && await page.isVisible('#btn-fit'), JSON.stringify({ cell: vb.cell, s: vb.s }));
+    const drag = async (dx, dy) => page.evaluate(([dx, dy]) => { const c = document.getElementById('board'), r = c.getBoundingClientRect(), x0 = r.left + r.width / 2, y0 = r.top + r.height / 2;
+      const ev = (type, x, y) => c.dispatchEvent(new PointerEvent(type, { pointerId: 7, clientX: x, clientY: y, bubbles: true, pointerType: 'touch', isPrimary: true }));
+      ev('pointerdown', x0, y0); for (let k = 1; k <= 8; k++) ev('pointermove', x0 + dx * k / 8, y0 + dy * k / 8); ev('pointerup', x0 + dx, y0 + dy); }, [dx, dy]);
+    const aliveB = (await gs(page)).alive.filter(Boolean).length;
+    await drag(-120, -160); await wait(700);
+    const vp = await page.evaluate(() => window.__ok.view()), gp = await gs(page);
+    check('G2 büyük tahta: tek parmakla sürükleme tahtayı kaydırır (sağa-sola ve yukarı-aşağı), hiçbir ok oynamaz, can gitmez', vp.x < vb.x - 60 && vp.y < vb.y - 80 && gp.alive.filter(Boolean).length === aliveB && gp.lives === 3 && gp.collisions === 0, JSON.stringify({ dx: vp.x - vb.x, dy: vp.y - vb.y }));
+    await drag(4000, 4000); await wait(900);
+    const ve = await page.evaluate(() => window.__ok.view());
+    check('G2 büyük tahta: kaydırma tahta kenarında durur (tepsi ekran dışına kaçmaz)', ve.tray[0] * ve.s + ve.x <= 12 && ve.tray[0] * ve.s + ve.x >= -1 && ve.tray[1] * ve.s + ve.y >= 0 && ve.tray[1] * ve.s + ve.y <= 60, JSON.stringify({ l: ve.tray[0] * ve.s + ve.x, t: ve.tray[1] * ve.s + ve.y }));
+    await page.tap('#btn-fit'); await wait(600);
+    const vo = await page.evaluate(() => window.__ok.view());
+    check('G2 büyük tahta: "Sığdır" tüm tahtayı gösterir (tepsi ekranın içinde), düğme "Yakınlaştır" olur', vo.overview && !vo.pannable && vo.tray[0] * vo.s + vo.x >= 0 && vo.tray[2] * vo.s + vo.x <= vo.W && vo.tray[1] * vo.s + vo.y >= 0 && vo.tray[3] * vo.s + vo.y <= vo.H && (await page.getAttribute('#btn-fit', 'aria-label')) === I18N.tr['game.zoom_default'], JSON.stringify({ s: vo.s }));
+    { // sığdırılmış (küçük hücre) görünümde de dokunuş doğru oka gider
+      const fo = (await gs(page)).free[0]; await tapArrowTouch(page, fo); await wait(120);
+      check('G2 büyük tahta: sığdırılmış görünümde dokunuş doğru oku oynatır (hücre bazlı isabet)', !(await gs(page)).alive[fo]);
+      await idle(page);
+    }
+    await page.tap('#btn-fit'); await wait(600);
+    check('G2 büyük tahta: "Yakınlaştır" varsayılan yakınlığa döner', Math.abs((await page.evaluate(() => window.__ok.view().s)) - 1) < 1e-6);
+    await page.screenshot({ path: path.join(SHOTS, 'tr-bigboard.png') });
     // G3: rahat mod
     await page.evaluate(() => window.__ok.debugPatch({ relaxed: true, coins: 0, stars: {} }));
     await page.evaluate(() => window.__ok.startLevel(8)); await wait(300);
@@ -500,23 +520,23 @@ async function overflowReport(page) {
     const g8 = await gs(page);
     check('G3: 4 çarpışmada can bitmez, oyun sürer', !(await page.isVisible('#dead-sheet')) && g8.collisions === 4 && g8.lives === 3);
     await page.evaluate(() => window.__ok.debugPatch({ stars: {} }));
-    await winLevel(page, 9);
+    await winLevel(page, 16);
     const st9 = await ss(page);
-    check('G3: rahat modda kusursuz bitirme → en fazla 2 yıldız, yarı jeton (sv9 Aşırı zor ×3: 45/2 = 22)', st9.stars[9] === 2 && st9.coins === 22 && (await page.getAttribute('#end-sheet', 'data-stars')) === '2', JSON.stringify({ s: st9.stars[9], c: st9.coins }));
+    check('G3: rahat modda kusursuz bitirme → en fazla 2 yıldız, yarı jeton (sv16 Aşırı zor ×3: 45/2 = 22)', st9.stars[16] === 2 && st9.coins === 22 && (await page.getAttribute('#end-sheet', 'data-stars')) === '2', JSON.stringify({ s: st9.stars[16], c: st9.coins }));
     await page.tap('#end-map'); await wait(300);
     await page.evaluate(() => window.__ok.debugPatch({ relaxed: false }));
     // G7: görünüm
     await page.evaluate(() => window.__ok.show('settings')); await wait(250);
     await page.tap('#app-dark'); await wait(200);
     const dk = await page.evaluate(() => [document.documentElement.getAttribute('data-theme'), getComputedStyle(document.body).backgroundColor]);
-    check('G7: "Koyu" seçilince koyu tema (sistem açıkken)', dk[0] === 'dark' && dk[1] === 'rgb(15, 27, 39)', dk.join(' '));
+    check('G7: "Koyu" seçilince koyu tema (sistem açıkken)', dk[0] === 'dark' && dk[1] === 'rgb(20, 23, 28)', dk.join(' '));
     await page.evaluate(() => window.__ok.startLevel(5)); await wait(300);
     const px = await page.evaluate(() => { const c = document.getElementById('board'); const d = c.getContext('2d').getImageData(4, 4, 1, 1).data; return [d[0], d[1], d[2], d[3]]; });
     await page.screenshot({ path: path.join(SHOTS, 'tr-dark-game.png') });
     await page.evaluate(() => window.__ok.show('settings')); await wait(250);
     await page.tap('#app-light'); await wait(200);
     const lt = await page.evaluate(() => [document.documentElement.getAttribute('data-theme'), getComputedStyle(document.body).backgroundColor]);
-    check('G7: "Açık" seçilince açık tema', lt[0] === 'light' && lt[1] === 'rgb(227, 233, 238)', lt.join(' '));
+    check('G7: "Açık" seçilince açık tema', lt[0] === 'light' && lt[1] === 'rgb(239, 234, 226)', lt.join(' '));
     await page.tap('#app-auto'); await wait(150);
     check('G7: "Otomatik" kaydedilir', (await ss(page)).appearance === 'auto');
     // G6: dışa / içe aktar
@@ -544,27 +564,27 @@ async function overflowReport(page) {
 
   // ============================================================ G4 zorluk etiketi + G5 günlük bulmaca (aşama 5)
   if (want('daily')) {
-    check(`G4 (v1.5): ${LEVELS.length} hazır seviye (ilk 200), bölüm = 10 seviye`, LEVELS.length === 200 && require('../game/js/levelgen.js').PER_CHAPTER === 10);
+    check(`G4 (1.2.0): ${LEVELS.length} hazır seviye, bölüm = 20 seviye`, LEVELS.length === require('../game/js/levelgen.js').PREBUILT && require('../game/js/levelgen.js').PER_CHAPTER === 20);
     const LG = require('../game/js/levelgen.js');
     const bad = LEVELS.filter(L => L.diff !== LG.tierOf(L.id)).map(L => L.id);
-    check('G4 (v1.5): her seviyenin etiketi seviye kademesi (bölümde K-K-K-O-O-O-Z-Z-A-A)', bad.length === 0, bad.join(','));
+    check('G4 (1.2.0): her seviyenin etiketi seviye kademesi (bölümde 5 Kolay, 5 Orta, 5 Zor, 5 Aşırı zor)', bad.length === 0, bad.join(','));
     check('G4 (v1.5): 4 dilde kademe etiketleri (Uzman yok), 18 bölüm adı ve "Bölüm {n}" anahtarı', ['tr', 'en', 'de', 'ar'].every(l => ['easy', 'medium', 'hard', 'extreme'].every(k => I18N[l]['diff.' + k]) && !I18N[l]['diff.expert'] && Array.from({ length: 18 }, (_, i) => i + 1).every(n => I18N[l]['map.chapter' + n]) && I18N[l]['map.chapter_n'].includes('{n}')));
     // Sahte saat: 2026-10-25 12:00 (init betiği), sonra ertesi gün
     const FAKE = t => `(() => { const R = Date, off = ${t} - R.now(); class FD extends R { constructor(...a) { if (!a.length) super(R.now() + off); else super(...a); } static now() { return R.now() + off; } } window.Date = FD; })();`;
     const day1 = new Date('2026-10-25T12:00:00').getTime();
     const P = await newPage(browser, 'tr-TR', { init: FAKE(day1) + FAKE_BRIDGE, seed: base({ unlocked: 120, ads: { since: 9, lastAt: 0, adFree: false, test: false } }) });
     const page = P.page;
-    const node = await page.evaluate(() => { window.__ok.show('map'); const c = document.querySelector('.chapter[data-chapter="12"]');
+    const node = await page.evaluate(() => { window.__ok.show('map'); const c = document.querySelector('.chapter[data-chapter="6"]');
       const n = id => { const e = c.querySelector('.node[data-level="' + id + '"]'); return e ? [e.getAttribute('data-diff'), getComputedStyle(e, '::after').backgroundColor] : null; };
-      return { cur: document.querySelector('.node.current') && document.querySelector('.node.current').getAttribute('data-level'), nodes: [111, 114, 117, 119, 120].map(n), badge: !!document.querySelector('.tier-badge'), head: c.querySelector('.chapter-head h3').textContent }; });
-    check('G4 (v1.5): zorluk seviye bazında — bölüm 12 düğümleri 111 Kolay, 114 Orta, 117 Zor, 119/120 Aşırı zor', node.nodes.map(x => x && x[0]).join() === 'easy,medium,hard,extreme,extreme' && !node.badge, JSON.stringify(node.nodes));
+      return { cur: document.querySelector('.node.current') && document.querySelector('.node.current').getAttribute('data-level'), nodes: [101, 106, 111, 116, 120].map(n), badge: !!document.querySelector('.tier-badge'), head: c.querySelector('.chapter-head h3').textContent }; });
+    check('G4 (1.2.0): zorluk seviye bazında — bölüm 6 düğümleri 101 Kolay, 106 Orta, 111 Zor, 116/120 Aşırı zor', node.nodes.map(x => x && x[0]).join() === 'easy,medium,hard,extreme,extreme' && !node.badge, JSON.stringify(node.nodes));
     check('G4 (v1.5): Aşırı zor düğümü koyu kırmızı işaretli, harita açılışta oyuncunun düğümünde (120)', node.nodes[3][1] === 'rgb(179, 38, 58)' && node.cur === '120', JSON.stringify(node));
     await page.evaluate(() => window.__ok.startLevel(50)); await wait(300);
     check('G4: oyun ekranında zorluk etiketi', (await page.textContent('#game-diff')) === I18N.tr['diff.' + LEVELS[49].diff] && await page.isVisible('#game-diff'));
     await page.evaluate(() => window.__ok.show('map')); await wait(400);
-    await page.evaluate(() => window.__ok.mapScrollToChapter(7)); await wait(150);
+    await page.evaluate(() => window.__ok.mapScrollToChapter(4)); await wait(150);
     await page.evaluate(() => document.querySelector('.node[data-level="61"]').scrollIntoView({ block: 'center' })); await wait(150);
-    await page.screenshot({ path: path.join(SHOTS, 'tr-map-ch7.png') });
+    await page.screenshot({ path: path.join(SHOTS, 'tr-map-ch4.png') });
     await page.evaluate(() => window.__ok.show('menu')); await wait(300);
     check('G5: menüde günlük bulmaca, seri 0', (await page.textContent('#dp-sub')) === I18N.tr['dp.streak'].replace('{n}', '0'));
     await page.tap('#btn-dp'); await wait(300);
@@ -604,48 +624,47 @@ async function overflowReport(page) {
 
   // ============================================================ v1.2 dokunma önerisi (docs/08 §4)
   if (want('shots12')) {
+    // 1.2.0 (docs/24): isabet hücre bazlı olduğundan "önce seç, sonra fırlat" önerisi kalktı; büyük (kaydırmalı) tahtada bir kez kaydırma ipucu
     const P = await newPage(browser, 'tr-TR', { seed: Object.assign(base({ unlocked: 200 }), { tips: [] }) });
     await P.page.evaluate(() => window.__ok.startLevel(13)); await wait(400);
-    check('öneri: hücre ≥ 26 px tahtada öneri çıkmaz', !(await P.page.isVisible('#confirm-yes')));
-    await P.page.evaluate(() => window.__ok.startLevel(200)); await wait(400);
-    const sug = await P.page.isVisible('#confirm-yes') && (await P.page.textContent('#modal p')) === I18N.tr['game.aim_suggest'];
-    check('öneri: hücre < 26 px ilk büyük seviyede "yakınlaştır / önce seç, sonra fırlat" önerisi', sug);
-    await P.page.tap('#confirm-yes'); await wait(200);
-    check('öneri kabul edilince "önce seç, sonra fırlat" açılır', (await ss(P.page)).aim === true);
-    await P.page.evaluate(() => window.__ok.startLevel(199)); await wait(400);
-    check('öneri yalnızca bir kez gösterilir', !(await P.page.isVisible('#confirm-yes')));
-    const v = await P.page.evaluate(() => { window.__ok.zoomAt(100, 100, 10); return window.__ok.view().s; });
-    check('yakınlaştırma üst sınırı 5× (v1.3)', v === 5, String(v));
+    check('ipucu: sığan tahtada öneri/ipucu çıkmaz', !(await P.page.isVisible('#confirm-yes')) && !(await P.page.evaluate(() => document.getElementById('toast').classList.contains('show'))));
+    await P.page.evaluate(() => window.__ok.startLevel(176)); await P.page.waitForFunction(() => window.__ok.level() && window.__ok.level().id === 176, null, { timeout: 8000 }); await wait(400);
+    check('ipucu: ilk kaydırmalı tahtada "tek parmakla kaydır, iki parmakla yakınlaştır" bildirimi; "önce seç" onay penceresi yok', !(await P.page.isVisible('#confirm-yes')) && (await P.page.textContent('#toast')) === I18N.tr['game.pan_tip'] && (await ss(P.page)).tips.includes('zoom_tip') && (await ss(P.page)).aim === false);
+    await P.page.evaluate(() => window.__ok.startLevel(180)); await P.page.waitForFunction(() => window.__ok.level() && window.__ok.level().id === 180, null, { timeout: 8000 }); await wait(400);
+    check('ipucu yalnızca bir kez gösterilir', !(await P.page.evaluate(() => document.getElementById('toast').classList.contains('show'))));
+    const v = await P.page.evaluate(() => { window.__ok.zoomAt(100, 100, 50); const a = window.__ok.view(); window.__ok.zoomAt(100, 100, 0.01); const b = window.__ok.view(); return { hi: a.s, max: a.sMax, cellHi: a.cell * a.s, lo: b.s, min: b.sMin }; });
+    check('yakınlaştırma sınırları: en yakın hücre ≥ 50 px, en uzak = tüm tahta (sığdır)', v.hi === v.max && v.cellHi >= 50 && v.lo === v.min && v.min < 1, JSON.stringify(v));
     check('öneri: konsol hatası yok', P.errors.length === 0, P.errors.join(' | '));
     await P.ctx.close();
   }
 
   // ============================================================ v1.5 ekran görüntüleri (tools/shots/v15/, docs/15 §5)
   if (want('shots13')) {
-    const DIR15 = path.join(__dirname, 'shots', 'v15'); fs.mkdirSync(DIR15, { recursive: true });
+    const DIR15 = path.join(__dirname, 'shots', 'v12'); fs.mkdirSync(DIR15, { recursive: true });
     const seed15 = l => base({ lang: l, unlocked: 201, tutorialDone: [1, 2, 3], tips: ['aim_suggest', 'zoom_tip', 'curve_tip'] });
-    // tr: bölüm 1 (ilk kıvrımlı ok sv4, aşırı zor sv9), bölüm 10 sonu, 200 (hazır paketin son seviyesi, aşırı zor), 201 (oyunda üretilen, ilk 22x31), harita;
-    // ar ve de: birer aşırı zor seviye
-    const shots = [['tr', 'tr-TR', [4, 9, 100, 200, 201]], ['ar', 'ar-SA', [200]], ['de', 'de-DE', [199]]];
+    // 1.2.0: tr: bölüm 1 (ilk üretilen sv4, aşırı zor sv16), bölüm 5 aşırı zor (şekilli, sv96), 100 (hazır paketin son seviyesi), 101 (oyunda üretilen),
+    // 176 (28x45 aşırı zor, kaydırmalı), harita; ar ve de: birer zor/aşırı zor seviye
+    const shots = [['tr', 'tr-TR', [4, 16, 96, 100, 101, 176]], ['ar', 'ar-SA', [96]], ['de', 'de-DE', [58]]];
     for (const [l, loc, ids] of shots) {
       const P = await newPage(browser, loc, { seed: seed15(l) });
       for (const id of ids) {
         await P.page.evaluate(id => window.__ok.startLevel(id), id);
         await P.page.waitForFunction(id => window.__ok.game() && window.__ok.game().id === id && window.__ok.screen() === 'game', id, { timeout: 20000 }); await wait(500);
         const v = await P.page.evaluate(() => window.__ok.view()), g = await P.page.evaluate(() => [window.__ok.level().diff, window.__ok.level().w + 'x' + window.__ok.level().h]);
-        const ch = Math.ceil(id / 10);
-        check(`v15 görüntü ${l} sv${id} (bölüm ${ch}, ${g[0]}, ${g[1]}): tahta sığdı (ölçek 1), hücre ${v.cell.toFixed(1)} px ≥ 16`, v.s === 1 && v.cell >= 16);
-        check(`v15 görüntü ${l} sv${id}: oyun ekranında kademe etiketi`, (await P.page.textContent('#game-diff')) === I18N[l]['diff.' + g[0]]);
+        const ch = Math.ceil(id / 20);
+        check(`v12 görüntü ${l} sv${id} (bölüm ${ch}, ${g[0]}, ${g[1]}): varsayılan yakınlık (ölçek 1), hücre ${v.cell.toFixed(1)} px ≥ 18`, v.s === 1 && v.cell >= 18);
+        check(`v12 görüntü ${l} sv${id}: oyun ekranında kademe etiketi`, (await P.page.textContent('#game-diff')) === I18N[l]['diff.' + g[0]]);
         await P.page.screenshot({ path: path.join(DIR15, `${l}-ch${String(ch).padStart(3, '0')}-sv${id}-${g[0]}.png`) });
       }
       if (l === 'tr') {
         await P.page.evaluate(() => window.__ok.show('map')); await wait(600);
-        await P.page.screenshot({ path: path.join(DIR15, 'tr-map-ch21.png') });
+        await P.page.screenshot({ path: path.join(DIR15, 'tr-map-ch11.png') });
         const mi = await P.page.evaluate(() => window.__ok.mapInfo());
-        check('v15 harita: 201. seviyede açılır (bölüm 21), yalnızca birkaç bölüm DOM\'da', mi.rendered.includes(21) && mi.rendered.length <= 5 && mi.chapters === 500, JSON.stringify(mi));
-        check('v15 harita: 21. bölüm adı "Zirve II" (18 adlık döngü + Roma rakamı)', (await P.page.evaluate(() => document.querySelector('.chapter[data-chapter="21"] h3').textContent)).replace(/[\u2066\u2069]/g, '') === I18N.tr['map.chapter3'] + ' II');
+        check('v12 harita: 201. seviyede açılır (bölüm 11), yalnızca birkaç bölüm DOM\'da, 250 bölüm', mi.rendered.includes(11) && mi.rendered.length <= 5 && mi.chapters === 250, JSON.stringify(mi));
+        await P.page.evaluate(() => window.__ok.mapScrollToChapter(21)); await wait(200);
+        check('v12 harita: 21. bölüm adı "Zirve II" (18 adlık döngü + Roma rakamı)', (await P.page.evaluate(() => document.querySelector('.chapter[data-chapter="21"] h3').textContent)).replace(/[⁦⁩]/g, '') === I18N.tr['map.chapter3'] + ' II');
       }
-      check(`v15 görüntü ${l}: konsol hatası yok`, P.errors.length === 0, P.errors.join(' | '));
+      check(`v12 görüntü ${l}: konsol hatası yok`, P.errors.length === 0, P.errors.join(' | '));
       await P.ctx.close();
     }
   }
@@ -719,8 +738,8 @@ async function overflowReport(page) {
       for (let id = 1; id <= window.LEVELS.length; id++) {
         window.__ok.startLevel(id);
         let bad = 0, guard = 0;
-        while (!window.__ok.game().won && guard++ < 200) {
-          while (window.__ok.busy()) await sleep(5);
+        while (!window.__ok.game().won && guard++ < 3000) {
+          while (window.__ok.busy()) await sleep(2);
           const f = window.__ok.game().free; if (!f.length) { bad++; break; }
           const r = window.__ok.tapArrow(f[0]); if (!r || r.type !== 'exit') bad++;
         }
@@ -739,7 +758,7 @@ async function overflowReport(page) {
     let lvCoins = 0, bonus = 0; for (let id = 1; id <= LEVELS.length; id++) lvCoins += Math.round(20 * MULT[LGx.tierOf(id)]);
     bonus = (LEVELS.length / LGx.PER_CHAPTER) * LGx.CHAPTER_BONUS;
     const expCoins = 50 + lvCoins + bonus;
-    check(`ekonomi (v1.5): 50 + seviye ${lvCoins} (kademe çarpanlı) + ${LEVELS.length / LGx.PER_CHAPTER} bölüm × 150 = ${expCoins} jeton`, res.st.coins === expCoins, String(res.st.coins));
+    check(`ekonomi (1.2.0): 50 + seviye ${lvCoins} (kademe çarpanlı) + ${LEVELS.length / LGx.PER_CHAPTER} bölüm × 150 = ${expCoins} jeton`, res.st.coins === expCoins, String(res.st.coins));
     await wait(900);
     await page.screenshot({ path: path.join(SHOTS, 'en-end-last-reduced.png') });
     check('reduced-motion: bitiş ekranında yıldızlar görünür', await page.evaluate(() => [...document.querySelectorAll('#end-sheet .stars-big .ic')].every(n => getComputedStyle(n).opacity === '1')));
@@ -784,29 +803,29 @@ async function overflowReport(page) {
     }
     // ---- §5 harita: 500 bölüm, tembel liste, oyuncunun bölümünde açılış, bölüm adları
     {
-      const P = await newPage(browser, 'tr-TR', { seed: base({ unlocked: 2501, stars: {} }) });
+      const P = await newPage(browser, 'tr-TR', { seed: base({ unlocked: 2501, stars: {} }) }); // 1.2.0: bölüm = 20 seviye → 2501 = bölüm 126; 250 bölüm
       const page = P.page;
       const t0 = Date.now();
       await page.evaluate(() => window.__ok.show('map')); await wait(300);
       const info = await page.evaluate(() => window.__ok.mapInfo());
-      check('harita: 2501. seviyede açılınca oyuncunun bölümü (251) çizili, DOM\'da en çok 5 bölüm / 50 düğüm', info.rendered.includes(251) && info.rendered.length <= 5 && info.nodes <= 50 && info.chapters === 500, JSON.stringify(info));
+      check('harita: 2501. seviyede açılınca oyuncunun bölümü (126) çizili, DOM\'da en çok 5 bölüm / 100 düğüm, toplam 250 bölüm', info.rendered.includes(126) && info.rendered.length <= 5 && info.nodes <= 100 && info.chapters === 250, JSON.stringify(info));
       const cur = await page.evaluate(() => { const n = document.querySelector('.node.current'), sc = document.getElementById('map-scroll'); const r = n.getBoundingClientRect(), s = sc.getBoundingClientRect(); return { lvl: n.getAttribute('data-level'), mid: (r.top + r.bottom) / 2 - (s.top + s.bottom) / 2 }; });
       check('harita: oyuncunun düğümü (2501) ekranın ortasında', cur.lvl === '2501' && Math.abs(cur.mid) < 60, JSON.stringify(cur));
-      const names = await page.evaluate(() => [251, 252].map(c => document.querySelector('.chapter[data-chapter="' + c + '"] h3') && document.querySelector('.chapter[data-chapter="' + c + '"] h3').textContent.replace(/[⁦⁩]/g, '')));
-      check('harita: bölüm adı 18 adlık döngü + Roma rakamı (251 = "Kutup Işığı XIV")', names[0] === 'Kutup Işığı XIV' || !!names[0], JSON.stringify(names));
+      const names = await page.evaluate(() => [126, 127].map(c => document.querySelector('.chapter[data-chapter="' + c + '"] h3') && document.querySelector('.chapter[data-chapter="' + c + '"] h3').textContent.replace(/[⁦⁩]/g, '')));
+      check('harita: bölüm adı 18 adlık döngü + Roma rakamı (126 = "' + I18N.tr['map.chapter18'] + ' VII")', names[0] === I18N.tr['map.chapter18'] + ' VII', JSON.stringify(names));
       // en alta (bölüm 1) ve en üste (bölüm 500) kaydır
       await page.evaluate(() => window.__ok.mapScrollToChapter(1)); await wait(200);
       const i1 = await page.evaluate(() => window.__ok.mapInfo());
-      check('harita: bölüm 1\'e kaydırınca bölüm 1 çizilir, eskiler DOM\'dan kalkar', i1.rendered.includes(1) && !i1.rendered.includes(251) && i1.rendered.length <= 5, JSON.stringify(i1.rendered));
-      await page.evaluate(() => window.__ok.mapScrollToChapter(500)); await wait(200);
-      const i5 = await page.evaluate(() => ({ i: window.__ok.mapInfo(), name: document.querySelector('.chapter[data-chapter="500"] h3').textContent.replace(/[⁦⁩]/g, ''), lock: document.querySelector('.chapter[data-chapter="500"] .node').classList.contains('locked') }));
-      check('harita: bölüm 500 çizilir, kilitli, adı "<ad> XXVIII"', i5.i.rendered.includes(500) && i5.lock && /^\S+ XXVIII$/.test(i5.name) , JSON.stringify(i5));
+      check('harita: bölüm 1\'e kaydırınca bölüm 1 çizilir, eskiler DOM\'dan kalkar', i1.rendered.includes(1) && !i1.rendered.includes(126) && i1.rendered.length <= 5, JSON.stringify(i1.rendered));
+      await page.evaluate(() => window.__ok.mapScrollToChapter(250)); await wait(200);
+      const i5 = await page.evaluate(() => ({ i: window.__ok.mapInfo(), name: document.querySelector('.chapter[data-chapter="250"] h3').textContent.replace(/[⁦⁩]/g, ''), lock: document.querySelector('.chapter[data-chapter="250"] .node').classList.contains('locked') }));
+      check('harita: bölüm 250 çizilir, kilitli, adı "<ad> XIV"', i5.i.rendered.includes(250) && i5.lock && /^\S+ XIV$/.test(i5.name) , JSON.stringify(i5));
       // hızlı kaydırma: 40 kez rastgele konuma, DOM boyutu sabit kalır
-      const maxNodes = await page.evaluate(async () => { let mx = 0; for (let k = 0; k < 40; k++) { window.__ok.mapScrollToChapter(1 + Math.floor(Math.random() * 500)); await new Promise(r => setTimeout(r, 20)); mx = Math.max(mx, window.__ok.mapInfo().nodes); } return mx; });
-      check('harita: 40 rastgele kaydırmada DOM düğüm sayısı ≤ 50 (tembel liste)', maxNodes <= 50, String(maxNodes));
+      const maxNodes = await page.evaluate(async () => { let mx = 0; for (let k = 0; k < 40; k++) { window.__ok.mapScrollToChapter(1 + Math.floor(Math.random() * 250)); await new Promise(r => setTimeout(r, 20)); mx = Math.max(mx, window.__ok.mapInfo().nodes); } return mx; });
+      check('harita: 40 rastgele kaydırmada DOM düğüm sayısı ≤ 100 (tembel liste, bölüm = 20 düğüm)', maxNodes <= 100, String(maxNodes));
       // 4 dilde bölüm adı (Roma rakamı Arapçada da Latin)
       for (const [l, loc] of Object.entries(LOCALES)) {
-        const Q = await newPage(browser, loc, { seed: base({ lang: l, unlocked: 190 }) });
+        const Q = await newPage(browser, loc, { seed: base({ lang: l, unlocked: 370 }) }); // bölüm 19
         await Q.page.evaluate(() => window.__ok.show('map')); await wait(250);
         const nm = await Q.page.evaluate(() => { const h = n => document.querySelector('.chapter[data-chapter="' + n + '"] h3'); return [19, 20].map(n => h(n) && h(n).textContent.replace(/[⁦⁩]/g, '')); });
         check(`harita (${l}): 19. ve 20. bölüm adı = ${I18N[l]['map.chapter1']} II, ${I18N[l]['map.chapter2']} II`, nm[0] === I18N[l]['map.chapter1'] + ' II' && nm[1] === I18N[l]['map.chapter2'] + ' II', JSON.stringify(nm));
@@ -868,8 +887,8 @@ async function overflowReport(page) {
           isAdFree() { return false; }, isOnline() { return true; }, isRewardedReady() { return window.__ready; }, isInterstitialReady() { return !!window.__iready; },
           loadRewarded(id) { __calls.push('loadRewarded'); setTimeout(() => { window.__ready = true; Monetization.onNative({ id, event: 'loaded' }); }, window.__loadDelay); return true; },
           loadInterstitial(id) { __calls.push('loadInterstitial'); setTimeout(() => { window.__iready = true; Monetization.onNative({ id, event: 'loaded' }); }, 30); return true; },
-          showRewarded(id, pl) { __calls.push('rewarded:' + pl); window.__ready = false; window.__during = { paused: window.__ok.ads().paused, snd: window.SFX.isPaused() }; setTimeout(() => { Monetization.onNative({ id, event: 'rewarded' }); Monetization.onNative({ id, event: 'closed' }); }, 400); return true; },
-          showInterstitial(id) { __calls.push('interstitial'); window.__iready = false; window.__during = { paused: window.__ok.ads().paused, snd: window.SFX.isPaused() }; setTimeout(() => Monetization.onNative({ id, event: 'closed' }), 300); return true; },
+          showRewarded(id, pl) { __calls.push('rewarded:' + pl); window.__ready = false; window.__pre = window.SFX.isPaused(); setTimeout(() => { Monetization.onNative({ id, event: 'shown' }); window.__during = { paused: window.__ok.ads().paused, snd: window.SFX.isPaused(), pre: window.__pre }; }, 20); setTimeout(() => { Monetization.onNative({ id, event: 'rewarded' }); Monetization.onNative({ id, event: 'closed' }); }, 400); return true; },
+          showInterstitial(id) { __calls.push('interstitial'); window.__iready = false; window.__pre = window.SFX.isPaused(); setTimeout(() => { Monetization.onNative({ id, event: 'shown' }); window.__during = { paused: window.__ok.ads().paused, snd: window.SFX.isPaused(), pre: window.__pre }; }, 20); setTimeout(() => Monetization.onNative({ id, event: 'closed' }), 300); return true; },
           purchaseRemoveAds(id) { return false; }, restorePurchases(id) { return false; }
         };`;
       const P = await newPage(browser, 'tr-TR', { init: FAKE_PRE, seed: base({ unlocked: 40, ads: { since: 2, lastAt: 0, adFree: false, test: false } }) });
@@ -886,7 +905,7 @@ async function overflowReport(page) {
       check('önceden yükleme: geçiş reklamı seviye bitmeden (son okların çıkışında) yüklendi, tek kez', (await calls()).filter(c => c === 'loadInterstitial').length === 1, JSON.stringify(await calls()));
       await page.tap('#end-next'); await wait(150);
       const during = await page.evaluate(() => window.__during);
-      check('reklam gösterilirken oyun döngüsü + ses duraklar (geçiş)', during && during.paused === true && during.snd === true, JSON.stringify(during));
+      check('reklam gösterilirken oyun döngüsü duraklar; ses yalnızca reklam ekrana gelince ("shown") susar (geçiş, 1.1.3+)', during && during.paused === true && during.pre === false && during.snd === true, JSON.stringify(during));
       await wait(500);
       const after = await page.evaluate(() => [window.__ok.ads().paused, window.SFX.isPaused()]);
       check('reklam kapanınca devam: döngü ve ses sürer, sonraki seviye açıldı', after[0] === false && after[1] === false && (await page.evaluate(() => window.__ok.level().id)) === 22, JSON.stringify(after));
@@ -908,7 +927,7 @@ async function overflowReport(page) {
       check('"Reklam yükleniyor…" 300 ms\'den önce görünmez, uzun beklemede (>300 ms) görünür', ov1 === false && ov2 === true, JSON.stringify([ov1, ov2]));
       await wait(900);
       const dur2 = await page.evaluate(() => window.__during);
-      check('ödüllü gösterilirken oyun döngüsü + ses duraklar, sonra devam eder', dur2 && dur2.paused === true && dur2.snd === true && !(await page.evaluate(() => window.__ok.ads().paused)) && !(await page.evaluate(() => window.SFX.isPaused())), JSON.stringify(dur2));
+      check('ödüllü gösterilirken oyun döngüsü duraklar, ses "shown" ile susar, sonra devam eder (1.1.3+)', dur2 && dur2.paused === true && dur2.pre === false && dur2.snd === true && !(await page.evaluate(() => window.__ok.ads().paused)) && !(await page.evaluate(() => window.SFX.isPaused())), JSON.stringify(dur2));
       check('ödüllü: yükleme tamamlanınca kaplama kalkar', !(await page.evaluate(() => !!document.getElementById('ad-loading'))));
       check('reklam duraklatma: konsol hatası yok', P.errors.length === 0, P.errors.join(' | '));
       await P.ctx.close();

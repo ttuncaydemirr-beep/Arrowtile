@@ -1,13 +1,13 @@
-// Arrowtile — 5.000 seviyenin tamamını üretip doğrular (docs/15 §5). Kullanım:
+// Arrowtile — 5.000 seviyenin tamamını üretip doğrular (1.2.0, docs/24). Kullanım:
 //   node tools/verify-5000.js [--from 1] [--to 5000] [--workers N] [--out tools/level-hashes.json] [--no-write]
 // Her seviye oyunun kendi üreticisiyle (LevelGen.makeLevel) üretilir ve BAĞIMLI OLMAYAN çözücüyle (tools/solver.js) denetlenir:
-//   yapı, çözülebilirlik (iki çözücü uyuşur), par = ok sayısı, ızgara = specFor(id), doluluk kademe bandında, başta çıkabilen
-//   ≤ kademe sınırı (en az 1), seviye 1-3 öğretici, seviye 4 kıvrımlı ok içerir, üretim süresi.
-// Bölüm düzeyinde: aynı bölümde Kolay < Orta < Zor < Aşırı zor (ortalama puan); aynı kademe bölümden bölüme gevşek monoton
-// artar (10 bölümlük pencerelerde, tahta büyüyüp sabitlenene dek); kıvrımlı oran hedefin en çok 0,12 altında.
+//   yapı (maske dahil), çözülebilirlik (iki çözücü uyuşur), par = ok sayısı, ızgara = specFor(id), tahta biçimi planı, doluluk kademe
+//   bandında, başta çıkabilen ≤ kademe sınırı (en az 1), seviye 1-3 öğretici, üretim süresi.
+// Bölüm düzeyinde: aynı bölümde Kolay < Orta < Zor < Aşırı zor (ortalama puan, dönüş, uzunluk); büyüme döngüsü içinde aynı kademenin
+// ok sayısı bölümden bölüme artar (ok sayısı alanla büyür).
 // Çıktı: tools/level-hashes.json — her seviyenin kanonik serileştirmesinin FNV-1a 32 özeti (LevelGen.canon / levelHash);
 // Flutter altın testi rastgele örneklenen seviyelerde Dart üreticisinin aynı özeti verdiğini denetler.
-// Hazır paket (game/js/levels.js, ilk 200) de aynı özetlerle karşılaştırılır. Çok çekirdekte worker_threads kullanır.
+// Hazır paket (game/js/levels.js) de aynı özetlerle karşılaştırılır. Çok çekirdekte worker_threads kullanır.
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -15,19 +15,20 @@ const vm = require('vm');
 const os = require('os');
 const { Worker, isMainThread, parentPort, workerData } = require('worker_threads');
 const LG = require('../game/js/levelgen.js');
-const { checkLevelData, CURVE_TOL } = require('./level-checks');
+const { checkLevelData, checkChapter, growTol, tierGrew } = require('./level-checks');
 
 const TIER_ORDER = ['easy', 'medium', 'hard', 'extreme'];
 const TR = { easy: 'Kolay', medium: 'Orta', hard: 'Zor', extreme: 'Aşırı zor' };
 
 function checkLevel(id) {
-  const t0 = Date.now();
+  const t0 = process.hrtime.bigint();
   const lv = LG.makeLevel(id);
-  const ms = Date.now() - t0;
+  const ms = Number(process.hrtime.bigint() - t0) / 1e6;
   const full = { id, w: lv.w, h: lv.h, par: lv.par, diff: lv.diff, arrows: lv.arrows };
+  if (lv.mask) full.mask = lv.mask;
   const c = checkLevelData(full), m = c.m;
   return { id, hash: LG.levelHash(full), ms, tier: c.tier, w: lv.w, h: lv.h, n: m.arrows, fill: m.fill, free: m.initialFree, depth: m.depth, score: m.score,
-    curved: m.curvedRatio, ok: !!lv.ok, rounds: lv.rounds, inWindow: c.inWindow, errs: c.errs };
+    turns: m.meanTurns, len: m.meanLen, maxLen: m.maxLen, shaped: !!lv.mask, ok: !!lv.ok, rounds: lv.rounds, soft: c.soft, errs: c.errs };
 }
 
 if (!isMainThread) {
@@ -92,38 +93,22 @@ async function main() {
   const mean = (a, f) => a.reduce((s, x) => s + f(x), 0) / a.length;
   const chapters = Object.keys(chMap).map(Number).sort((a, b) => a - b).map(ch => {
     const by = {}; TIER_ORDER.forEach(t => { by[t] = chMap[ch].filter(r => r.tier === t); });
-    const c = { ch, size: `${chMap[ch][0].w}x${chMap[ch][0].h}`, by, mean: {} };
-    TIER_ORDER.forEach(t => { c.mean[t] = by[t].length ? mean(by[t], r => r.score) : null; });
+    const c = { ch, size: `${chMap[ch][chMap[ch].length - 1].w}x${chMap[ch][chMap[ch].length - 1].h}`, by, mean: {}, n: {} };
+    TIER_ORDER.forEach(t => { c.mean[t] = by[t].length ? mean(by[t], r => r.score) : null; c.n[t] = by[t].length ? mean(by[t], r => r.n) : null; });
     return c;
   });
-  let orderFails = 0;
+  let orderFails = 0, growFails = 0;
   chapters.forEach(c => {
-    let prev = null;
-    for (const t of TIER_ORDER) {
-      if (c.mean[t] == null) continue;
-      if (prev && !(c.mean[t] > c.mean[prev])) { bad(`bölüm ${c.ch}: ${TR[t]} (${c.mean[t].toFixed(1)}) ${TR[prev]} (${c.mean[prev].toFixed(1)}) ortalamasından zor değil`); orderFails++; }
-      prev = t;
-    }
+    const e = checkChapter(c.ch, chMap[c.ch]); e.forEach(bad); orderFails += e.length;
   });
-  // aynı kademe bölümden bölüme gevşek monoton artar: tahta büyürken (bölüm 1–20) 10 bölümlük pencere ortalamaları %4 toleransla azalmaz;
-  // tahta sabitlendikten sonra (bölüm 21+) pencereler plato ortalamasının ±%6'sı içinde kalır (sistematik düşüş/artış yok)
-  const WIN = 10, mono = {};
-  for (const t of TIER_ORDER) {
-    const blocks = [];
-    for (let s = 0; s < chapters.length; s += WIN) {
-      const rs = []; chapters.slice(s, s + WIN).forEach(c => c.by[t].forEach(r => rs.push(r)));
-      if (rs.length >= 8) blocks.push({ from: chapters[s].ch, score: mean(rs, r => r.score), depth: mean(rs, r => r.depth), curved: mean(rs, r => r.curved) });
-    }
-    mono[t] = blocks;
-    const grow = blocks.filter(b => b.from <= 11), plateau = blocks.filter(b => b.from >= 21);
-    for (let k = 1; k < grow.length; k++) if (grow[k].score < grow[k - 1].score * 0.96) bad(`${TR[t]}: bölüm ${grow[k].from}+ penceresi (${grow[k].score.toFixed(1)}) önceki pencereden (${grow[k - 1].score.toFixed(1)}) düşük`);
-    if (grow.length && plateau.length && plateau[0].score < grow[grow.length - 1].score * 0.96) bad(`${TR[t]}: plato (bölüm 21+) büyüme evresinin gerisine düştü`);
-    if (plateau.length) {
-      const pm = plateau.reduce((s, b) => s + b.score, 0) / plateau.length;
-      plateau.forEach(b => { if (Math.abs(b.score - pm) > pm * 0.06) bad(`${TR[t]}: bölüm ${b.from}+ penceresi (${b.score.toFixed(1)}) plato ortalamasından (${pm.toFixed(1)}) %6'dan fazla sapıyor`); });
-    }
-    blocks.forEach(b => { if (b.curved < LG.TIERS[t].curve - CURVE_TOL[t]) bad(`${TR[t]}: bölüm ${b.from}+ kıvrımlı oran %${(b.curved * 100).toFixed(0)} hedefin (%${LG.TIERS[t].curve * 100}) çok altında`); });
+  // ok sayısı alanla artar: büyüme döngüsü içinde aynı kademe, bölümden bölüme
+  for (let k = 1; k < chapters.length; k++) {
+    const a = chapters[k - 1], b = chapters[k];
+    if (b.ch !== a.ch + 1 || (b.ch - 1) % LG.GROW_CHAPTERS === 0) continue;
+    for (const t of TIER_ORDER) if (a.n[t] != null && b.n[t] != null && a.by[t].length === 5 && tierGrew(t, b.ch) && !(b.n[t] > a.n[t] * growTol(t))) { bad(`${TR[t]}: bölüm ${b.ch} ok sayısı (${b.n[t].toFixed(0)}) bölüm ${a.ch} (${a.n[t].toFixed(0)}) değerinden fazla değil`); growFails++; }
   }
+  // şekilli tahtalar: yeterince büyük bölümlerde Aşırı zor seviyelerin en az 3'ü şekilli
+  chapters.forEach(c => { if (LG.sizeOfChapter(c.ch).w >= 14 && c.by.extreme.length === 5 && c.by.extreme.filter(r => r.shaped).length < 3) bad(`bölüm ${c.ch}: şekilli Aşırı zor tahta < 3`); });
 
   // 3) hazır paket == üretici
   try {
@@ -135,35 +120,36 @@ async function main() {
   } catch (e) { bad('levels.js okunamadı: ' + e.message); }
 
   // 4) belirlenimlilik: temiz bir süreçte (bu iş parçacığında) yeniden üretim aynı özeti verir
-  const samples = [4, 17, 38, 99, 150, 201, 777, 2500, 4999, 5000].filter(i => i >= FROM && i <= TO);
+  const samples = [4, 17, 38, 96, 100, 101, 176, 180, 777, 2500, 4999, 5000].filter(i => i >= FROM && i <= TO);
   samples.forEach(id => { const h = LG.levelHash(LG.makeLevel(id)); if (h !== R[id - FROM].hash) bad(`seviye ${id} belirlenimli değil (${h} ≠ ${R[id - FROM].hash})`); });
 
   // 5) süre istatistiği
   const stat = (arr) => { const a = arr.slice().sort((x, y) => x - y); return { n: a.length, avg: a.reduce((s, x) => s + x, 0) / a.length, p50: a[Math.floor(a.length * 0.5)], p95: a[Math.floor(a.length * 0.95)], max: a[a.length - 1] }; };
   const timeBy = {};
   TIER_ORDER.forEach(t => { const rs = R.filter(r => r.tier === t && r.id > 3); if (rs.length) timeBy[t] = stat(rs.map(r => r.ms)); });
-  const maxBoard = R.filter(r => r.w === LG.MAX_W && r.h === LG.MAX_H && r.id > 3);
-  const extMax = maxBoard.filter(r => r.tier === 'extreme');
-  const extStat = extMax.length ? stat(extMax.map(r => r.ms)) : null;
-  if (extStat && extStat.avg > 1500) bad(`Aşırı zor, en büyük tahta: ortalama üretim ${extStat.avg.toFixed(0)} ms > 1500 ms`);
+  const maxBoard = R.filter(r => { const cs = LG.sizeOfChapter(LG.chapterOf(r.id)); return cs.w === LG.MAX_W && cs.h === LG.MAX_H; }); // en büyük bölüm (1.2.0 #2: Kolay/Orta daha küçük tahtada)
+  const maxBy = {}; TIER_ORDER.forEach(t => { const rs = maxBoard.filter(r => r.tier === t); if (rs.length) maxBy[t] = stat(rs.map(r => r.ms)); });
+  const extStat = maxBy.extreme || null;
+  if (extStat && extStat.p95 > 1500) bad(`Aşırı zor, en büyük tahta: üretim p95 ${extStat.p95.toFixed(0)} ms > 1500 ms`);
   const slowest = R.slice().sort((a, b) => b.ms - a.ms)[0];
-  if (slowest.ms > 20000) bad(`seviye ${slowest.id} üretimi ${slowest.ms} ms (> 20 sn)`);
+  if (slowest.ms > 5000) bad(`seviye ${slowest.id} üretimi ${slowest.ms.toFixed(0)} ms (> 5 sn)`);
 
   // rapor
-  const notOk = R.filter(r => !r.ok && r.id > 3), outWin = R.filter(r => !r.inWindow && r.id > 3);
-  console.log(`\nüretilen: ${R.length} seviye (${FROM}–${TO}), işçi: ${WORKERS}, süre: ${wall.toFixed(0)} sn (${(wall / 60).toFixed(1)} dk), CPU toplamı ${(R.reduce((s, r) => s + r.ms, 0) / 1000).toFixed(0)} sn`);
-  console.log(`seviye hatası (yapı/çözülebilirlik/bant): ${R.filter(r => r.errs.length).length}; bölüm içi sıra ihlali: ${orderFails}; yumuşak kısıt (derinlik penceresi/kıvrımlı oran) dışında kalan: ${notOk.length}, derinlik penceresi dışında: ${outWin.length}`);
-  console.log('\nüretim süresi (ms)   adet    ort    p50    p95    maks');
-  TIER_ORDER.forEach(t => { const s = timeBy[t]; if (s) console.log(`  ${TR[t].padEnd(16)} ${String(s.n).padStart(5)} ${s.avg.toFixed(0).padStart(6)} ${String(s.p50).padStart(6)} ${String(s.p95).padStart(6)} ${String(s.max).padStart(7)}`); });
-  if (extStat) console.log(`  Aşırı zor 22x31   ${String(extStat.n).padStart(5)} ${extStat.avg.toFixed(0).padStart(6)} ${String(extStat.p50).padStart(6)} ${String(extStat.p95).padStart(6)} ${String(extStat.max).padStart(7)}`);
-  console.log(`  en yavaş seviye: ${slowest.id} (${slowest.ms} ms, ${TR[slowest.tier]}, ${slowest.w}x${slowest.h})`);
-  console.log('\nbölüm   ızgara   Kolay   Orta    Zor     Aşırı zor  (ort. puan)');
-  const printCh = (c) => console.log(`${String(c.ch).padStart(5)}   ${c.size.padEnd(6)} ${TIER_ORDER.map(t => (c.mean[t] == null ? '-' : c.mean[t].toFixed(1)).padStart(7)).join(' ')}`);
-  chapters.filter(c => c.ch <= 12).forEach(printCh);
+  const notOk = R.filter(r => !r.ok && r.id > 3);
+  const f1 = (x) => x.toFixed(1).padStart(7);
+  console.log(`\nüretilen: ${R.length} seviye (${FROM}–${TO}), işçi: ${WORKERS}, süre: ${wall.toFixed(0)} sn, CPU toplamı ${(R.reduce((s, r) => s + r.ms, 0) / 1000).toFixed(1)} sn`);
+  console.log(`seviye hatası (yapı/çözülebilirlik/bant/biçim): ${R.filter(r => r.errs.length).length}; bölüm içi sıra ihlali: ${orderFails}; ok sayısı büyüme ihlali: ${growFails}; yumuşak kısıt (ort. dönüş) dışında kalan: ${notOk.length}; şekilli tahta: ${R.filter(r => r.shaped).length}`);
+  console.log('\nüretim süresi (ms)        adet     ort     p50     p95    maks');
+  TIER_ORDER.forEach(t => { const s = timeBy[t]; if (s) console.log(`  ${TR[t].padEnd(20)} ${String(s.n).padStart(5)} ${f1(s.avg)} ${f1(s.p50)} ${f1(s.p95)} ${f1(s.max)}`); });
+  TIER_ORDER.forEach(t => { const s = maxBy[t], sz = LG.sizeOf((LG.GROW_CHAPTERS - 1) * LG.PER_CHAPTER + TIER_ORDER.indexOf(t) * 5 + 1); if (s) console.log(`  ${(TR[t] + ' ' + sz.w + 'x' + sz.h).padEnd(20)} ${String(s.n).padStart(5)} ${f1(s.avg)} ${f1(s.p50)} ${f1(s.p95)} ${f1(s.max)}`); });
+  console.log(`  en yavaş seviye: ${slowest.id} (${slowest.ms.toFixed(0)} ms, ${TR[slowest.tier]}, ${slowest.w}x${slowest.h})`);
+  console.log('\nbölüm   ızgara   puan Kolay / Orta / Zor / Aşırı zor        ok sayısı K / O / Z / A');
+  const printCh = (c) => console.log(`${String(c.ch).padStart(5)}   ${c.size.padEnd(6)} ${TIER_ORDER.map(t => (c.mean[t] == null ? '-' : c.mean[t].toFixed(1)).padStart(7)).join(' ')}      ${TIER_ORDER.map(t => (c.n[t] == null ? '-' : c.n[t].toFixed(0)).padStart(5)).join(' ')}`);
+  chapters.filter(c => c.ch <= LG.GROW_CHAPTERS + 1).forEach(printCh);
   console.log('  ...');
-  chapters.filter(c => c.ch > 12 && c.ch % 50 === 0).forEach(printCh);
-  console.log('\nkademe, 10 bölümlük pencere ortalama puanı (gevşek monoton artış):');
-  TIER_ORDER.forEach(t => console.log(`  ${TR[t].padEnd(10)} ` + mono[t].map(b => b.score.toFixed(0)).join(' ')));
+  chapters.filter(c => c.ch > LG.GROW_CHAPTERS + 1 && c.ch % 50 === 0).forEach(printCh);
+  const ex = R.filter(r => r.tier === 'extreme' && r.w >= 14), hd = R.filter(r => r.tier === 'hard' && r.w >= 14);
+  if (ex.length) console.log(`\nAşırı zor (tahta ≥ 14 sütun): ort. dönüş ${mean(ex, r => r.turns).toFixed(2)}, ort. ok uzunluğu ${mean(ex, r => r.len).toFixed(1)}, en uzun ok ort. ${mean(ex, r => r.maxLen).toFixed(0)}; Zor: ort. dönüş ${hd.length ? mean(hd, r => r.turns).toFixed(2) : '-'}, ort. uzunluk ${hd.length ? mean(hd, r => r.len).toFixed(1) : '-'}`);
 
   if (full && !args.includes('--no-write')) {
     const doc = { format: 'FNV-1a 32 (UTF-8/ASCII kod birimleri), 8 onaltılık hane, LevelGen.canon(level) üzerinden; hashes[i] = seviye i+1',

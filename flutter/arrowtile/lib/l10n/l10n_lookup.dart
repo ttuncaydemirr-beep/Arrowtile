@@ -109,3 +109,51 @@ String langEndonym(AppLocalizations loc, String l) {
       return loc.langEn;
   }
 }
+
+/// 1.2.0 seviye sonu kutlaması: kademe × performans mesajı (i18n.js `cel.<kademe>.<performans>`, "|" ile ayrılmış 3 seçenek).
+/// [perf]: flawless | l1 | l2 | ad.
+String celVariants(AppLocalizations loc, String tier, String perf) {
+  switch ('$tier.$perf') {
+    case 'easy.flawless':
+      return loc.celEasyFlawless;
+    case 'easy.l1':
+      return loc.celEasyL1;
+    case 'easy.l2':
+      return loc.celEasyL2;
+    case 'easy.ad':
+      return loc.celEasyAd;
+    case 'medium.flawless':
+      return loc.celMediumFlawless;
+    case 'medium.l1':
+      return loc.celMediumL1;
+    case 'medium.l2':
+      return loc.celMediumL2;
+    case 'medium.ad':
+      return loc.celMediumAd;
+    case 'hard.flawless':
+      return loc.celHardFlawless;
+    case 'hard.l1':
+      return loc.celHardL1;
+    case 'hard.l2':
+      return loc.celHardL2;
+    case 'hard.ad':
+      return loc.celHardAd;
+    case 'extreme.flawless':
+      return loc.celExtremeFlawless;
+    case 'extreme.l1':
+      return loc.celExtremeL1;
+    case 'extreme.l2':
+      return loc.celExtremeL2;
+    case 'extreme.ad':
+      return loc.celExtremeAd;
+  }
+  return loc.endTitle;
+}
+
+/// "a|b|c" seçeneklerinden birini seçer ([pick] 0..1; çağıran rastgele verir).
+String pickVariant(String variants, double pick) {
+  final List<String> v = variants.split('|').where((String s) => s.trim().isNotEmpty).toList();
+  if (v.isEmpty) return variants;
+  final int i = (pick * v.length).floor().clamp(0, v.length - 1).toInt();
+  return v[i];
+}

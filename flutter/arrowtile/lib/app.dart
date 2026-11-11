@@ -56,6 +56,7 @@ class _ArrowtileAppState extends State<ArrowtileApp> with WidgetsBindingObserver
     return ThemeData(
       useMaterial3: true,
       brightness: b,
+      fontFamily: kAppFont, // 1.2.0: Readex Pro (pakette, OFL 1.1)
       scaffoldBackgroundColor: p.bgC,
       canvasColor: p.bgC,
       colorScheme: ColorScheme.fromSeed(seedColor: p.accentC, brightness: b).copyWith(surface: p.boardC, primary: p.accentC),

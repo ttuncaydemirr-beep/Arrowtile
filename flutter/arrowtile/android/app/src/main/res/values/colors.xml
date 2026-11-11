@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Oyunun açık tema arka planı (lib/ui/theme/tokens.dart: bg) -->
-    <color name="app_bg">#E3E9EE</color>
+    <!-- Oyunun açık tema arka planı (lib/ui/tokens.dart: bg; 1.2.0 "Kum ve Mürekkep") -->
+    <color name="app_bg">#EFEAE2</color>
 </resources>

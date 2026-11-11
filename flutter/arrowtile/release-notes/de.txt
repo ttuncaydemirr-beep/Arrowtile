@@ -1,4 +1,8 @@
-Version 1.1.6
-- Behoben: Auf manchen Handys wurde der Spielbildschirm in den oberen Teil des Displays gequetscht.
-- Der Spielbildschirm läuft bei großer Schrift nicht mehr über.
-- Kleine Verbesserungen und Stabilitätskorrekturen.
+Version 1.2.0
+- Kapitel haben jetzt 20 Level: Leicht, Mittel, Schwer und Sehr schwer; das Brett wächst von Kapitel zu Kapitel.
+- Neue lange, verschlungene Pfeile und geformte Bretter.
+- Große Bretter: verschieben, mit zwei Fingern zoomen, „Einpassen“-Taste; tippe auf ein Feld des Pfeils.
+- Pfeile folgen beim Verlassen ihrem eigenen Weg, mit neuem Windgeräusch.
+- Fackel-Feier und Tempo-Abzeichen am Levelende.
+- Einstellungen: Pfeilfarbe (Bunt / Einfarbig).
+- Neue Farben und neue Schrift.

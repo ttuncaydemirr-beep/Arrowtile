@@ -13,7 +13,10 @@ const out = L.map((lv, i) => {
   if (lv.id !== i + 1) throw new Error('id sırası bozuk: ' + lv.id);
   lv.arrows.forEach(a => { if (!a.cells || !a.dir) throw new Error('eski biçim ok: seviye ' + lv.id); });
   if (LG.levelHash(lv) !== HASHES[i]) throw new Error('seviye ' + lv.id + ' tools/level-hashes.json özetiyle uyuşmuyor (verify-5000 çalıştırın)');
-  return { id: lv.id, w: lv.w, h: lv.h, par: lv.par, diff: lv.diff, arrows: lv.arrows.map(a => ({ cells: a.cells, dir: a.dir })) };
+  const o = { id: lv.id, w: lv.w, h: lv.h, par: lv.par, diff: lv.diff };
+  if (lv.mask) o.mask = lv.mask; // 1.2.0: şekilli tahta (satırlar, '1' = oynanabilir)
+  o.arrows = lv.arrows.map(a => ({ cells: a.cells, dir: a.dir }));
+  return o;
 });
 const dst = path.join(ROOT, 'flutter', 'arrowtile', 'lib', 'data', 'levels.json');
 fs.mkdirSync(path.dirname(dst), { recursive: true });

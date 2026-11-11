@@ -868,11 +868,8 @@ GenResult? generate(GenSpec spec, int seed) {
   return j.result();
 }
 
-// ---- v1.5 (docs/15 §5) bölüm yapısı: bölüm = 10 seviye, ZORLUK SEVİYE BAZINDA döner ----
-// Bölüm içi sıra: 1-2-3 Kolay, 4-5-6 Orta, 7-8 Zor, 9-10 Aşırı zor. Tahta bölüm bölüm büyür (bölüm içinde sabit).
-// specFor(id) SAF bir fonksiyondur (yalnızca seviye numarasına bağlı); game/js/levelgen.js ile birebir aynı tamsayı işlemleri.
-const List<String> kCycle = <String>['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard', 'extreme', 'extreme'];
-
+// ---- eski kademe tablosu (v1.5): YALNIZCA günlük bulmaca (daily.dart, eski build/generate) kullanır ----
+// Değiştirmeyin: günlük bulmaca değişir (web: game/js/levelgen.js TIERS).
 class Tier {
   final double fill;
   final List<double> band;
@@ -889,22 +886,84 @@ const Map<String, Tier> kTiers = <String, Tier>{
   'extreme': Tier(0.905, <double>[0.88, 0.93], 0.02, 0.65, 3),
 };
 
-/// Derinlik penceresi (docs/15 §5): kademenin derinliği, tahta büyüklüğüne göre beklenen "kolay" derinliğinin (E) katı aralığında.
-/// Üst sınır null = sınırsız.
-const Map<String, List<double?>> kDepthWin = <String, List<double?>>{
-  'easy': <double?>[0.0, 1.10],
-  'medium': <double?>[1.12, 1.24],
-  'hard': <double?>[1.25, 1.42],
-  'extreme': <double?>[1.45, null],
+// =====================================================================================================================
+// v2 — sürüm 1.2.0 (docs/24, docs/26): game/js/levelgen.js build2/makeMask/measure2/specFor/levelJob'un satır satır karşılığı.
+// Bölüm = 20 seviye (5 Kolay → 5 Orta → 5 Zor → 5 Aşırı zor). Bölüm tahtası GROW_CHAPTERS bölümde 9x13'ten 28x45'e büyür, sonra
+// en küçüğe döner. 1.2.0 sahip kararı #2: Kolay/Orta seviyeler bölüm tahtasından KÜÇÜK tahtada oynanır (TIER_SIZE_PCT).
+// KURAL: rand() çağrı sırası/sayısı, tamsayı bölmeler ve kayan nokta işlem sırası JS ile birebir aynıdır (altın test:
+// tools/level-hashes.json). Yalnızca + − × ÷ ve √ (IEEE-kesin) kullanılır.
+// =====================================================================================================================
+
+const int kPerChapter = 20;
+const int kPrebuilt = 100; // pakette hazır seviyeler; sonrası oyunda (arka plan izolatında) üretilir
+const int kDesigned = 5000; // tasarlanmış (CI'da doğrulanmış) seviye sayısı; sonrası sonsuz devam (aynı kural)
+const int kChapters = 250;
+const int kChapterBonus = 150;
+
+/// AYAR: en küçük tahtadan en büyüğe kaç bölümde varılır (sonraki bölüm yine en küçüğe döner). Sahip onayı: 9.
+const int kGrowChapters = 9;
+const int kMinW = 9;
+const int kMinH = 13;
+const int kMaxW = 28;
+const int kMaxH = 45;
+const List<String> kTierOrder = <String>['easy', 'medium', 'hard', 'extreme'];
+const int kTierSpan = 5;
+final List<String> kCycle = List<String>.unmodifiable(<String>[for (int i = 0; i < kPerChapter; i++) kTierOrder[i ~/ kTierSpan]]);
+
+/// AYAR (sahip kararı #2): kademe tahtası = bölüm tahtasının kenar yüzdesi (en-boy korunur). Kolay %71 (alanın ≈ %50'si),
+/// Orta %85 (≈ %72), Zor %95 (≈ %90), Aşırı zor %100. Hiçbir kenar en küçük tahtanın altına inmez.
+const Map<String, int> kTierSizePct = <String, int>{'easy': 71, 'medium': 85, 'hard': 95, 'extreme': 100};
+
+/// Kademe ayarları (JS TIER2). Alan anlamları game/js/levelgen.js TIER2 açıklamasında.
+class Tier2 {
+  final double fill;
+  final double band0, band1;
+  final double free;
+  final double maxFree;
+  final int minFree;
+  final int len0, len1;
+  final int turns0, turns1;
+  final double turn, same, hug, deep;
+  final int ext;
+  final int filler;
+  final int tries;
+  final double minTurns;
+  final double mult;
+  const Tier2({
+    required this.fill,
+    required this.band0,
+    required this.band1,
+    required this.free,
+    required this.maxFree,
+    required this.minFree,
+    required this.len0,
+    required this.len1,
+    required this.turns0,
+    required this.turns1,
+    required this.turn,
+    required this.same,
+    required this.hug,
+    required this.deep,
+    required this.ext,
+    required this.filler,
+    required this.tries,
+    required this.minTurns,
+    required this.mult,
+  });
+}
+
+const Map<String, Tier2> kTier2 = <String, Tier2>{
+  'easy': Tier2(fill: 0.60, band0: 0.50, band1: 0.70, free: 0.15, maxFree: 0.24, minFree: 3, len0: 2, len1: 5, turns0: 0, turns1: 1,
+      turn: 0.25, same: 0.5, hug: 0.15, deep: 0.0, ext: 0, filler: 2, tries: 1, minTurns: 0.10, mult: 1),
+  'medium': Tier2(fill: 0.72, band0: 0.64, band1: 0.80, free: 0.09, maxFree: 0.14, minFree: 3, len0: 3, len1: 9, turns0: 1, turns1: 3,
+      turn: 0.45, same: 0.5, hug: 0.35, deep: 0.3, ext: 1, filler: 2, tries: 2, minTurns: 0.6, mult: 1.5),
+  'hard': Tier2(fill: 0.82, band0: 0.75, band1: 0.89, free: 0.05, maxFree: 0.08, minFree: 2, len0: 5, len1: 16, turns0: 2, turns1: 6,
+      turn: 0.6, same: 0.6, hug: 0.6, deep: 0.6, ext: 1, filler: 2, tries: 4, minTurns: 1.5, mult: 2),
+  'extreme': Tier2(fill: 0.90, band0: 0.83, band1: 0.96, free: 0.03, maxFree: 0.05, minFree: 2, len0: 8, len1: 28, turns0: 4, turns1: 9,
+      turn: 0.75, same: 0.65, hug: 0.9, deep: 0.85, ext: 1, filler: 2, tries: 8, minTurns: 2.6, mult: 3),
 };
 
-const int kPerChapter = 10;
-const int kPrebuilt = 200; // pakette hazır seviyeler; sonrası oyunda üretilir
-const int kDesigned = 5000; // tasarlanmış (CI'da doğrulanmış) seviye sayısı; sonrası sonsuz devam
-const int kChapters = 500;
-const int kChapterBonus = 150;
-const int kMaxW = 22;
-const int kMaxH = 31;
+const int kMaxArrowLen = 48; // yapı denetimi üst sınırı (kuyruk uzatma dahil)
 
 /// Seviye 1-3: elle tasarlanmış öğretici (değişmez, düz oklar). Biçim: (x, y, dir, len).
 const List<({int w, int h, List<(int, int, String, int)> arrows})> kTutorial = <({int w, int h, List<(int, int, String, int)> arrows})>[
@@ -914,52 +973,582 @@ const List<({int w, int h, List<(int, int, String, int)> arrows})> kTutorial = <
 ];
 
 int chapterOf(int id) => (id - 1) ~/ kPerChapter + 1;
-int indexOf(int id) => (id - 1) % kPerChapter; // bölüm içi sıra, 0..9
+int indexOf(int id) => (id - 1) % kPerChapter; // bölüm içi sıra, 0..19
 String tierOf(int id) => kCycle[(id - 1) % kPerChapter]; // SEVİYE kademesi
 
-/// Tahta boyu yalnızca bölüme bağlıdır (tamsayı işlemleri): bölüm 1 = 7x9, bölüm 21+ = 22x31 (sabit).
+/// Bölüm tahtası (yalnızca bölüme bağlı; tamsayı işlemleri): büyüme döngüsünün g. adımı, doğrusal + yuvarlama.
 ({int w, int h}) sizeOfChapter(int ch) {
-  final int t = ch - 1;
-  return (w: math.min(kMaxW, 7 + (t * 3 + 2) ~/ 4), h: math.min(kMaxH, 9 + (t * 11 + 5) ~/ 10));
+  const int d = kGrowChapters - 1;
+  final int g = (ch - 1) % kGrowChapters;
+  // ignore: dead_code
+  if (d <= 0) return (w: kMaxW, h: kMaxH);
+  return (
+    w: kMinW + ((kMaxW - kMinW) * g * 2 + d) ~/ (2 * d),
+    h: kMinH + ((kMaxH - kMinH) * g * 2 + d) ~/ (2 * d),
+  );
 }
 
-/// Seviye numarasından üretim özellikleri (saf fonksiyon).
-GenSpec specFor(int id) {
+int _scaleDim(int v, int pct, int min) {
+  final int r = (v * pct * 2 + 100) ~/ 200;
+  return r < min ? min : r;
+}
+
+/// Seviyenin tahtası: bölüm tahtası × kademe ölçeği ([kTierSizePct]).
+({int w, int h}) sizeOf(int id) {
+  final ({int w, int h}) cs = sizeOfChapter(chapterOf(id));
+  final int pct = kTierSizePct[tierOf(id)]!;
+  if (pct >= 100) return cs;
+  return (w: _scaleDim(cs.w, pct, kMinW), h: _scaleDim(cs.h, pct, kMinH));
+}
+
+/// Aşırı zor seviyelerin tahta biçimi (bölüm içi sıra 15..19): yeterince büyük tahtada şekilli.
+const List<String> kShapes = <String>['organic', 'ring', 'full', 'ringOrganic', 'ring'];
+const int kShapeMinW = 14;
+
+String shapeOf(int id) {
+  final ({int w, int h}) sz = sizeOf(id);
+  if (tierOf(id) != 'extreme' || sz.w < kShapeMinW) return 'full';
+  return kShapes[(indexOf(id) - 15 + chapterOf(id)) % kShapes.length];
+}
+
+/// specFor(id) sonucu (saf; yalnızca seviye numarasına bağlı).
+class LevelSpec {
+  final int id;
+  final int chapter;
+  final int index;
+  final String tier;
+  final int w;
+  final int h;
+  final String shape;
+  final Tier2 p;
+  final int seed;
+  const LevelSpec(this.id, this.chapter, this.index, this.tier, this.w, this.h, this.shape, this.p, this.seed);
+}
+
+LevelSpec specFor(int id) {
   final int ch = chapterOf(id);
   final String tier = tierOf(id);
-  final Tier T = kTiers[tier]!;
-  final ({int w, int h}) sz = sizeOfChapter(ch);
-  final int maxLen = math.min(8, 4 + sz.w ~/ 4);
-  // hafif onarım (effort 12 / passes 6 / cycles 2): uzun onarım tur başına süreyi ikiye katlar, başarı oranını artırmaz
-  final double e = 6.3 + 0.0677 * (sz.w * sz.h);
-  final List<double?> dw = kDepthWin[tier]!;
-  final int minDepth = dw[0]! != 0 ? (dw[0]! * e - 1e-9).ceil() : 0;
-  final int? maxDepth = dw[1] == null ? null : math.max((dw[1]! * e + 1e-9).floor(), minDepth + 2); // küçük tahtada pencere ≥ 3 derinlik
-  return GenSpec(
-      id: id,
-      chapter: ch,
-      index: indexOf(id),
-      tier: tier,
-      w: sz.w,
-      h: sz.h,
-      fill: T.fill,
-      fillMax: T.band[1],
-      maxFree: T.maxFree,
-      curve: T.curve,
-      maxLen: maxLen,
-      tries: 3,
-      effort: 12,
-      passes: 6,
-      cycles: 2,
-      minDepth: minDepth,
-      maxDepth: maxDepth);
+  final ({int w, int h}) sz = sizeOf(id);
+  return LevelSpec(id, ch, indexOf(id), tier, sz.w, sz.h, shapeOf(id), kTier2[tier]!, seedFor(id, 0));
 }
 
 /// Seviye no → sabit tohum (herkes için aynı seviye). round: aynı seviyenin yedek denemeleri.
-int seedFor(int id, [int round = 0]) => fnv32('arrowtile-v15-$id-$round');
+int seedFor(int id, [int round = 0]) => fnv32('arrowtile-v20-$id-$round');
 
-const int kEndlessRounds = 12;
-const String kGenVersion = 'v15.0'; // üretici/özellik kuralı değişirse artır (oyundaki sonsuz seviye önbelleği geçersizleşir)
+int turnsOf(Arrow a) {
+  final List<List<int>> c = a.cells;
+  int t = 0;
+  for (int i = 2; i < c.length; i++) {
+    if (c[i][0] - c[i - 1][0] != c[i - 1][0] - c[i - 2][0] || c[i][1] - c[i - 1][1] != c[i - 1][1] - c[i - 2][1]) t++;
+  }
+  return t;
+}
+
+// ---- maske (şekilli tahta): Uint8List(w*h), 1 = oynanabilir hücre. Yalnızca rand(), tamsayı ve √.
+List<int> _profile(int n, int amp, Rand rand) {
+  final List<int> out = <int>[];
+  const int step = 4;
+  int a = (rand() * (amp + 1)).floor();
+  int b = a;
+  for (int i = 0; i < n; i++) {
+    final int k = i % step;
+    if (k == 0) {
+      a = b;
+      b = (rand() * (amp + 1)).floor();
+    }
+    out.add((a * (step - k) + b * k + (step >> 1)) ~/ step);
+  }
+  return out;
+}
+
+Uint8List makeMask(int w, int h, String kind, Rand rand) {
+  final int N = w * h;
+  final Uint8List m = Uint8List(N)..fillRange(0, N, 1);
+  if (kind == 'full') return m;
+  final bool organic = kind == 'organic' || kind == 'ringOrganic';
+  final bool ring = kind == 'ring' || kind == 'ringOrganic';
+  if (organic) {
+    final int amp = math.max(1, w ~/ 9);
+    final List<int> L = _profile(h, amp, rand);
+    final List<int> R = _profile(h, amp, rand);
+    final List<int> T = _profile(w, amp, rand);
+    final List<int> B = _profile(w, amp, rand);
+    final int cc = math.max(2, w ~/ 6); // köşe kesiği
+    for (int y = 0; y < h; y++) {
+      for (int x = 0; x < w; x++) {
+        final int dx = math.min(x, w - 1 - x);
+        final int dy = math.min(y, h - 1 - y);
+        if (x < L[y] || x >= w - R[y] || y < T[x] || y >= h - B[x] || dx + dy < cc) m[y * w + x] = 0;
+      }
+    }
+  }
+  if (ring) {
+    final double cx = (w - 1) / 2 + (rand() - 0.5) * 2;
+    final double cy = (h - 1) / 2 + (rand() - 0.5) * 3;
+    final double rx = w * (0.24 + rand() * 0.05);
+    final double ry = h * (0.19 + rand() * 0.05);
+    final List<int> jit = _profile(h, 2, rand);
+    final double ix = math.max(1.6, rx * 0.42);
+    final double iy = math.max(2.1, ry * 0.36);
+    for (int y = 0; y < h; y++) {
+      final double ty = (y - cy) / ry;
+      if (ty < -1 || ty > 1) continue;
+      final double half = rx * math.sqrt(1 - ty * ty) + (jit[y] - 1) * 0.6;
+      for (int x = 0; x < w; x++) {
+        if ((x - cx).abs() > half) continue;
+        final double ex = (x - cx) / ix;
+        final double ey = (y - cy) / iy;
+        if (ex * ex + ey * ey <= 1) continue; // ortadaki ada
+        m[y * w + x] = 0;
+      }
+    }
+  }
+  return m;
+}
+
+List<String> maskRows(Uint8List m, int w, int h) => <String>[
+      for (int y = 0; y < h; y++) String.fromCharCodes(<int>[for (int x = 0; x < w; x++) m[y * w + x] != 0 ? 49 : 48])
+    ];
+
+/// Maskedeki oynanabilir hücre sayısı (maske yoksa w·h).
+int maskCount(int w, int h, List<String>? mask) {
+  if (mask == null) return w * h;
+  int c = 0;
+  for (final String r in mask) {
+    for (int i = 0; i < r.length; i++) {
+      if (r.codeUnitAt(i) == 49) c++;
+    }
+  }
+  return c;
+}
+
+class _A2 {
+  final List<int> cells; // hücre indeksleri, kuyruk→baş
+  final int d;
+  int blk;
+  final int lvl;
+  _A2(this.cells, this.d, this.blk, this.lvl);
+}
+
+const List<int> _dxc = <int>[0, 0, -1, 1];
+const List<int> _dyc = <int>[-1, 1, 0, 0];
+const List<String> _dname = <String>['U', 'D', 'L', 'R'];
+const List<int> _tl = <int>[2, 3, 1, 0];
+const List<int> _tr = <int>[3, 2, 0, 1];
+
+class Build2Result {
+  final int maskCells;
+  final int cells;
+  final List<Arrow> arrows;
+  const Build2Result(this.maskCells, this.cells, this.arrows);
+}
+
+/// build2 (JS): bağımlılık çizgesi artımlı olarak döngüsüz tutulur → her çıktı kurgu gereği çözülebilir.
+Build2Result build2(int w, int h, Uint8List? mask, Rand rand, Tier2 P) {
+  final int N = w * h;
+  final Int32List g = Int32List(N);
+  final Int8List hd = Int8List(N);
+  int M = 0;
+  for (int i = 0; i < N; i++) {
+    hd[i] = -1;
+    if (mask == null || mask[i] != 0) {
+      g[i] = -1;
+      M++;
+    } else {
+      g[i] = -2;
+    }
+  }
+  final List<_A2> A = <_A2>[];
+  final Int32List forb = Int32List(N);
+  final Int32List own = Int32List(N);
+  final Int32List seenA = Int32List(N + 1);
+  final Int32List queue = Int32List(N + 1);
+  int ep = 0, oep = 0;
+  int nFree = 0, filled = 0;
+  double target = P.fill * M;
+  final double avgLen = (P.len0 + P.len1) / 2 * 0.7 + 1;
+  final int budget = math.max(P.minFree, (P.free * target / avgLen + 0.5).floor());
+
+  // ışın taraması: (c'den d yönünde kenara dek) dolu hücre sayısı + en büyük kat → riCnt, riLv
+  int riCnt = 0, riLv = 0;
+  void rayInfo(int c, int d) {
+    int x = c % w + _dxc[d], y = c ~/ w + _dyc[d], cnt = 0, lv = 0;
+    while (x >= 0 && y >= 0 && x < w && y < h) {
+      final int k = g[y * w + x];
+      if (k >= 0) {
+        cnt++;
+        if (A[k].lvl > lv) lv = A[k].lvl;
+      }
+      x += _dxc[d];
+      y += _dyc[d];
+    }
+    riCnt = cnt;
+    riLv = lv;
+  }
+
+  // X'in (baş c, yön d) bağımlı olduğu tüm okların ışınlarını (ve kendi ışınını) yasakla (forb = ep)
+  void markDesc(int c, int d) {
+    ep++;
+    int qh = 0, qt = 0, x = c % w + _dxc[d], y = c ~/ w + _dyc[d];
+    while (x >= 0 && y >= 0 && x < w && y < h) {
+      final int q = y * w + x;
+      forb[q] = ep;
+      final int k = g[q];
+      if (k >= 0 && seenA[k] != ep) {
+        seenA[k] = ep;
+        queue[qt++] = k;
+      }
+      x += _dxc[d];
+      y += _dyc[d];
+    }
+    while (qh < qt) {
+      final _A2 a = A[queue[qh++]];
+      final int hc = a.cells[a.cells.length - 1], ad = a.d;
+      x = hc % w + _dxc[ad];
+      y = hc ~/ w + _dyc[ad];
+      while (x >= 0 && y >= 0 && x < w && y < h) {
+        final int q = y * w + x;
+        forb[q] = ep;
+        final int k = g[q];
+        if (k >= 0 && seenA[k] != ep) {
+          seenA[k] = ep;
+          queue[qt++] = k;
+        }
+        x += _dxc[ad];
+        y += _dyc[ad];
+      }
+    }
+  }
+
+  bool okCell(int x, int y) {
+    if (x < 0 || y < 0 || x >= w || y >= h) return false;
+    final int q = y * w + x;
+    return g[q] == -1 && forb[q] != ep && own[q] != oep;
+  }
+
+  int solid(int x, int y) {
+    if (x < 0 || y < 0 || x >= w || y >= h) return 1;
+    final int q = y * w + x;
+    return (g[q] != -1 || own[q] == oep) ? 1 : 0;
+  }
+
+  final Int32List candK = Int32List(3);
+  final Float64List candW = Float64List(3);
+  int bodyTurns = 0;
+  // gövde: baştan geriye büyür. Dönen: hücre indeksleri kuyruk→baş (dönüş sayısı bodyTurns'te)
+  List<int> body(int c, int d, int L, int maxTurns) {
+    final List<int> cells = <int>[c];
+    int x = c % w, y = c ~/ w, s = d, run = 1, turns = 0, last = 0;
+    oep++;
+    own[c] = oep;
+    while (cells.length < L) {
+      int nc = 0;
+      double tot = 0;
+      for (int k = 0; k < 3; k++) {
+        final int ns = k == 0 ? s : (k == 1 ? _tl[s] : _tr[s]);
+        if (k > 0 && (cells.length == 1 || turns >= maxTurns)) continue;
+        final int nx = x - _dxc[ns], ny = y - _dyc[ns];
+        if (!okCell(nx, ny)) continue;
+        final int occ = solid(nx + 1, ny) + solid(nx - 1, ny) + solid(nx, ny + 1) + solid(nx, ny - 1) - 1; // geldiğimiz hücre hariç
+        double wt;
+        if (k == 0) {
+          wt = run < 2 ? 6.0 : 1.0;
+        } else {
+          wt = P.turn * (run < 2 ? 0.08 : 1.0) * (last == 0 ? 1.0 : (last == k ? 2 * P.same : 2 * (1 - P.same)));
+        }
+        wt *= 1 + P.hug * occ;
+        if (occ >= 3 && cells.length + 1 < L) wt *= 0.3; // çıkmaz sokak
+        candK[nc] = k;
+        candW[nc] = wt;
+        nc++;
+        tot += wt;
+      }
+      if (nc == 0) break;
+      double r = rand() * tot;
+      int pick = candK[nc - 1];
+      for (int k = 0; k < nc; k++) {
+        r -= candW[k];
+        if (r <= 0) {
+          pick = candK[k];
+          break;
+        }
+      }
+      if (pick != 0) {
+        s = pick == 1 ? _tl[s] : _tr[s];
+        turns++;
+        last = pick;
+        run = 1;
+      } else {
+        run++;
+      }
+      x -= _dxc[s];
+      y -= _dyc[s];
+      final int q = y * w + x;
+      own[q] = oep;
+      cells.add(q);
+    }
+    bodyTurns = turns;
+    return cells.reversed.toList();
+  }
+
+  // hücre c dolunca: ışını c'den geçen okların engel sayacını artır (list verilirse yalnızca şu an serbest olanları toplar)
+  void hit(int k, List<int>? list) {
+    if (list != null) {
+      if (A[k].blk == 0 && !list.contains(k)) list.add(k);
+    } else if (A[k].blk++ == 0) {
+      nFree--;
+    }
+  }
+
+  void crossers(int c, List<int>? list) {
+    final int cx = c % w, cy = c ~/ w;
+    for (int x = cx - 1; x >= 0; x--) {
+      final int q = cy * w + x;
+      if (hd[q] == 3) hit(g[q], list);
+    }
+    for (int x = cx + 1; x < w; x++) {
+      final int q = cy * w + x;
+      if (hd[q] == 2) hit(g[q], list);
+    }
+    for (int y = cy - 1; y >= 0; y--) {
+      final int q = y * w + cx;
+      if (hd[q] == 1) hit(g[q], list);
+    }
+    for (int y = cy + 1; y < h; y++) {
+      final int q = y * w + cx;
+      if (hd[q] == 0) hit(g[q], list);
+    }
+  }
+
+  int wouldBlock(List<int> cells) {
+    final List<int> list = <int>[];
+    for (int k = 0; k < cells.length; k++) {
+      crossers(cells[k], list);
+    }
+    return list.length; // kaç serbest ok kapanır
+  }
+
+  void commit(List<int> cells, int d, int blk, int lvl) {
+    final int id = A.length;
+    A.add(_A2(cells, d, blk, lvl));
+    for (int k = 0; k < cells.length; k++) {
+      g[cells[k]] = id;
+    }
+    hd[cells[cells.length - 1]] = d;
+    for (int k = 0; k < cells.length; k++) {
+      crossers(cells[k], null);
+    }
+    if (blk == 0) nFree++;
+    filled += cells.length;
+  }
+
+  final Int32List infoCnt = Int32List(4);
+  final Int32List infoLv = Int32List(4);
+  bool tryPlace(int c, int lenMin, int lenLo, int lenHi, int turnLo, int turnHi) {
+    final List<int> order = _shuffle<int>(<int>[0, 1, 2, 3], rand);
+    final int cx = c % w, cy = c ~/ w;
+    final List<int> cands = <int>[];
+    final bool allowFree = nFree < budget;
+    for (int k = 0; k < 4; k++) {
+      final int d = order[k], bx = cx - _dxc[d], by = cy - _dyc[d];
+      if (lenMin >= 2 && !(bx >= 0 && by >= 0 && bx < w && by < h && g[by * w + bx] == -1)) continue;
+      rayInfo(c, d);
+      if (riCnt == 0 && !allowFree) continue;
+      cands.add(d);
+      infoCnt[d] = riCnt;
+      infoLv[d] = riLv;
+    }
+    if (cands.isEmpty) return false;
+    if (cands.length > 1 && rand() < P.deep) {
+      // JS: (info[b][1] - info[a][1]) || (a - b) — kesin sıra (eşit öğe yok), sıralama algoritmasından bağımsız
+      cands.sort((int a, int b) {
+        final int t = infoLv[b] - infoLv[a];
+        return t != 0 ? t : a - b;
+      });
+    }
+    for (int k = 0; k < cands.length; k++) {
+      final int dd = cands[k];
+      markDesc(c, dd);
+      if (forb[c] == ep) continue; // baş hücresi bağımlı olunan bir okun ışınında: döngü
+      final int L = lenLo + (rand() * (lenHi - lenLo + 1)).floor();
+      final int mt = turnLo + (rand() * (turnHi - turnLo + 1)).floor();
+      List<int> b = body(c, dd, L, mt);
+      int bTurns = bodyTurns;
+      for (int tr = 1; tr < P.tries && lenMin > 1 && (b.length < L || bTurns < mt); tr++) {
+        // en uzun + en kıvrımlı deneme
+        final List<int> b2 = body(c, dd, L, mt);
+        final int b2Turns = bodyTurns;
+        if (b2.length + 2 * b2Turns > b.length + 2 * bTurns) {
+          b = b2;
+          bTurns = b2Turns;
+        }
+      }
+      if (b.length < lenMin) continue;
+      if (lenMin > 1 && turnLo >= 1 && b.length >= 4 && bTurns == 0) continue; // kıvrım isteyen kademede uzun düz ok yok
+      final bool free = infoCnt[dd] == 0;
+      if (P.minFree != 0) {
+        final int nb = wouldBlock(b);
+        if (nb != 0 && nFree - nb + (free ? 1 : 0) < P.minFree) continue;
+      }
+      commit(b, dd, infoCnt[dd], infoLv[dd] + 1);
+      return true;
+    }
+    return false;
+  }
+
+  List<int> empties() {
+    final List<int> e = <int>[];
+    for (int q = 0; q < N; q++) {
+      if (g[q] == -1) e.add(q);
+    }
+    return _shuffle<int>(e, rand);
+  }
+
+  int sweep(int lenMin, int lenLo, int lenHi, int tLo, int tHi) {
+    final List<int> e = empties();
+    int added = 0;
+    for (int k = 0; k < e.length && filled < target; k++) {
+      if (g[e[k]] != -1) continue;
+      if (tryPlace(e[k], lenMin, lenLo, lenHi, tLo, tHi)) added++;
+    }
+    return added;
+  }
+
+  // kuyruk uzatma: boş hücre bir okun kuyruğuna komşuysa ve döngü kurmuyorsa oka eklenir (tek hücrelik dolgu yerine kıvrım)
+  int extend(int maxLen) {
+    final List<int> e = empties();
+    int added = 0;
+    for (int k = 0; k < e.length && filled < target; k++) {
+      final int c = e[k];
+      if (g[c] != -1) continue;
+      final int cx = c % w, cy = c ~/ w;
+      for (int j = 0; j < 4; j++) {
+        final int nx = cx + _dxc[j], ny = cy + _dyc[j];
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        final int a = g[ny * w + nx];
+        if (a < 0) continue;
+        final _A2 ar = A[a];
+        if (ar.cells[0] != ny * w + nx || ar.cells.length >= maxLen) continue;
+        if (ar.cells.length == 1 && !(_dxc[ar.d] == nx - cx && _dyc[ar.d] == ny - cy)) continue; // tek hücrelik ok: gövde başın tam arkasına
+        markDesc(ar.cells[ar.cells.length - 1], ar.d); // a'nın bağımlı olduklarının ışınları + kendi ışını
+        if (forb[c] == ep) continue;
+        if (P.minFree != 0) {
+          final int nb = wouldBlock(<int>[c]);
+          if (nb != 0 && nFree - nb < P.minFree) continue;
+        }
+        ar.cells.insert(0, c);
+        g[c] = a;
+        crossers(c, null);
+        filled++;
+        added++;
+        break;
+      }
+    }
+    return added;
+  }
+
+  final int lo = P.len0, hi = P.len1;
+  // 1) uzun kıvrımlı oklar, 2) orta boy, 3) kuyruk uzatma, 4) kısa dolgu okları YALNIZCA doluluk bandın alt sınırına (+0,03) ulaşmadıysa
+  for (int guard = 0; guard < 4 && filled < target; guard++) {
+    if (sweep(lo, lo, hi, P.turns0, P.turns1) == 0) break;
+  }
+  final int mid = math.max(2, lo >> 1), mid2 = math.max(mid, 3);
+  for (int guard = 0; guard < 3 && filled < target; guard++) {
+    if (sweep(mid2, mid2, math.max(mid2, hi >> 1), math.min(1, P.turns0), P.turns1) == 0) break;
+  }
+  if (P.ext != 0) {
+    for (int guard = 0; guard < 6 && filled < target; guard++) {
+      if (extend(hi + 8) == 0) break;
+    }
+  }
+  final double full = target;
+  target = math.min(full, (P.band0 + 0.03) * M);
+  for (int guard = 0; guard < 3 && filled < target; guard++) {
+    if (sweep(mid, mid, math.max(mid, 3), 0, 1) == 0) break;
+  }
+  for (int guard = 0; guard < 3 && filled < target; guard++) {
+    if (sweep(1, 1, P.filler, 0, 1) == 0) break;
+  }
+  target = full;
+  if (P.ext != 0) {
+    for (int guard = 0; guard < 3 && filled < target; guard++) {
+      if (extend(hi + 12) == 0) break;
+    }
+  }
+  return Build2Result(M, filled, <Arrow>[
+    for (final _A2 a in A) Arrow(<List<int>>[for (final int q in a.cells) <int>[q % w, q ~/ w]], _dname[a.d])
+  ]);
+}
+
+/// Kampanya ölçüsü (v2): doluluk maske hücrelerine oranla.
+class Measure2 {
+  final bool solvable;
+  final int depth;
+  final int initialFree;
+  final double freeRatio;
+  final double fill;
+  final int arrows;
+  final int curved;
+  final double curvedRatio;
+  final double meanTurns;
+  final double meanLen;
+  final int maxLen;
+  final double score;
+  const Measure2({
+    required this.solvable,
+    required this.depth,
+    required this.initialFree,
+    this.freeRatio = 0,
+    this.fill = 0,
+    this.arrows = 0,
+    this.curved = 0,
+    this.curvedRatio = 0,
+    this.meanTurns = 0,
+    this.meanLen = 0,
+    this.maxLen = 0,
+    this.score = 0,
+  });
+}
+
+/// puan = 40·doluluk + 8·ort. dönüş + 2·ort. uzunluk + 30·(1 − 5·serbest oran) + 0,1·derinlik (JS ile aynı işlem sırası).
+Measure2 measure2(int w, int h, List<Arrow> arrows, List<String>? mask) {
+  final int n = arrows.length;
+  final Analysis an = analyze(LgBoard(w, h, arrows));
+  if (an.stuck.isNotEmpty || n == 0) return Measure2(solvable: false, depth: an.depth, initialFree: an.free.length);
+  int cells = 0, turns = 0, curved = 0, maxLen = 0;
+  for (final Arrow a in arrows) {
+    cells += a.cells.length;
+    final int t = turnsOf(a);
+    turns += t;
+    if (t != 0) curved++;
+    if (a.cells.length > maxLen) maxLen = a.cells.length;
+  }
+  final int M = maskCount(w, h, mask);
+  final double fill = cells / M, freeRatio = an.free.length / n, meanTurns = turns / n, meanLen = cells / n;
+  final double fr5 = freeRatio * 5 > 1 ? 1.0 : freeRatio * 5;
+  final double score = 40 * fill + 8 * meanTurns + 2 * meanLen + 30 * (1 - fr5) + 0.1 * an.depth;
+  return Measure2(
+      solvable: true,
+      depth: an.depth,
+      initialFree: an.free.length,
+      freeRatio: freeRatio,
+      fill: fill,
+      arrows: n,
+      curved: curved,
+      curvedRatio: curved / n,
+      meanTurns: meanTurns,
+      meanLen: meanLen,
+      maxLen: maxLen,
+      score: score);
+}
+
+int freeLimit(String tier, int n) {
+  final Tier2 t = kTier2[tier]!;
+  return math.max(math.max(t.minFree, 1), (t.maxFree * n + 1e-9).floor());
+}
+
+const int kRounds = 8;
+const String kGenVersion = 'v20.1'; // üretici/özellik kuralı değişirse artır (oyundaki sonsuz seviye önbelleği geçersizleşir)
 
 class LevelResult {
   final int id;
@@ -971,10 +1560,11 @@ class LevelResult {
   final List<Arrow> arrows;
   final bool ok;
   final int rounds;
-  final Measure? m;
-  const LevelResult(this.id, this.w, this.h, this.par, this.diff, this.chapter, this.arrows, this.ok, this.rounds, [this.m]);
+  final Measure2? m;
+  final List<String>? mask;
+  const LevelResult(this.id, this.w, this.h, this.par, this.diff, this.chapter, this.arrows, this.ok, this.rounds, [this.m, this.mask]);
 
-  Level toLevel() => Level(id: id, w: w, h: h, par: par, diff: diff, arrows: arrows, ok: ok);
+  Level toLevel() => Level(id: id, w: w, h: h, par: par, diff: diff, arrows: arrows, ok: ok, mask: mask);
 }
 
 LevelResult _tutorialLevel(int id) {
@@ -988,47 +1578,54 @@ LevelResult _tutorialLevel(int id) {
   return LevelResult(id, t.w, t.h, arrows.length, 'easy', 1, arrows, true, 0);
 }
 
-/// Seviye işi: tohum = seviye numarası (seedFor(id, tur)); kısıtları sağlayan ilk tur seçilir (en çok [kEndlessRounds] tur,
-/// sağlanamazsa kademe bandını sağlayan en iyi aday). step() tek build yapar → arka planda dilimlenebilir. Zaman sınırı yok,
-/// yalnızca adım sayısı → aynı seviye her cihazda aynıdır. Hem hazır paket (ilk 200) hem sonsuz seviyeler bu işle üretilir.
+class _Best {
+  final double key;
+  final List<Arrow> arrows;
+  final List<String>? mask;
+  final Measure2 m;
+  final bool ok;
+  const _Best(this.key, this.arrows, this.mask, this.m, this.ok);
+}
+
+/// Seviye işi (JS levelJob): tohum = seedFor(id, tur); kademe koşullarını sağlayan ilk tur seçilir (en çok [kRounds] tur,
+/// sağlanamazsa en iyi aday). step() tek build2 yapar. Zaman sınırı yok, yalnızca adım sayısı → aynı seviye her cihazda aynıdır.
 class LevelJob {
   final int id;
-  final GenSpec _sp;
+  final LevelSpec? _sp;
   int _r = 0;
-  GenJob? _job;
-  double? _bestKey;
-  GenResult? _best;
+  _Best? _best;
   LevelResult? _out;
 
-  LevelJob(this.id) : _sp = specFor(id) {
-    if (id <= kTutorial.length) {
-      _out = _tutorialLevel(id);
-    } else {
-      _job = GenJob(_sp, seedFor(id, 0));
-    }
+  LevelJob(this.id) : _sp = id <= kTutorial.length ? null : specFor(id) {
+    if (id <= kTutorial.length) _out = _tutorialLevel(id);
   }
 
   bool step() {
     if (_out != null) return true;
-    if (!_job!.step()) return false;
-    final GenResult? g = _job!.result();
-    if (g != null) {
-      final double key = (g.ok ? 2e6 : 0) + (g.band ? 1e6 : 0) + g.m.score;
-      if (_best == null || key > _bestKey!) {
-        _bestKey = key;
-        _best = g;
-      }
+    final LevelSpec sp = _sp!;
+    final Tier2 P = sp.p;
+    final Rand rand = Rng(seedFor(id, _r)).next;
+    final Uint8List? mask = sp.shape == 'full' ? null : makeMask(sp.w, sp.h, sp.shape, rand);
+    final Build2Result b = build2(sp.w, sp.h, mask, rand, P);
+    final List<Arrow> arrows = _shuffle<Arrow>(b.arrows, rand);
+    final List<String>? rows = mask == null ? null : maskRows(mask, sp.w, sp.h);
+    final Measure2 m = measure2(sp.w, sp.h, arrows, rows);
+    if (m.solvable) {
+      final bool ok = m.fill >= P.band0 - 1e-9 &&
+          m.fill <= P.band1 + 1e-9 &&
+          m.initialFree <= freeLimit(sp.tier, m.arrows) &&
+          m.meanTurns >= P.minTurns;
+      final double key = (ok ? 1e6 : 0.0) + m.score;
+      final _Best? bb = _best;
+      if (bb == null || key > bb.key) _best = _Best(key, arrows, rows, m, ok);
     }
-    // bitiş: tüm koşullar sağlandı, ya da ENDLESS_ROUNDS tur sonunda kademe bandını sağlayan en iyi aday;
-    // bant da sağlanamadıysa en çok 2×ENDLESS_ROUNDS tura dek sürer (çok nadir)
-    final GenResult? b = _best;
-    if (b != null && (b.ok || (_r + 1 >= kEndlessRounds && b.band) || _r + 1 >= kEndlessRounds * 2)) {
-      _out = LevelResult(id, _sp.w, _sp.h, b.arrows.length, _sp.tier, _sp.chapter, b.arrows, b.ok, _r + 1, b.m);
+    _r++;
+    final _Best? best = _best;
+    if (best == null && _r >= kRounds * 4) throw StateError('levelgen: çözülebilir aday yok (seviye $id)');
+    if (best != null && (best.ok || _r >= kRounds)) {
+      _out = LevelResult(id, sp.w, sp.h, best.arrows.length, sp.tier, sp.chapter, best.arrows, best.ok, _r, best.m, best.mask);
       return true;
     }
-    if (_r + 1 >= kEndlessRounds * 2) throw StateError('seviye üretilemedi: $id'); // JS'te sonsuz döngü; burada güvenli çıkış
-    _r++;
-    _job = GenJob(_sp, seedFor(id, _r));
     return false;
   }
 
@@ -1042,8 +1639,8 @@ LevelResult makeLevel(int id) {
 }
 
 // ---- seviye özeti (altın test): kanonik serileştirme + FNV-1a 32 ----
-// canon = "id:wxh:tier:" + oklar "x,y;x,y;...>D" ("|" ayracı); oklar üretici sırasında (dizideki sıra).
-String canon(int id, int w, int h, String? diff, List<Arrow> arrows) {
+// canon = "id:wxh:tier:" + oklar "x,y;x,y;...>D" ("|" ayracı) + (maske varsa) ":m" + satırlar "/" ile; oklar üretici sırasında.
+String canon(int id, int w, int h, String? diff, List<Arrow> arrows, [List<String>? mask]) {
   final StringBuffer sb = StringBuffer('$id:${w}x$h:${diff ?? tierOf(id)}:');
   for (int i = 0; i < arrows.length; i++) {
     if (i > 0) sb.write('|');
@@ -1054,9 +1651,10 @@ String canon(int id, int w, int h, String? diff, List<Arrow> arrows) {
     }
     sb.write('>${a.dir}');
   }
+  if (mask != null) sb.write(':m${mask.join('/')}');
   return sb.toString();
 }
 
 /// Seviye özeti: 8 hane onaltılık FNV-1a 32 (tools/level-hashes.json ile aynı).
-String levelHash(Level lv) => fnv32(canon(lv.id, lv.w, lv.h, lv.diff, lv.arrows)).toRadixString(16).padLeft(8, '0');
-String levelResultHash(LevelResult r) => fnv32(canon(r.id, r.w, r.h, r.diff, r.arrows)).toRadixString(16).padLeft(8, '0');
+String levelHash(Level lv) => fnv32(canon(lv.id, lv.w, lv.h, lv.diff, lv.arrows, lv.mask)).toRadixString(16).padLeft(8, '0');
+String levelResultHash(LevelResult r) => fnv32(canon(r.id, r.w, r.h, r.diff, r.arrows, r.mask)).toRadixString(16).padLeft(8, '0');

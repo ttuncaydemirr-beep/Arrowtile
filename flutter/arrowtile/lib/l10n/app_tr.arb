@@ -912,6 +912,102 @@
   "@diffExtreme": {
     "description": "diff.extreme"
   },
+  "settingsArrowColor": "Ok rengi",
+  "@settingsArrowColor": {
+    "description": "settings.arrow_color"
+  },
+  "settingsAcColor": "Renkli",
+  "@settingsAcColor": {
+    "description": "settings.ac_color"
+  },
+  "settingsAcMono": "Tek renk",
+  "@settingsAcMono": {
+    "description": "settings.ac_mono"
+  },
+  "settingsArrowColorDesc": "Tek renk: ince çizgi oklar; açık temada koyu, koyu temada açık renk.",
+  "@settingsArrowColorDesc": {
+    "description": "settings.arrow_color_desc"
+  },
+  "settingsLicenses": "Açık kaynak lisansları",
+  "@settingsLicenses": {
+    "description": "settings.licenses"
+  },
+  "gameZoomDefault": "Yakınlaştır",
+  "@gameZoomDefault": {
+    "description": "game.zoom_default"
+  },
+  "gamePanTip": "Tahta büyük: tek parmakla kaydır, iki parmakla yakınlaştır",
+  "@gamePanTip": {
+    "description": "game.pan_tip"
+  },
+  "celEasyFlawless": "Sıradaki gelsin!|Çerez gibiydi!|Tertemiz iş!",
+  "@celEasyFlawless": {
+    "description": "cel.easy.flawless"
+  },
+  "celEasyL1": "Güzel iş!|İyi gidiyorsun!|Küçük bir sürtünme, sorun değil!",
+  "@celEasyL1": {
+    "description": "cel.easy.l1"
+  },
+  "celEasyL2": "Tamamdır, geçtin!|Isınma turu bitti!|Olur öyle, devam!",
+  "@celEasyL2": {
+    "description": "cel.easy.l2"
+  },
+  "celEasyAd": "Pes etmedin, helal olsun!|Yeniden kalktın ve bitirdin!|Devam etmek cesaret ister!",
+  "@celEasyAd": {
+    "description": "cel.easy.ad"
+  },
+  "celMediumFlawless": "Tek hata yok, bravo!|Akıcı ve temiz!|İşte böyle!",
+  "@celMediumFlawless": {
+    "description": "cel.medium.flawless"
+  },
+  "celMediumL1": "Sağlam oyun!|Neredeyse kusursuz!|Gayet iyi!",
+  "@celMediumL1": {
+    "description": "cel.medium.l1"
+  },
+  "celMediumL2": "Zorladı ama geçtin!|İyi toparladın!|Emek verdin, oldu!",
+  "@celMediumL2": {
+    "description": "cel.medium.l2"
+  },
+  "celMediumAd": "Bırakmadın, kazandın!|İnat güzel şey!|İkinci şansı iyi değerlendirdin!",
+  "@celMediumAd": {
+    "description": "cel.medium.ad"
+  },
+  "celHardFlawless": "Ustalık işi!|Zoru kusursuz geçtin!|Müthiş odak!",
+  "@celHardFlawless": {
+    "description": "cel.hard.flawless"
+  },
+  "celHardL1": "Zor seviye, sağlam iş!|Çok iyiydi!|Bir çizikle atlattın!",
+  "@celHardL1": {
+    "description": "cel.hard.l1"
+  },
+  "celHardL2": "Zoru devirdin!|Kolay değildi, başardın!|Sabrın kazandı!",
+  "@celHardL2": {
+    "description": "cel.hard.l2"
+  },
+  "celHardAd": "Vazgeçmeyen kazanır!|Zor seviyeyi yine de bitirdin!|Azmine şapka çıkarılır!",
+  "@celHardAd": {
+    "description": "cel.hard.ad"
+  },
+  "celExtremeFlawless": "Harikasın..!|Efsane! Tek çizik yok!|Buna ustalık denir!",
+  "@celExtremeFlawless": {
+    "description": "cel.extreme.flawless"
+  },
+  "celExtremeL1": "Aşırı zoru geçtin, müthiş!|Bunu çok az kişi yapar!|Neredeyse efsane!",
+  "@celExtremeL1": {
+    "description": "cel.extreme.l1"
+  },
+  "celExtremeL2": "En zorunu devirdin!|Dişli rakipti, sen kazandın!|Büyük iş başardın!",
+  "@celExtremeL2": {
+    "description": "cel.extreme.l2"
+  },
+  "celExtremeAd": "Yılmadın ve bitirdin!|Aşırı zor bile seni durduramadı!|Bu azim her kapıyı açar!",
+  "@celExtremeAd": {
+    "description": "cel.extreme.ad"
+  },
+  "celFast": "Şimşek gibi!|Yıldırım hızı!|Rüzgâr gibi geçtin!",
+  "@celFast": {
+    "description": "cel.fast"
+  },
   "dpTitle": "Günlük Bulmaca",
   "@dpTitle": {
     "description": "dp.title"

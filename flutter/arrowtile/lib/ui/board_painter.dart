@@ -1,5 +1,7 @@
-// Arrowtile — board_painter.dart: theme.js drawArrow()/drawBoard() ve main.js draw() için CustomPainter karşılığı.
-// Oranlar birebir: gövde %18, baş %42 (en az 7 px), şevron yalnız hücre ≥ 22 px, ok başında nokta, alt kalınlık gölgesi.
+// Arrowtile — board_painter.dart: theme.js drawArrow() ve main.js draw()/drawTray() için CustomPainter karşılığı.
+// Oranlar birebir: gövde %15, baş %40 (en az 7 px), şevron yalnız hücre ≥ 22 px, ok başında nokta, alt kalınlık gölgesi.
+// 1.2.0: tek renk kipi (ince çizgi, gölge/şevron/nokta yok), şekilli (maskeli) tahta tepsisi, ekran dışı ok çizilmez,
+// çıkış sabit hızla tahta kenarına dek (kenarda kırpılır, solma yok), küçük harita yalnızca tahta kaydırılabilirken.
 // Yılan oklar: iz = gövde hücre merkezleri + baştan dir yönünde düz doğru; gövde başı tren gibi izler (off = iz kayması).
 import 'dart:math' as math;
 
@@ -75,6 +77,7 @@ class ArrowDrawOpts {
   final bool highlight;
   final int chevron; // 0xRRGGBB
   final double chevronAlpha;
+  final bool mono; // 1.2.0 tek renk kipi
   const ArrowDrawOpts({
     required this.ox,
     required this.oy,
@@ -87,6 +90,7 @@ class ArrowDrawOpts {
     this.off = 0,
     this.alpha = 1,
     this.highlight = false,
+    this.mono = false,
   });
 }
 
@@ -98,8 +102,9 @@ void drawArrow(Canvas canvas, ArrowDrawOpts o, Palette pal) {
   final int n = cells.length;
   final double off = o.off;
   const double mg = Shape.margin;
-  final double bw = math.max(2.0, Shape.bodyWidth * cell);
-  final double hw = math.max(Shape.headMinPx, Shape.headWidth * cell);
+  final bool mono = o.mono;
+  final double bw = mono ? math.max(Shape.monoMinPx, Shape.monoBody * cell) : math.max(2.0, Shape.bodyWidth * cell);
+  final double hw = mono ? math.max(5.0, Shape.monoHead * cell) : math.max(Shape.headMinPx, Shape.headWidth * cell);
   final double hl = math.max(hw * 0.72, Shape.headLength * cell);
   final double ga = o.alpha.clamp(0.0, 1.0); // globalAlpha
 
@@ -182,8 +187,9 @@ void drawArrow(Canvas canvas, ArrowDrawOpts o, Palette pal) {
     whole(0, bw + cell * 0.20, pal.highlightRing, true);
     whole(0, bw + cell * 0.08, pal.highlight, true);
   }
-  whole(Shape.depth * cell, bw, shadeRgb(o.color, -0.35), true); // alt kalınlık (ekran aşağısı)
+  if (!mono) whole(Shape.depth * cell, bw, _shadeOf(o.color), true); // alt kalınlık (ekran aşağısı)
   whole(0, bw, o.color, true); // yüz
+  if (mono) return; // tek renk: ince çizgi, şevron/nokta yok
 
   // şevronlar: her gövde hücresinde akış yönünde ">" (köşe ve baş hücresi hariç)
   if (cell >= Shape.chevronMinCell) {
@@ -234,7 +240,10 @@ void drawArrow(Canvas canvas, ArrowDrawOpts o, Palette pal) {
   );
 }
 
-/// theme.js drawBoard(): tepsi + hücre köşelerinde çok hafif nokta ızgara.
+final Map<int, int> _shadeCache = <int, int>{};
+int _shadeOf(int c) => _shadeCache.putIfAbsent(c, () => shadeRgb(c, -0.35));
+
+/// theme.js drawBoard(): tepsi + hücre köşelerinde çok hafif nokta ızgara (dikdörtgen tahta; 1.2.0 oyun ekranı [TrayCache] kullanır).
 void drawBoardBg(Canvas canvas, double ox, double oy, int w, int h, double cell, Palette pal) {
   final double pad = boardPadFor(w) * cell;
   final double r = math.min(Shape.boardRadius * cell, 10);
@@ -281,6 +290,57 @@ class ShakeAnim {
   const ShakeAnim(this.t0, this.dur, this.ax, this.ay);
 }
 
+/// 1.2.0 (main.js buildTray/drawTray): tahta tepsisi. Maske varsa (şekilli tahta) oynanabilir hücrelerin birleşimi, yuvarlak
+/// köşeli (yol, tepsi payı kalınlığında yuvarlak birleşimle çizilir); yoksa dikdörtgen. Hücre biriminde önbellek + ok sınır kutuları.
+class TrayCache {
+  final Level level;
+  final Path path; // hücre biriminde
+  final List<Offset> dots; // ızgara noktaları (hücre köşeleri, hücre biriminde)
+  final List<List<int>> boxes; // ok başına [x0, y0, x1, y1] (hücre)
+  TrayCache._(this.level, this.path, this.dots, this.boxes);
+
+  factory TrayCache.of(Level lv) {
+    final int w = lv.w, h = lv.h;
+    final Path p = Path();
+    if (lv.mask == null) {
+      p.addRect(Rect.fromLTWH(0, 0, w.toDouble(), h.toDouble()));
+    } else {
+      for (int y = 0; y < h; y++) {
+        int x = 0;
+        while (x < w) {
+          if (!lv.inMask(x, y)) {
+            x++;
+            continue;
+          }
+          final int x0 = x;
+          while (x < w && lv.inMask(x, y)) {
+            x++;
+          }
+          p.addRect(Rect.fromLTWH(x0.toDouble(), y.toDouble(), (x - x0).toDouble(), 1));
+        }
+      }
+    }
+    final List<Offset> dots = <Offset>[
+      for (int y = 0; y <= h; y++)
+        for (int x = 0; x <= w; x++)
+          if (lv.inMask(x, y) || lv.inMask(x - 1, y) || lv.inMask(x, y - 1) || lv.inMask(x - 1, y - 1)) Offset(x.toDouble(), y.toDouble())
+    ];
+    final List<List<int>> boxes = <List<int>>[for (final Arrow a in lv.arrows) _boxOf(a)];
+    return TrayCache._(lv, p, dots, boxes);
+  }
+
+  static List<int> _boxOf(Arrow a) {
+    final List<int> b = <int>[1 << 30, 1 << 30, -(1 << 30), -(1 << 30)];
+    for (final List<int> q in a.cells) {
+      if (q[0] < b[0]) b[0] = q[0];
+      if (q[1] < b[1]) b[1] = q[1];
+      if (q[0] > b[2]) b[2] = q[0];
+      if (q[1] > b[3]) b[3] = q[1];
+    }
+    return b;
+  }
+}
+
 /// Boyayıcının okuduğu değişken oyun görüntüsü. State nesnesi bunu günceller, boyayıcı [repaint] ile yeniden çizer.
 class BoardModel {
   Level level;
@@ -288,19 +348,24 @@ class BoardModel {
   ArrowTheme theme;
   Palette pal;
   bool rtl;
+  bool mono = false; // 1.2.0: Ayarlar → Ok rengi: Tek renk
   List<int> colors; // E.colorize sonucu (okun tema renk indeksi)
   final Map<int, BoardAnim> anims = <int, BoardAnim>{};
   ShakeAnim? shake;
   int hintIdx = -1;
   int aimSel = -1;
   List<int> flashIds = <int>[];
-  // yerleşim
-  double cell = 40, ox = 0, oy = 0, width = 0, height = 0;
-  // yakınlaştırma / kaydırma (tahta koordinatı → ekran)
+  bool minimap = false; // tahta kaydırılabilir (ve seviye bitmedi): köşede küçük harita
+  // yerleşim (1.2.0: varsayılan yakınlıkta hücre ≥ 20 px; sMin = tüm tahta görünür, sMax = en yakın)
+  double cell = 40, ox = 0, oy = 0, width = 0, height = 0, fit = 40, sMin = 1, sMax = 2.5;
+  // yakınlaştırma / kaydırma (tahta koordinatı → ekran = p·vs + (vx, vy))
   double vs = 1, vx = 0, vy = 0;
+  TrayCache tray;
   final Stopwatch _clock = Stopwatch()..start();
 
-  BoardModel(this.level, this.game, this.theme, this.pal, this.rtl) : colors = colorize(level, theme.colors.length);
+  BoardModel(this.level, this.game, this.theme, this.pal, this.rtl)
+      : colors = colorize(level, theme.colors.length),
+        tray = TrayCache.of(level);
 
   /// Testler için: sahte saat (widget testlerinde gerçek Stopwatch ilerlemez, animasyonlar bitmez). Üretimde null.
   static double Function()? testClock;
@@ -313,17 +378,60 @@ class BoardModel {
   void recolor() {
     colors = colorize(level, theme.colors.length);
   }
+
+  /// Tepsi kutusu (piksel, görünüm dönüşümü öncesi): [x0, y0, x1, y1].
+  List<double> trayBox() {
+    final double p = boardPadFor(level.w) * cell;
+    return <double>[ox - p, oy - p, ox + level.w * cell + p, oy + level.h * cell + p];
+  }
 }
 
 class BoardPainter extends CustomPainter {
   final BoardModel m;
   BoardPainter(this.m, Listenable repaint) : super(repaint: repaint);
 
+  void _drawTray(Canvas canvas, double c) {
+    final Level lv = m.level;
+    final Palette pal = m.pal;
+    final double pad = boardPadFor(lv.w);
+    final Path p = m.tray.path;
+    canvas.save();
+    canvas.translate(m.ox, m.oy);
+    canvas.scale(c, c);
+    Paint fillP(int rgb) => Paint()
+      ..color = rgba(rgb)
+      ..style = PaintingStyle.fill
+      ..isAntiAlias = true;
+    Paint edgeP(int rgb) => Paint()
+      ..color = rgba(rgb)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = pad * 2
+      ..strokeJoin = StrokeJoin.round
+      ..isAntiAlias = true;
+    canvas.save();
+    canvas.translate(0, 0.1);
+    canvas.drawPath(p, fillP(pal.boardEdge));
+    canvas.drawPath(p, edgeP(pal.boardEdge));
+    canvas.restore();
+    canvas.drawPath(p, fillP(pal.board));
+    canvas.drawPath(p, edgeP(pal.board));
+    if (c * m.vs >= 9) {
+      final Paint dp = Paint()
+        ..color = rgba(pal.cellDot, pal.dark ? 0.55 : 0.75)
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = Shape.gridDot * 2;
+      canvas.drawPoints(PointMode.points, m.tray.dots, dp);
+    }
+    canvas.restore();
+  }
+
   @override
   void paint(Canvas canvas, Size size) {
     final Level lv = m.level;
     final double c = m.cell;
     final double now = m.nowMs;
+    if (!identical(m.tray.level, lv)) m.tray = TrayCache.of(lv);
     canvas.save();
     canvas.translate(m.vx, m.vy);
     canvas.scale(m.vs);
@@ -336,19 +444,20 @@ class BoardPainter extends CustomPainter {
       sy = sh.ay * amp;
     }
     canvas.translate(sx, sy);
-    drawBoardBg(canvas, m.ox, m.oy, lv.w, lv.h, c, m.pal);
+    _drawTray(canvas, c);
     final ArrowTheme th = m.theme;
-    for (int i = 0; i < lv.arrows.length; i++) {
+    final bool mono = m.mono;
+    // görünür hücre penceresi (ekran dışındaki oklar çizilmez)
+    final double bx0 = (0 - m.vx) / m.vs, by0 = (0 - m.vy) / m.vs;
+    final double bx1 = (m.width - m.vx) / m.vs, by1 = (m.height - m.vy) / m.vs;
+    final double vx0 = (bx0 - m.ox) / c - 1.5, vy0 = (by0 - m.oy) / c - 1.5, vx1 = (bx1 - m.ox) / c + 0.5, vy1 = (by1 - m.oy) / c + 0.5;
+    void one(int i, BoardAnim? an) {
       final Arrow a = lv.arrows[i];
-      final BoardAnim? an = m.anims[i];
-      if (!m.game.alive[i] && !(an != null && an.kind == 'exit')) continue;
       double off = 0, alpha = 1;
       if (an != null) {
         final double q = math.min(1.0, (now - an.t0) / an.dur);
         if (an.kind == 'exit') {
-          off = an.dist * easeSlide(q);
-          final double left = an.dur - (now - an.t0);
-          if (left < Anim.exitFade) alpha = math.max(0.0, left / Anim.exitFade);
+          off = an.dist * q; // sabit hız: ok kendi yolunu izleyerek tahta kenarına dek gider (kenarda kırpılır)
         } else if (an.kind == 'bump') {
           final double tf = an.fwd / an.dur;
           if (q < tf) {
@@ -360,15 +469,14 @@ class BoardPainter extends CustomPainter {
           alpha = q;
         }
       }
-      final int col = th.colors[m.colors[i] % th.colors.length];
+      final int col = mono ? m.pal.ink : th.colors[m.colors[i] % th.colors.length];
       if (i == m.hintIdx) {
-        // ipucu halkası. Web notu: main.js burada globalAlpha = 0.5 + 0.5·nabız ayarlıyor, ancak drawArrow() kendi
-        // globalAlpha'sını (varsayılan 1) yeniden kurduğundan nabız etkisiz kalıyordu; davranış birebir korunmuştur (alfa 1).
+        // ipucu halkası (web: globalAlpha nabzı drawArrow içinde yeniden kurulduğundan etkisiz; davranış birebir)
         drawArrow(
             canvas,
             ArrowDrawOpts(
                 ox: m.ox, oy: m.oy, cells: a.cells, dir: a.dir, cell: c, off: off, color: col,
-                highlight: true, chevron: th.chevron, chevronAlpha: th.chevronAlpha),
+                highlight: true, chevron: th.chevron, chevronAlpha: th.chevronAlpha, mono: mono),
             m.pal);
       }
       final bool sel = i == m.aimSel || m.flashIds.contains(i);
@@ -376,14 +484,38 @@ class BoardPainter extends CustomPainter {
           canvas,
           ArrowDrawOpts(
               ox: m.ox, oy: m.oy, cells: a.cells, dir: a.dir, cell: c, off: off, color: col, alpha: alpha,
-              chevron: th.chevron, chevronAlpha: th.chevronAlpha, highlight: sel),
+              chevron: th.chevron, chevronAlpha: th.chevronAlpha, highlight: sel, mono: mono),
           m.pal);
+    }
+
+    List<int>? exits;
+    final List<List<int>> boxes = m.tray.boxes;
+    for (int i = 0; i < lv.arrows.length; i++) {
+      final BoardAnim? an = m.anims[i];
+      if (an != null && an.kind == 'exit') {
+        (exits ??= <int>[]).add(i);
+        continue;
+      }
+      if (!m.game.alive[i]) continue;
+      final List<int> bb = boxes[i];
+      if (an == null && (bb[2] < vx0 || bb[0] > vx1 || bb[3] < vy0 || bb[1] > vy1)) continue;
+      one(i, an);
+    }
+    if (exits != null) {
+      // çıkan oklar tahta kenarında kaybolur
+      final List<double> tb = m.trayBox();
+      canvas.save();
+      canvas.clipRect(Rect.fromLTRB(tb[0], tb[1], tb[2], tb[3] + c * 0.12));
+      for (final int e in exits) {
+        one(e, m.anims[e]);
+      }
+      canvas.restore();
     }
     if (m.aimSel >= 0 && m.aimSel < lv.arrows.length && m.game.alive[m.aimSel] && !m.anims.containsKey(m.aimSel)) {
       _drawAimPath(canvas, m.aimSel, c);
     }
     canvas.restore();
-    if (m.vs > 1.01) _drawMinimap(canvas, th);
+    if (m.minimap) _drawMinimap(canvas, th);
   }
 
   // G1: seçili okun yolu (engel ya da tahta kenarına kadar) noktalarla gösterilir
@@ -407,15 +539,15 @@ class BoardPainter extends CustomPainter {
     }
   }
 
-  // G2: yakınken küçük harita (ekran koordinatında, üst köşe; RTL'de karşı köşe)
+  // küçük harita (ekran koordinatında, üst köşe; RTL'de karşı köşe) — yalnızca tahta kaydırılabilirken
   void _drawMinimap(Canvas canvas, ArrowTheme th) {
     final Level lv = m.level;
-    final double mw = 76;
+    const double mw = 64;
     final double cs = mw / (lv.w + 0.6);
     final double mh = cs * (lv.h + 0.6);
     const double mm = 8;
     final double mx = m.rtl ? m.width - mw - mm : mm;
-    const double my = mm;
+    const double my = 6;
     final Rect box = Rect.fromLTWH(mx, my, mw, mh);
     canvas.drawRect(box, Paint()..color = rgba(m.pal.board, 0.92));
     canvas.drawRect(
@@ -427,7 +559,7 @@ class BoardPainter extends CustomPainter {
     final double oy = my + cs * 0.3;
     for (int i = 0; i < lv.arrows.length; i++) {
       if (!m.game.alive[i]) continue;
-      final Paint fp = Paint()..color = rgba(th.colors[m.colors[i] % th.colors.length], 0.92);
+      final Paint fp = Paint()..color = rgba(m.mono ? m.pal.inkSoft : th.colors[m.colors[i] % th.colors.length], 0.92);
       for (final List<int> q in lv.arrows[i].cells) {
         canvas.drawRect(Rect.fromLTWH(ox + q[0] * cs + 0.3, oy + q[1] * cs + 0.3, cs - 0.6, cs - 0.6), fp);
       }

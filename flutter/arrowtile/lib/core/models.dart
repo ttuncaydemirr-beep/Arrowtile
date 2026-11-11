@@ -31,8 +31,8 @@ class Arrow {
       };
 }
 
-/// Bir seviye. Hazır seviyeler (1..200), sonsuz seviyeler ve günlük bulmaca aynı tiptir.
-/// [daily] doluysa 'YYYY-MM-DD' (id = 0).
+/// Bir seviye. Hazır seviyeler (1..100), sonsuz seviyeler ve günlük bulmaca aynı tiptir.
+/// [daily] doluysa 'YYYY-MM-DD' (id = 0). [mask] (1.2.0, şekilli tahta): satır dizgileri, '1' = oynanabilir hücre; null = tam dikdörtgen.
 class Level {
   final int id;
   final int w;
@@ -42,6 +42,7 @@ class Level {
   final List<Arrow> arrows;
   final String? daily;
   final bool ok;
+  final List<String>? mask;
   const Level({
     required this.id,
     required this.w,
@@ -51,9 +52,17 @@ class Level {
     this.diff,
     this.daily,
     this.ok = true,
+    this.mask,
   });
 
   bool get isDaily => daily != null;
+
+  /// (x, y) oynanabilir hücre mi (tahta içinde ve maske içinde).
+  bool inMask(int x, int y) {
+    if (x < 0 || y < 0 || x >= w || y >= h) return false;
+    final List<String>? m = mask;
+    return m == null || m[y].codeUnitAt(x) == 49;
+  }
 
   factory Level.fromJson(Map<String, dynamic> j) => Level(
         id: j['id'] as int,
@@ -63,6 +72,7 @@ class Level {
         diff: j['diff'] as String?,
         daily: j['daily'] as String?,
         ok: (j['ok'] as bool?) ?? true,
+        mask: j['mask'] is List ? <String>[for (final dynamic r in (j['mask'] as List<dynamic>)) r as String] : null,
         arrows: <Arrow>[
           for (final dynamic a in (j['arrows'] as List<dynamic>)) Arrow.fromJson(a as Map<String, dynamic>)
         ],
@@ -75,6 +85,7 @@ class Level {
         'par': par,
         if (diff != null) 'diff': diff,
         if (daily != null) 'daily': daily,
+        if (mask != null) 'mask': mask,
         'arrows': <Map<String, dynamic>>[for (final Arrow a in arrows) a.toJson()],
       };
 }

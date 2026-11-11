@@ -26,8 +26,9 @@
   // v1.5 (docs/15 §5): bölüm = 10 seviye; zorluk SEVİYE bazında döner (1-3 Kolay, 4-6 Orta, 7-8 Zor, 9-10 Aşırı zor).
   // Seviye jetonu taban 10/15/20 (1/2/3 yıldız) × seviye kademesi çarpanı; bölüm bonusu tek: 150 jeton.
   // Döngü levelgen.js CYCLE ile aynı.
-  var PER_CHAPTER = 10;
-  var CYCLE = ['easy', 'easy', 'easy', 'medium', 'medium', 'medium', 'hard', 'hard', 'extreme', 'extreme'];
+  // 1.2.0 (docs/24): bölüm = 20 seviye; sıra 5 Kolay → 5 Orta → 5 Zor → 5 Aşırı zor (levelgen.js CYCLE ile aynı).
+  var PER_CHAPTER = 20;
+  var CYCLE = []; (function () { var T = ['easy', 'medium', 'hard', 'extreme']; for (var i = 0; i < PER_CHAPTER; i++) CYCLE.push(T[Math.floor(i / 5)]); })();
   var TIER_MULT = { easy: 1, medium: 1.5, hard: 2, extreme: 3 };
   var CHAPTER_BONUS = 150; // her bölüm için tek bonus
   var TOTAL_LEVELS = (window.LEVELS && window.LEVELS.length) || 36; // pakette hazır seviyeler; sonrası oyunda üretilir
@@ -51,11 +52,12 @@
       coins: 50, freeHints: 0,
       stars: {}, unlocked: 1, themesOwned: ['emaye'], theme: 'emaye',
       daily: { lastDate: null, streakDay: 0 },
-      tutorialDone: [], chapterBonus: [],
+      tutorialDone: [], chapterBonus: [], cbv: PER_CHAPTER, // cbv: chapterBonus numaralarının bölüm uzunluğu (1.2.0: 20; eksikse eski 10'luk bölüm → göç)
       ads: { since: 0, lastAt: 0, adFree: false, test: false, coinDate: null, coinCount: 0 }, // reklam sayacı + "reklamları kaldır" (ads.js) + günlük reklam-jeton hakkı
       appearance: 'auto',   // G7: auto | light | dark
       relaxed: false,       // G3: rahat mod
       aim: false,           // G1: önce seç, sonra fırlat
+      arrowColor: 'color',  // 1.2.0: ok rengi — color (renkli) | mono (tek renk ince çizgi)
       tips: [],             // tek seferlik ipuçları (aim_suggest, zoom_tip …)
       dp: { done: {}, streak: 0, best: 0, last: null, trophies: 0 } // G5: günlük bulmaca
     };
@@ -99,7 +101,18 @@
     }
     if (Array.isArray(raw.tutorialDone)) s.tutorialDone = raw.tutorialDone.map(Number).filter(function (n) { return n >= 1 && n <= 3; });
     else if (raw.tutorialDone === true) s.tutorialDone = [1, 2, 3];
-    if (Array.isArray(raw.chapterBonus)) s.chapterBonus = raw.chapterBonus.map(Number).filter(function (n) { return n >= 1 && n <= MAX_CHAPTERS; });
+    if (Array.isArray(raw.chapterBonus)) {
+      var cb = raw.chapterBonus.map(Number);
+      // 1.2.0 göçü (docs/26 §C): 1.2.0 öncesi kayıtlarda bölüm = 10 seviye. Eski bölüm k (seviye 10k−9..10k) yeni 20'lik bölüm ⌈k/2⌉'nin
+      // yarısıdır ve o aralık için 150 jeton zaten ödenmiştir → yeni bölüm ⌈k/2⌉ ödenmiş sayılır (çift ödeme yok). Numaralar yeni bölümlere
+      // taşındığı için eski "bölüm 3" (seviye 21–30) yeni bölüm 3'ü (seviye 41–60) kilitlemez. Göç bir kez: kayıt cbv = 20 ile yazılır.
+      if (raw.cbv !== PER_CHAPTER) {
+        var mg = [];
+        cb.forEach(function (k) { if (k >= 1 && Math.floor(k) === k) { var n = Math.ceil(k / 2); if (mg.indexOf(n) < 0) mg.push(n); } });
+        cb = mg;
+      }
+      s.chapterBonus = cb.filter(function (n) { return n >= 1 && n <= MAX_CHAPTERS; });
+    }
     if (raw.ads && typeof raw.ads === 'object') {
       s.ads.since = int(raw.ads.since, 0, 0, 1000);
       s.ads.lastAt = int(raw.ads.lastAt, 0, 0, 8.64e15);
@@ -112,6 +125,7 @@
     if (['auto', 'light', 'dark'].indexOf(raw.appearance) >= 0) s.appearance = raw.appearance;
     if (typeof raw.relaxed === 'boolean') s.relaxed = raw.relaxed;
     if (typeof raw.aim === 'boolean') s.aim = raw.aim;
+    if (raw.arrowColor === 'color' || raw.arrowColor === 'mono') s.arrowColor = raw.arrowColor;
     if (raw.dp && typeof raw.dp === 'object') {
       var D = /^\d{4}-\d{2}-\d{2}$/;
       if (raw.dp.done && typeof raw.dp.done === 'object' && !Array.isArray(raw.dp.done)) Object.keys(raw.dp.done).slice(-400).forEach(function (k) {

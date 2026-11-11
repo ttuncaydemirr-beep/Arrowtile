@@ -54,12 +54,13 @@
     bulb: '<svg viewBox="0 0 24 24"><path d="M12 2.5a6.8 6.8 0 0 0-4 12.3c.7.5 1 1.2 1 2V18h6v-1.2c0-.8.4-1.5 1-2A6.8 6.8 0 0 0 12 2.5z" fill="var(--star)"/><rect x="9" y="19" width="6" height="2.6" rx="1.2" fill="var(--ink-soft)"/><path d="M10 9.5a2.4 2.4 0 0 1 2-2" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>',
     restart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 3.5v5h-5"/></svg>',
     lock: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>',
-    hand: '<svg viewBox="0 0 24 24"><path d="M9.2 3.2c.9 0 1.6.7 1.6 1.6v6.4l.9-.2c.9-.1 1.7.4 1.9 1.3l.1.2.6-.1c.8-.1 1.6.4 1.8 1.2l.7-.1c.8-.1 1.6.5 1.7 1.3l.5 3.3c.3 2.6-1.6 4.9-4.2 4.9h-2.9c-1.6 0-3-.8-3.9-2.1l-3.1-4.6c-.5-.7-.3-1.6.4-2.1.6-.4 1.4-.3 1.9.2l1.6 1.7V4.8c0-.9.7-1.6 1.6-1.6z" fill="#fff" stroke="#1D2C3B" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+    hand: '<svg viewBox="0 0 24 24"><path d="M9.2 3.2c.9 0 1.6.7 1.6 1.6v6.4l.9-.2c.9-.1 1.7.4 1.9 1.3l.1.2.6-.1c.8-.1 1.6.4 1.8 1.2l.7-.1c.8-.1 1.6.5 1.7 1.3l.5 3.3c.3 2.6-1.6 4.9-4.2 4.9h-2.9c-1.6 0-3-.8-3.9-2.1l-3.1-4.6c-.5-.7-.3-1.6.4-2.1.6-.4 1.4-.3 1.9.2l1.6 1.7V4.8c0-.9.7-1.6 1.6-1.6z" fill="#fff" stroke="#22252B" stroke-width="1.5" stroke-linejoin="round"/></svg>',
     noads: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 15l2-6 2 6M8.7 13h2.6M14.5 9v6h1.2a2.3 2.3 0 0 0 0-6z"/><path d="M3.5 3.5l17 17" stroke="var(--danger)"/></svg>',
     trophy: '<svg viewBox="0 0 24 24"><path d="M7 3h10v5a5 5 0 0 1-10 0z" fill="var(--star)"/><path d="M7 5H4a3 3 0 0 0 3 4M17 5h3a3 3 0 0 1-3 4" fill="none" stroke="var(--star)" stroke-width="2"/><path d="M10.5 13h3l.5 4h-4z" fill="var(--star)"/><rect x="7.5" y="17" width="9" height="3.5" rx="1.2" fill="var(--coin)"/></svg>',
     calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke-linecap="round"/><circle cx="12" cy="15" r="2" fill="currentColor" stroke="none"/></svg>',
     leaf: '<svg viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 15-14-1 10-6 15-14 15" fill="var(--success)"/><path d="M5 19c3-4 6-7 10-9" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>',
     fit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
+    zoomin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20.5 20.5M10.5 7.8v5.4M7.8 10.5h5.4"/></svg>',
     rotate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/><path d="M2.5 9a8 8 0 0 1 3-4.5M5.5 4.5v2.6H2.9"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
   };
@@ -98,9 +99,11 @@
     document.querySelectorAll('[data-bind="coins"]').forEach(function (n) { n.textContent = S.coins; });
   }
   var toastTimer = null;
-  function toast(msg) {
+  // 1.2.0 (docs/17): bildirim süresi parametreli; yalnızca çarpma uyarısı 2,5 sn, diğerleri 1,6 sn
+  var TOAST_MS = 1600, CRASH_TOAST_MS = 2500;
+  function toast(msg, ms) {
     var n = $('toast'); n.textContent = msg; n.classList.add('show');
-    clearTimeout(toastTimer); toastTimer = setTimeout(function () { n.classList.remove('show'); }, 1600);
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { n.classList.remove('show'); }, ms || TOAST_MS);
   }
   function buzz(name) { if (S.vibration) SFX.vibrate(name); }
 
@@ -281,6 +284,11 @@
         });
       })(id, locked);
       path.appendChild(nb);
+      if (i % 5 === 0) { // 1.2.0: her kademe diliminin başında küçük etiket (Kolay / Orta / Zor / Aşırı zor)
+        var tl = el('span', 'tier-label d-' + tier); tl.textContent = t('diff.' + tier);
+        tl.style.left = (pts[i][0] + (pts[i][0] > 50 ? -30 : 30)) + '%'; tl.style.top = pts[i][1] + 'px';
+        path.appendChild(tl);
+      }
     }
     var wrap = el('div', 'chapter-in'); wrap.appendChild(head); wrap.appendChild(path); ch.appendChild(wrap);
     return ch;
@@ -551,6 +559,20 @@
       seg.appendChild(b);
     });
     ga.appendChild(seg);
+    // 1.2.0 (docs/17 §13): ok rengi — Renkli / Tek renk (ince çizgi; açık temada koyu, koyu temada açık)
+    var acl = el('div', 'set-sub'); acl.id = 'ac-label'; acl.textContent = t('settings.arrow_color'); ga.appendChild(acl);
+    var seg2 = el('div', 'seg seg2'); seg2.setAttribute('role', 'radiogroup'); seg2.setAttribute('aria-labelledby', 'ac-label');
+    ['color', 'mono'].forEach(function (m) {
+      var on = (S.arrowColor || 'color') === m;
+      var b = el('button', 'seg-btn' + (on ? ' on' : '')); b.type = 'button'; b.id = 'ac-' + m;
+      b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', on ? 'true' : 'false');
+      b.innerHTML = '<span class="ac-prev ac-' + m + '" aria-hidden="true"><i></i><i></i><i></i></span><span></span>';
+      b.lastChild.textContent = t('settings.ac_' + m);
+      b.addEventListener('click', function () { SFX.button(); S.arrowColor = m; Store.save(); renderers.settings(); fitAll(body); });
+      seg2.appendChild(b);
+    });
+    ga.appendChild(seg2);
+    ga.appendChild(el('small', 'set-desc ac-desc')).textContent = t('settings.arrow_color_desc');
     body.appendChild(ga);
 
     var g2 = group('settings.language');
@@ -656,7 +678,7 @@
     document.documentElement.setAttribute('data-theme', m);
     T.forceMode = m === 'auto' ? null : m;
     var dark = m === 'dark' || (m === 'auto' && mqDark && mqDark.matches);
-    document.querySelectorAll('meta[name="theme-color"]').forEach(function (n) { n.setAttribute('content', dark ? '#0F1B27' : '#E3E9EE'); });
+    document.querySelectorAll('meta[name="theme-color"]').forEach(function (n) { n.setAttribute('content', dark ? '#14171C' : '#EFEAE2'); });
     try { if (window.AndroidBridge && typeof window.AndroidBridge.setSystemBarsDark === 'function') window.AndroidBridge.setSystemBarsDark(!!dark); } catch (e) {}
     if (typeof draw === 'function' && LV) draw();
   }
@@ -690,6 +712,7 @@
   var aimSel = -1;                  // G1: "önce seç, sonra fırlat" seçili ok
   var flash = null;                 // G1: belirsiz dokunuşta kısa vurgu {ids, t0}
   var tipShown = {};                // oturum içi tek seferlik uyarılar
+  var playMs = 0, lastTapAt = 0;    // 1.2.0: hız rozeti için etkin oyun süresi
 
   function themeIndex() { var i = Store.THEME_IDS.indexOf(S.theme); return i < 0 ? 0 : i; }
 
@@ -724,6 +747,7 @@
       var s0 = performance.now(), done = genJob.step(); genJob.work += performance.now() - s0;
       if (done) {
         var r = genJob.result(), lv = { id: r.id, w: r.w, h: r.h, par: r.par, diff: r.diff, arrows: r.arrows };
+        if (r.mask) lv.mask = r.mask; // şekilli tahta
         genStats.push({ id: r.id, ms: Math.round(genJob.work), wall: Math.round(performance.now() - genJob.t0), rounds: r.rounds, ok: r.ok });
         endless[r.id] = lv; saveEndless();
         var w = genWait[r.id] || []; delete genWait[r.id]; genJob = null;
@@ -759,7 +783,7 @@
     var tutorial = !lv.daily && id <= 3 && S.tutorialDone.indexOf(id) < 0;
     G = new E.Game(LV, { noLifeLoss: tutorial && id === 2, relaxed: !!S.relaxed });
     anims = {}; shake = null; hintIdx = -1; busy = false; lockUntil = 0; exitStreak = 0; session++; winDone = false;
-    view = { s: 1, x: 0, y: 0 }; aimSel = -1; flash = null;
+    view = { s: 1, x: 0, y: 0 }; aimSel = -1; flash = null; viewAnim = null; fling = null; tray = null; playMs = 0; lastTapAt = 0;
     tut = tutorial ? { id: id, step: 0 } : null;
     if (!lv.daily) prefetchNext(id);
     show('game');
@@ -778,15 +802,8 @@
   function hasTip(k) { return S.tips.indexOf(k) >= 0; }
   function markTip(k) { if (!hasTip(k)) { S.tips.push(k); Store.save(); } }
   function oneTimeTips() {
-    // v1.2 (docs/08 §4): sığdırılmış hücre 30 px'ten küçükse ilk büyük seviyede bir kez
-    // "iki parmakla yakınlaştır / önce seç, sonra fırlat" önerisi
-    if (lay.cell < 26 && !S.aim && !hasTip('aim_suggest')) { // v1.3: eşik 26 px
-      markTip('aim_suggest');
-      confirmBox(t('game.aim_suggest'), function () { S.aim = true; Store.save(); }, t('common.yes'));
-      return;
-    }
-    // G2: büyük tahtada bir kez yakınlaştırma ipucu
-    if (lay.cell < 36 && !hasTip('zoom_tip') && !tut) { markTip('zoom_tip'); toast(t('game.zoom_tip')); }
+    // 1.2.0: tahta ekrana sığmıyorsa bir kez kaydırma/yakınlaştırma ipucu (isabet hücre bazlı olduğundan "önce seç" önerisi kalktı)
+    if (pannable() && !hasTip('zoom_tip') && !tut) { markTip('zoom_tip'); toast(t('game.pan_tip'), 2600); }
   }
   function stopGame() { cancelAnimationFrame(rafId); rafId = 0; hideTutorial(); }
   renderers.game = function () { if (LV) updateHUD(); };
@@ -812,6 +829,11 @@
     updateCoins();
   }
 
+  // 1.2.0 (docs/17 §14): tahta ekrana sığmak zorunda değil. Varsayılan yakınlıkta (s = 1) hücre en az MIN_CELL px;
+  // tahta bundan büyükse tek parmakla kaydırılır, iki parmakla yakınlaştırılır. s = sMin: tüm tahta görünür ("Sığdır").
+  var MIN_CELL = 20, FIT_OK = 18, MAX_CELL = 72, ZOOM_CELL = 64; // AYAR: varsayılan en küçük hücre, kaydırmasız kabul edilen en küçük hücre, en büyük hücre, en yakın hücre (px)
+  var TOP_BAND = 36; // tahta alanının üstünde zorluk etiketi için ayrılan şerit (px)
+  var tray = null, boxes = null, viewAnim = null, fling = null;
   function resize() {
     if (!LV) return;
     var wrap = $('board-wrap'), W = wrap.clientWidth, H = wrap.clientHeight;
@@ -819,39 +841,72 @@
     var dpr = Math.min(3, window.devicePixelRatio || 1);
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     var padF = T.boardPadFor(LV.w) * 2;
-    // Tahta tepsisi ekran kenarına 2 px yaklaşabilir: 360 px'te 22 sütunda hücre ≥ 16 px (docs/09)
-    var cell = Math.min((W - 4) / (LV.w + padF), (H - 16) / (LV.h + padF + 0.1), 72);
-    cell = Math.floor(cell);
-    lay = { cell: cell, dpr: dpr, W: W, H: H,
-      ox: Math.round((W - LV.w * cell) / 2), oy: Math.round((H - LV.h * cell) / 2) };
-    clampView();
+    var fit = Math.min((W - 4) / (LV.w + padF), (H - 12 - TOP_BAND) / (LV.h + padF + 0.1), MAX_CELL);
+    // sığan hücre FIT_OK px'ten küçük değilse tahta tam sığar (kaydırma yok); daha küçükse varsayılan hücre MIN_CELL olur ve tahta kaydırılır
+    var cell = fit >= FIT_OK ? Math.floor(fit) : MIN_CELL;
+    lay = { cell: cell, dpr: dpr, W: W, H: H, fit: fit, sMin: Math.min(1, fit / cell), sMax: Math.max(2.5, ZOOM_CELL / cell),
+      ox: Math.round((W - LV.w * cell) / 2), oy: TOP_BAND + Math.round((H - TOP_BAND - LV.h * cell) / 2) };
+    clampView(); updateFitBtn();
     draw();
     positionTutorial();
   }
 
-  // ---- G2: yakınlaştırma / kaydırma. Tahta her zaman ekrana sığarak başlar (s=1); oyun kendiliğinden kaydırmaz.
-  var ZMAX = 5; // v1.3 (docs/09): yakınlaştırma üst sınırı 5×
+  // ---- yakınlaştırma / kaydırma (görünüm: tahta koordinatı → ekran = p·s + (x, y))
   function trayBox() { var p = T.boardPadFor(LV.w) * lay.cell; return [lay.ox - p, lay.oy - p, lay.ox + LV.w * lay.cell + p, lay.oy + LV.h * lay.cell + p]; }
-  function clampView() {
-    if (!LV) return;
-    view.s = Math.max(1, Math.min(ZMAX, view.s));
-    if (view.s <= 1.001) { view.s = 1; view.x = 0; view.y = 0; return; }
-    var b = trayBox(), m = 12;
-    [[0, lay.W], [1, lay.H]].forEach(function (ax) {
-      var lo = b[ax[0]] * view.s, hi = b[ax[0] + 2] * view.s, size = ax[1], key = ax[0] ? 'y' : 'x';
-      if (hi - lo + 2 * m <= size) view[key] = (size - (lo + hi)) / 2;
-      else view[key] = Math.min(m - lo, Math.max(size - m - hi, view[key]));
+  function clampV(v) {
+    if (!LV) return v;
+    v.s = Math.max(lay.sMin || 1, Math.min(lay.sMax || 5, v.s));
+    var b = trayBox();
+    [[0, lay.W, 2, 2], [1, lay.H, TOP_BAND, 8]].forEach(function (ax) { // [eksen, boyut, baş payı, son payı]
+      var lo = b[ax[0]] * v.s, hi = b[ax[0] + 2] * v.s, size = ax[1], key = ax[0] ? 'y' : 'x', m0 = ax[2], m1 = ax[3];
+      if (hi - lo <= size - m0 - m1 + 0.5) v[key] = m0 + (size - m0 - m1 - (hi - lo)) / 2 - lo;
+      else v[key] = Math.min(m0 - lo, Math.max(size - m1 - hi, v[key]));
     });
+    return v;
   }
+  function clampView() { clampV(view); }
   function toBoard(px, py) { return [(px - view.x) / view.s, (py - view.y) / view.s]; }
+  function pannable() { var b = trayBox(); return (b[2] - b[0]) * view.s > lay.W - 3.5 || (b[3] - b[1]) * view.s > lay.H - TOP_BAND - 7.5; }
+  function overview() { return lay.sMin < 0.999 && view.s <= lay.sMin + 0.005; }
   function zoomAt(px, py, ns) {
     var bp = toBoard(px, py);
-    view.s = Math.max(1, Math.min(ZMAX, ns));
+    viewAnim = null; fling = null;
+    view.s = Math.max(lay.sMin, Math.min(lay.sMax, ns));
     view.x = px - bp[0] * view.s; view.y = py - bp[1] * view.s;
     clampView(); updateFitBtn(); draw(); positionTutorial();
   }
-  function fitView() { view = { s: 1, x: 0, y: 0 }; updateFitBtn(); draw(); positionTutorial(); }
-  function updateFitBtn() { $('btn-fit').hidden = !(view.s > 1.01); }
+  /** Görünümü yumuşak geçişle (bx, by) tahta noktası ekran ortasına gelecek şekilde s yakınlığına götürür. */
+  function animateView(ns, bx, by) {
+    var to = { s: ns, x: 0, y: 0 };
+    to.s = Math.max(lay.sMin, Math.min(lay.sMax, ns));
+    to.x = lay.W / 2 - bx * to.s; to.y = lay.H / 2 - by * to.s; clampV(to);
+    fling = null;
+    if (reduced) { view = to; viewAnim = null; updateFitBtn(); draw(); positionTutorial(); return; }
+    viewAnim = { from: { s: view.s, x: view.x, y: view.y }, to: to, t0: performance.now(), dur: 280 * animScale + 1 };
+    kick();
+  }
+  // "Sığdır": tüm tahtayı göster; tahta zaten sığdırılmışsa varsayılan yakınlığa (hücre ≥ MIN_CELL) döner
+  function fitView() {
+    var c = toBoard(lay.W / 2, lay.H / 2);
+    animateView(overview() ? 1 : (lay.sMin < 0.999 ? lay.sMin : 1), c[0], c[1]);
+  }
+  function updateFitBtn() {
+    var b = $('btn-fit'); if (!LV) return;
+    b.hidden = !(lay.sMin < 0.999 || view.s > 1.01);
+    var key = overview() ? 'game.zoom_default' : 'game.fit';
+    if (b.getAttribute('data-k') !== key + S.lang) {
+      b.setAttribute('data-k', key + S.lang); b.setAttribute('aria-label', t(key)); b.title = t(key);
+      b.firstElementChild.innerHTML = ICONS[overview() ? 'zoomin' : 'fit'];
+    }
+    $('scr-game').classList.toggle('has-fit', !b.hidden);
+  }
+  /** Ok görünür alanda değilse görünümü oka kaydırır (ipucu, öğretici). */
+  function focusArrow(i) {
+    var hd = E.headOf(LV.arrows[i]), c = lay.cell, bx = lay.ox + (hd[0] + 0.5) * c, by = lay.oy + (hd[1] + 0.5) * c;
+    var sx = bx * view.s + view.x, sy = by * view.s + view.y, m = 2.5 * c * view.s;
+    if (sx > m && sy > m + 30 && sx < lay.W - m && sy < lay.H - m) return;
+    animateView(Math.max(view.s, Math.min(1, lay.sMax)), bx, by);
+  }
   $('btn-fit').addEventListener('click', function () { SFX.button(); fitView(); });
   window.addEventListener('resize', function () { if (current === 'game') resize(); fitAll(); });
 
@@ -872,21 +927,6 @@
   var easeSlide = bezier(0.45, 0, 0.85, 0.35), easeBack = bezier(0.34, 1.56, 0.64, 1);
   function easeIn(x) { return x * x; }
 
-  function offscreenCells(a) {
-    // v1.3: gövde başı izler; kuyruk önce (uzunluk−1) adımda başın yerine gelir, sonra baş doğrusundan çıkar
-    var hd = E.headOf(a), extra = E.cellsOf(a).length - 1;
-    var c = lay.cell, d = E.DIRS[a.dir], tx = lay.ox + hd[0] * c, ty = lay.oy + hd[1] * c;
-    return extra + offscreenFrom(tx, ty, c, d);
-  }
-  function offscreenFrom(tx, ty, c, d) {
-    // hücre tamamen ekran dışına çıkana kadar (yakınlaştırma hesaba katılır)
-    var L = -view.x / view.s, R = (lay.W - view.x) / view.s, Tp = -view.y / view.s, B = (lay.H - view.y) / view.s;
-    if (d[0] > 0) return (R - tx) / c + 0.2;
-    if (d[0] < 0) return (tx + c - L) / c + 0.2;
-    if (d[1] > 0) return (B - ty) / c + 0.3;
-    return (ty + c - Tp) / c + 0.3;
-  }
-
   function loop() {
     rafId = 0;
     if (adPause) return; // reklam gösteriliyor: animasyon döngüsü duraklar, reklam kapanınca kick() sürdürür
@@ -900,15 +940,60 @@
     if (shake) active = true;
     if (hintIdx >= 0) { if (now > hintUntil || !G.alive[hintIdx]) hintIdx = -1; else active = true; }
     if (flash) { if (now - flash.t0 > 320) flash = null; else active = true; }
+    if (viewAnim) { // yumuşak görünüm geçişi (sığdır / oka odaklan)
+      var qv = Math.min(1, (now - viewAnim.t0) / viewAnim.dur), ev = 1 - (1 - qv) * (1 - qv) * (1 - qv), vf = viewAnim.from, vt = viewAnim.to;
+      view.s = vf.s + (vt.s - vf.s) * ev; view.x = vf.x + (vt.x - vf.x) * ev; view.y = vf.y + (vt.y - vf.y) * ev;
+      if (qv >= 1) viewAnim = null; else active = true;
+      updateFitBtn(); positionTutorial();
+    }
+    if (fling) { // kaydırma ataleti
+      var dtf = Math.min(40, now - fling.t), kf = Math.exp(-dtf / 300); fling.t = now;
+      view.x += fling.vx * dtf; view.y += fling.vy * dtf; fling.vx *= kf; fling.vy *= kf;
+      var fx0 = view.x, fy0 = view.y; clampView();
+      if (view.x !== fx0) fling.vx = 0; if (view.y !== fy0) fling.vy = 0;
+      if (Math.abs(fling.vx) + Math.abs(fling.vy) < 0.03) fling = null; else active = true;
+    }
     draw(now);
     if (active) rafId = requestAnimationFrame(loop);
   }
   function kick() { if (!rafId && !adPause) rafId = requestAnimationFrame(loop); }
 
+  // Tahta tepsisi: maske varsa (şekilli tahta) hücrelerin birleşimi, yuvarlak köşeli; yoksa dikdörtgen. Path2D önbelleği (hücre birimi).
+  function inMask(x, y) { return x >= 0 && y >= 0 && x < LV.w && y < LV.h && (!LV.mask || LV.mask[y].charCodeAt(x) === 49); }
+  function buildTray() {
+    var w = LV.w, h = LV.h, p = new Path2D(), dots = new Path2D(), x, y, dr = T.shape.gridDot;
+    if (!LV.mask) p.rect(0, 0, w, h);
+    else for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      if (!inMask(x, y)) continue;
+      var x0 = x; while (x < w && inMask(x, y)) x++;
+      p.rect(x0, y, x - x0, 1);
+    }
+    for (y = 0; y <= h; y++) for (x = 0; x <= w; x++) {
+      if (inMask(x, y) || inMask(x - 1, y) || inMask(x, y - 1) || inMask(x - 1, y - 1)) { dots.moveTo(x + dr, y); dots.arc(x, y, dr, 0, Math.PI * 2); }
+    }
+    boxes = LV.arrows.map(function (a) {
+      var b = [1e9, 1e9, -1e9, -1e9];
+      E.cellsOf(a).forEach(function (q) { if (q[0] < b[0]) b[0] = q[0]; if (q[1] < b[1]) b[1] = q[1]; if (q[0] > b[2]) b[2] = q[0]; if (q[1] > b[3]) b[3] = q[1]; });
+      return b;
+    });
+    tray = { lv: LV, p: p, dots: dots };
+  }
+  function drawTray(pal, c) {
+    if (!tray || tray.lv !== LV) buildTray();
+    var pad = T.boardPadFor(LV.w), dark = pal === T.colors.dark;
+    ctx.save();
+    ctx.translate(lay.ox, lay.oy); ctx.scale(c, c);
+    ctx.lineJoin = 'round'; ctx.lineWidth = pad * 2;
+    ctx.save(); ctx.translate(0, 0.1); ctx.fillStyle = pal.boardEdge; ctx.strokeStyle = pal.boardEdge; ctx.fill(tray.p); ctx.stroke(tray.p); ctx.restore();
+    ctx.fillStyle = pal.board; ctx.strokeStyle = pal.board; ctx.fill(tray.p); ctx.stroke(tray.p);
+    if (c * view.s >= 9) { ctx.fillStyle = pal.cellDot; ctx.globalAlpha = dark ? 0.55 : 0.75; ctx.fill(tray.dots); }
+    ctx.restore();
+  }
+  function isMono() { return S.arrowColor === 'mono'; }
   function draw(now) {
     if (!LV || !ctx) return;
     now = now || performance.now();
-    var c = lay.cell, dpr = lay.dpr;
+    var c = lay.cell, dpr = lay.dpr, pal = T.palette();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, cv.width, cv.height);
     ctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, dpr * view.x, dpr * view.y);
@@ -919,38 +1004,51 @@
       sx = shake.ax * amp; sy = shake.ay * amp;
     }
     ctx.translate(sx, sy);
-    window.drawBoard(ctx, lay.ox, lay.oy, LV.w, LV.h, c);
-    var th = T.arrowThemes[themeIndex()];
+    drawTray(pal, c);
+    var th = T.arrowThemes[themeIndex()], mono = isMono();
     if (!colorMap || colorMap.lv !== LV || colorMap.k !== th.colors.length) colorMap = { lv: LV, k: th.colors.length, c: E.colorize(LV, th.colors.length) };
     var pulse = 0.5 + 0.5 * Math.sin(now / T.anim.hintPulse * Math.PI * 2);
-    LV.arrows.forEach(function (a, i) {
-      var an = anims[i];
-      if (!G.alive[i] && !(an && an.kind === 'exit')) return;
-      var off = 0, alpha = 1;
+    // görünür hücre penceresi (ekran dışındaki oklar çizilmez)
+    var b0 = toBoard(0, 0), b1 = toBoard(lay.W, lay.H);
+    var vx0 = (b0[0] - lay.ox) / c - 1.5, vy0 = (b0[1] - lay.oy) / c - 1.5, vx1 = (b1[0] - lay.ox) / c + 0.5, vy1 = (b1[1] - lay.oy) / c + 0.5;
+    function one(i, an) {
+      var a = LV.arrows[i], off = 0, alpha = 1;
       if (an) {
         var q = Math.min(1, (now - an.t0) / an.dur);
-        if (an.kind === 'exit') {
-          off = an.dist * easeSlide(q);
-          var left = an.dur - (now - an.t0);
-          if (left < T.anim.exitFade) alpha = Math.max(0, left / T.anim.exitFade);
-        } else if (an.kind === 'bump') {
+        if (an.kind === 'exit') off = an.dist * q; // sabit hız: ok kendi yolunu izleyerek tahta kenarına dek gider (kenarda kırpılır)
+        else if (an.kind === 'bump') {
           var tf = an.fwd / an.dur;
           if (q < tf) off = an.dist * easeIn(q / tf);
           else off = an.dist * (1 - easeBack((q - tf) / (1 - tf)));
         } else if (an.kind === 'appear') alpha = q;
       }
-      var hl = i === hintIdx, col = th.colors[colorMap.c[i]], cl = E.cellsOf(a);
+      var hl = i === hintIdx, col = mono ? pal.ink : th.colors[colorMap.c[i]], cl = E.cellsOf(a);
       if (hl) {
         ctx.save(); ctx.globalAlpha = 0.5 + 0.5 * pulse;
-        window.drawArrow(ctx, { ox: lay.ox, oy: lay.oy, cells: cl, off: off, cell: c, dir: a.dir, color: col, highlight: true, chevron: th.chevron });
+        window.drawArrow(ctx, { ox: lay.ox, oy: lay.oy, cells: cl, off: off, cell: c, dir: a.dir, color: col, highlight: true, chevron: th.chevron, mono: mono });
         ctx.restore();
       }
       var sel = i === aimSel || (flash && flash.ids.indexOf(i) >= 0);
       window.drawArrow(ctx, { ox: lay.ox, oy: lay.oy, cells: cl, off: off, cell: c, dir: a.dir,
-        color: col, alpha: alpha, chevron: th.chevron, highlight: sel });
-    });
+        color: col, alpha: alpha, chevron: th.chevron, highlight: sel, mono: mono });
+    }
+    var exits = null;
+    for (var i = 0; i < LV.arrows.length; i++) {
+      var an = anims[i];
+      if (an && an.kind === 'exit') { (exits = exits || []).push(i); continue; }
+      if (!G.alive[i]) continue;
+      var bb = boxes[i];
+      if (!an && (bb[2] < vx0 || bb[0] > vx1 || bb[3] < vy0 || bb[1] > vy1)) continue;
+      one(i, an);
+    }
+    if (exits) { // çıkan oklar tahta kenarında kaybolur
+      var tb = trayBox();
+      ctx.save(); ctx.beginPath(); ctx.rect(tb[0], tb[1], tb[2] - tb[0], tb[3] - tb[1] + c * 0.12); ctx.clip();
+      for (var e = 0; e < exits.length; e++) one(exits[e], anims[exits[e]]);
+      ctx.restore();
+    }
     if (aimSel >= 0 && G.alive[aimSel] && !anims[aimSel]) drawAimPath(aimSel, c);
-    if (view.s > 1.01) drawMinimap(th);
+    if (pannable() && !winDone) drawMinimap(th, mono, pal);
   }
   // G1: seçili okun yolu (engel ya da tahta kenarına kadar) noktalarla gösterilir
   function drawAimPath(i, c) {
@@ -966,9 +1064,9 @@
     ctx.restore();
   }
   // G2: yakınken küçük harita (ekran koordinatında, üst köşe; RTL'de karşı köşe)
-  function drawMinimap(th) {
-    var mw = 76, cs = mw / (LV.w + 0.6), mh = cs * (LV.h + 0.6), m = 8, pal = T.palette();
-    var mx = isRTL() ? lay.W - mw - m : m, my = m;
+  function drawMinimap(th, mono, pal) {
+    var mw = 64, cs = mw / (LV.w + 0.6), mh = cs * (LV.h + 0.6), m = 8;
+    var mx = isRTL() ? lay.W - mw - m : m, my = 6;
     ctx.setTransform(lay.dpr, 0, 0, lay.dpr, 0, 0);
     ctx.save();
     ctx.globalAlpha = 0.92; ctx.fillStyle = pal.board; ctx.strokeStyle = pal.boardEdge; ctx.lineWidth = 2;
@@ -976,7 +1074,7 @@
     var ox = mx + cs * 0.3, oy = my + cs * 0.3;
     LV.arrows.forEach(function (a, i) {
       if (!G.alive[i]) return;
-      ctx.fillStyle = th.colors[colorMap ? colorMap.c[i] : i % th.colors.length];
+      ctx.fillStyle = mono ? pal.inkSoft : th.colors[colorMap ? colorMap.c[i] : i % th.colors.length];
       E.cellsOf(a).forEach(function (q) { ctx.fillRect(ox + q[0] * cs + 0.3, oy + q[1] * cs + 0.3, cs - 0.6, cs - 0.6); });
     });
     // görünen alan
@@ -992,29 +1090,25 @@
   // ---- girdi
   // G1 dokunma koruması: isabet, okun gövde eksenine uzaklıkla belirlenir (gövdenin çevresi genişletilmiş alan).
   // En yakın iki ok neredeyse eşit uzaklıktaysa (iki okun arası) hiçbir ok oynamaz: kısa titreşim + vurgu.
-  var HIT_MAX = 0.5, AMBIG = 0.18; // hücre birimi — v1.2: isabet eşiği 0,5 hücre (küçük hücreler, yoğun tahta)
-  // v1.3: okun çizgisine (hücre merkezlerinden geçen polyline) en yakın mesafe
-  function segDist(u, v, a) {
-    var cl = E.cellsOf(a), best = 1e9;
-    for (var k = 0; k < cl.length; k++) {
-      var x1 = cl[k][0] + 0.5, y1 = cl[k][1] + 0.5, b = cl[k + 1] || cl[k], x2 = b[0] + 0.5, y2 = b[1] + 0.5;
-      var dx = x2 - x1, dy = y2 - y1, L2 = dx * dx + dy * dy, q = L2 ? Math.max(0, Math.min(1, ((u - x1) * dx + (v - y1) * dy) / L2)) : 0;
-      var px = x1 + q * dx - u, py = y1 + q * dy - v, dd = Math.sqrt(px * px + py * py);
-      if (dd < best) best = dd;
-      if (cl.length > 1 && k === cl.length - 2) break;
-    }
-    return best;
-  }
+  // 1.2.0 (docs/17 §9): isabet HÜCRE bazlıdır — okun kapladığı hücrenin herhangi bir yerine dokunmak yeter (ince çizgiye değil).
+  // Boş hücreye dokunulduysa en yakın dolu hücre (HIT_NEAR hücre içinde) seçilir; iki farklı ok neredeyse eşit uzaklıktaysa belirsiz.
+  var HIT_NEAR = 0.45, AMBIG = 0.12; // hücre birimi
   function hitTest(px, py) {
     var b = toBoard(px, py), u = (b[0] - lay.ox) / lay.cell, v = (b[1] - lay.oy) / lay.cell;
+    var w = LV.w, h = LV.h, fx = Math.floor(u), fy = Math.floor(v), g = G.grid();
+    if (fx >= 0 && fy >= 0 && fx < w && fy < h && g[fy * w + fx] >= 0) return { i: g[fy * w + fx] };
     var best = -1, bd = 1e9, second = -1, sd = 1e9;
-    LV.arrows.forEach(function (a, i) {
-      if (!G.alive[i]) return;
-      var d = segDist(u, v, a);
-      if (d < bd) { second = best; sd = bd; best = i; bd = d; } else if (d < sd) { second = i; sd = d; }
-    });
-    if (best < 0 || bd > HIT_MAX) return { i: -1 };
-    if (second >= 0 && sd <= HIT_MAX && sd - bd < AMBIG) return { i: -1, amb: [best, second] };
+    for (var ny = fy - 1; ny <= fy + 1; ny++) for (var nx = fx - 1; nx <= fx + 1; nx++) {
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      var k = g[ny * w + nx]; if (k < 0) continue;
+      var dx = u < nx ? nx - u : u > nx + 1 ? u - nx - 1 : 0, dy = v < ny ? ny - v : v > ny + 1 ? v - ny - 1 : 0, d = Math.sqrt(dx * dx + dy * dy);
+      if (k === best) { if (d < bd) bd = d; }
+      else if (d < bd) { second = best; sd = bd; best = k; bd = d; }
+      else if (k === second) { if (d < sd) sd = d; }
+      else if (d < sd) { second = k; sd = d; }
+    }
+    if (best < 0 || bd > HIT_NEAR) return { i: -1 };
+    if (second >= 0 && sd <= HIT_NEAR && sd - bd < AMBIG) return { i: -1, amb: [best, second] };
     return { i: best };
   }
   function onBoardTap(px, py) {
@@ -1034,7 +1128,8 @@
     tapArrow(h.i);
   }
   // Dokunma hareketleri (G2): tek parmak dokunuş = oka dokun; sürükleme (yakınken) = kaydır; iki parmak = yakınlaştır.
-  var ptrs = {}, gest = null;
+  // Kaydırma eşiği PAN_SLOP px: bu kadar hareket eden parmak artık dokunuş değildir (kaydırma asla ok oynatmaz).
+  var ptrs = {}, gest = null, PAN_SLOP = 10;
   function ptrList() { return Object.keys(ptrs).map(function (k) { return ptrs[k]; }); }
   function local(ev) { var r = cv.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; }
   cv.addEventListener('pointerdown', function (ev) {
@@ -1043,7 +1138,8 @@
     try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
     var p = local(ev); ptrs[ev.pointerId] = { x: p[0], y: p[1] };
     var list = ptrList();
-    if (list.length === 1) gest = { type: 'tap', x0: p[0], y0: p[1], vx: view.x, vy: view.y, moved: false };
+    fling = null; viewAnim = null;
+    if (list.length === 1) gest = { type: 'tap', x0: p[0], y0: p[1], vx: view.x, vy: view.y, moved: false, lx: p[0], ly: p[1], lt: lastInput, sx: 0, sy: 0 };
     else if (list.length === 2) {
       var a = list[0], b = list[1];
       gest = { type: 'pinch', d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, s0: view.s, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, vx: view.x, vy: view.y };
@@ -1056,26 +1152,36 @@
       var list = ptrList(); if (list.length < 2) return;
       var a = list[0], b = list[1], d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
       var bx = (gest.mx - gest.vx) / gest.s0, by = (gest.my - gest.vy) / gest.s0;
-      view.s = Math.max(1, Math.min(ZMAX, gest.s0 * d / gest.d0));
+      view.s = Math.max(lay.sMin, Math.min(lay.sMax, gest.s0 * d / gest.d0));
       view.x = mx - bx * view.s; view.y = my - by * view.s;
       clampView(); updateFitBtn(); draw(); positionTutorial();
     } else if (gest.type === 'tap' || gest.type === 'pan') {
       var dx = p[0] - gest.x0, dy = p[1] - gest.y0;
-      if (gest.type === 'tap' && Math.hypot(dx, dy) > 10) { gest.type = view.s > 1.01 ? 'pan' : 'none'; }
-      if (gest.type === 'pan') { view.x = gest.vx + dx; view.y = gest.vy + dy; clampView(); draw(); positionTutorial(); }
+      if (gest.type === 'tap' && Math.hypot(dx, dy) > PAN_SLOP) { gest.type = pannable() ? 'pan' : 'none'; }
+      if (gest.type === 'pan') {
+        var nowm = performance.now(), dtm = Math.max(1, nowm - gest.lt);
+        gest.sx = 0.6 * gest.sx + 0.4 * (p[0] - gest.lx) / dtm; gest.sy = 0.6 * gest.sy + 0.4 * (p[1] - gest.ly) / dtm; // yumuşatılmış hız (px/ms)
+        gest.lx = p[0]; gest.ly = p[1]; gest.lt = nowm;
+        view.x = gest.vx + dx; view.y = gest.vy + dy; clampView(); draw(); positionTutorial();
+      }
     }
   });
   function endPtr(ev, cancel) {
     if (!ptrs[ev.pointerId]) return;
     delete ptrs[ev.pointerId];
     if (!cancel && gest && gest.type === 'tap' && !ptrList().length) onBoardTap(gest.x0, gest.y0);
+    if (!cancel && gest && gest.type === 'pan' && !ptrList().length && !reduced && performance.now() - gest.lt < 80 && Math.hypot(gest.sx, gest.sy) > 0.25) {
+      fling = { vx: gest.sx, vy: gest.sy, t: performance.now() }; kick();
+    }
     if (!ptrList().length) gest = null; else if (gest && gest.type === 'pinch') gest = { type: 'none' };
   }
   cv.addEventListener('pointerup', function (ev) { endPtr(ev, false); });
   cv.addEventListener('pointercancel', function (ev) { endPtr(ev, true); });
-  cv.addEventListener('wheel', function (ev) { // masaüstü / emülatör: tekerlekle yakınlaştırma
+  cv.addEventListener('wheel', function (ev) { // masaüstü / emülatör: tekerlek = kaydırma, Ctrl/Alt + tekerlek = yakınlaştırma
     if (!LV) return; ev.preventDefault();
-    var p = local(ev); zoomAt(p[0], p[1], view.s * (ev.deltaY < 0 ? 1.15 : 1 / 1.15));
+    var p = local(ev);
+    if (ev.ctrlKey || ev.altKey || ev.metaKey || !pannable()) { zoomAt(p[0], p[1], view.s * (ev.deltaY < 0 ? 1.15 : 1 / 1.15)); return; }
+    view.x -= ev.deltaX; view.y -= ev.deltaY; clampView(); draw(); positionTutorial();
   }, { passive: false });
   cv.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
@@ -1101,17 +1207,19 @@
     // 1.1.5 (docs/22): ok hareketi başına TEK titreşim (çıkışta slideOut, çarpmada bump).
     hintIdx = -1;
     var a = LV.arrows[i], now = performance.now();
-    var per = reduced ? 30 : T.anim.slidePerCell;
+    if (lastTapAt) playMs += Math.min(8000, now - lastTapAt); lastTapAt = now; // hız rozeti: etkin oyun süresi (bekleme sayılmaz)
     if (r.type === 'exit') {
-      var dist = offscreenCells(a);
-      var dur = Math.max(T.anim.slideMin, dist * per);
-      if (reduced) dur = Math.max(120, dist * per);
+      // 1.2.0 (docs/17 §11): ok kendi yolunu izleyerek SABİT hızla tahta kenarına dek gider ve kenardan çıkıp kaybolur
+      // (gövdenin tamamı, kuyruk dahil, yol boyunca akar; yarıda solma yok). Mesafe = kuyruğun tahtayı terk etmesi.
+      var dist = boardLeaveCells(a) + 0.6;
+      var dur = Math.min(T.anim.exitMax, Math.max(T.anim.exitMin, dist * T.anim.exitPerCell));
+      if (reduced) dur = Math.min(dur, 180);
       dur *= animScale;
-      anims[i] = { kind: 'exit', t0: now, dur: dur, dist: dist, done: function () { if (G.isWon()) onWin(); } };
-      // easeSlide(q)·dist = tahtadan çıkış mesafesi olan q'yu ikiye bölerek bul
-      var need = Math.min(dist, boardLeaveCells(a)), lo = 0, hi = 1;
-      for (var it = 0; it < 18; it++) { var mid = (lo + hi) / 2; if (easeSlide(mid) * dist < need) lo = mid; else hi = mid; }
-      lockUntil = now + hi * dur;
+      anims[i] = { kind: 'exit', t0: now, dur: dur, dist: dist, done: function () {
+        if (G.isWon() && !Object.keys(anims).some(function (k) { return anims[k].kind === 'exit'; })) onWin();
+      } };
+      // Ok yola çıktıktan kısa süre sonra (tapGap) sıradaki oka dokunulabilir; oyun durumu dokunuş anında güncellenmiştir.
+      lockUntil = now + Math.min(dur, T.anim.tapGap * animScale);
       SFX.slideOut(Math.min(1, exitStreak / 6)); exitStreak++;
       buzz('slideOut');
       if (!isDaily() && G.remaining() <= 2) M.preloadInterstitial(LV.id); // geçiş reklamı seviye bitmeden hazır olsun (docs/15 §4)
@@ -1130,7 +1238,7 @@
         if (my !== session) return;
         SFX.bump(); buzz('bump');
         if (!reduced) { var d = E.DIRS[a.dir]; shake = { t0: performance.now(), dur: T.anim.shake, ax: d[0], ay: d[1] }; }
-        if (r.lifeLost) { toast(t('game.crash')); var h = $('hearts'); h.classList.remove('shake'); void h.offsetWidth; h.classList.add('shake'); }
+        if (r.lifeLost) { toast(t('game.crash'), CRASH_TOAST_MS); var h = $('hearts'); h.classList.remove('shake'); void h.offsetWidth; h.classList.add('shake'); }
         updateHUD(); kick();
       }, fwd);
     }
@@ -1159,12 +1267,42 @@
     updateCoins();
     setTimeout(function () { if (my === session) showEnd(stars, res); }, (reduced ? 50 : 250) * animScale);
   }
+  // 1.2.0 (docs/17): seviye sonu kutlaması — meşale/alev büyüklüğü performansa göre; mesaj = kademe × performans matrisi.
+  // Performans: ad (reklamla devam) → küçük alev; l2 / l1 (can kaybı) → orta; flawless (kusursuz) → büyük + kıvılcım;
+  // Aşırı zor + kusursuz → altın alev + havai fişek. Hız yalnızca bonus rozeti; yavaşlık hiçbir zaman söylenmez.
+  var FAST_MS_PER_ARROW = 1500, FAST_MIN_ARROWS = 8; // AYAR: ok başına ortalama bu süreden hızlıysa "Şimşek gibi!" rozeti
+  function perfOf(g) { return g.revived ? 'ad' : g.collisions >= 2 ? 'l2' : g.collisions === 1 ? 'l1' : 'flawless'; }
+  function pickMsg(key) { var v = t(key).split('|'); return v[Math.floor(Math.random() * v.length)]; }
+  function celebrationOf() {
+    var tier = LV.diff || 'easy', perf = perfOf(G), n = LV.arrows.length;
+    var size = perf === 'ad' ? 's' : perf === 'flawless' ? 'l' : 'm';
+    return { tier: tier, perf: perf, size: size, sparks: perf === 'flawless', gold: perf === 'flawless' && tier === 'extreme',
+      fast: perf !== 'ad' && n >= FAST_MIN_ARROWS && playMs > 0 && playMs / n <= FAST_MS_PER_ARROW, msg: pickMsg('cel.' + tier + '.' + perf) };
+  }
+  function flameHTML(c) {
+    var h = '<div class="flame f-' + c.size + (c.gold ? ' gold' : '') + (c.sparks ? ' sparks' : '') + '" id="cel-flame" data-size="' + c.size + '" data-perf="' + c.perf + '" aria-hidden="true">' +
+      '<svg viewBox="0 0 64 100"><g class="fl">' +
+      '<path class="fl-out" d="M32 3C39 17 55 27 55 46c0 14-10 24-23 24S9 60 9 46c0-12 8-17 12-29 5 6 5 10 9 12 0-10-2-17 2-26z"/>' +
+      '<path class="fl-in" d="M32 30c5 8 13 13 13 23 0 9-6 16-13 16s-13-7-13-16c0-6 4-9 6-15 3 4 5 5 7-8z"/>' +
+      '<path class="fl-core" d="M32 49c3 4 7 6 7 12 0 5-3 8-7 8s-7-3-7-8c0-5 5-7 7-12z"/></g>' +
+      '<rect class="torch-cup" x="24" y="68" width="16" height="7" rx="2.5"/><path class="torch-h" d="M27.5 75h9l-2 22h-5z"/></svg>';
+    if (c.sparks) for (var k = 0; k < 7; k++) h += '<i class="spark" style="--dx:' + [-34, 26, -14, 38, -40, 12, 30][k] + 'px;--d:' + (k * 0.17).toFixed(2) + 's"></i>';
+    if (c.gold) for (var b = 0; b < 3; b++) {
+      h += '<span class="fw fw' + b + '">';
+      for (var r = 0; r < 10; r++) h += '<i style="--a:' + (r * 36) + 'deg"></i>';
+      h += '</span>';
+    }
+    return h + '</div>';
+  }
   function showEnd(stars, res) {
-    var id = LV.id;
+    var id = LV.id, cel = celebrationOf();
     openModal(function (sh) {
       sh.id = 'end-sheet';
       sh.setAttribute('data-stars', stars);
-      sh.appendChild(el('h2', null)).textContent = t('end.title');
+      sh.setAttribute('data-perf', cel.perf); sh.setAttribute('data-tier', cel.tier);
+      sh.insertAdjacentHTML('beforeend', flameHTML(cel));
+      var h2 = el('h2', 'cel-msg'); h2.id = 'cel-msg'; h2.textContent = cel.msg; sh.appendChild(h2);
+      sh.appendChild(el('p', 'end-sub')).textContent = t('end.title');
       var sb = el('div', 'stars-big');
       for (var i = 1; i <= 3; i++) sb.insertAdjacentHTML('beforeend', icon(i <= stars ? 'star' : 'starEmpty', i === 2 ? 'mid' : ''));
       sh.appendChild(sb);
@@ -1174,6 +1312,7 @@
       var rw = el('div'); rw.innerHTML = '<span class="reward">' + icon('coin') + '<span>' + esc(t('end.reward', { n: res.coins })) + '</span></span>';
       sh.appendChild(rw);
       var tags = el('div');
+      if (cel.fast) { var ft = el('span', 'tag fast'); ft.id = 'cel-fast'; ft.textContent = pickMsg('cel.fast'); tags.appendChild(ft); }
       if (res.newBest) tags.appendChild(el('span', 'tag')).textContent = t('end.new_best');
       if (res.chapterDone) { tags.appendChild(el('span', 'tag')).textContent = t('end.chapter_done'); tags.appendChild(el('span', 'tag')).textContent = t('map.chapter_bonus', { n: res.bonus }); }
       sh.appendChild(tags);
@@ -1298,7 +1437,7 @@
   }
   function restartLevel() {
     if (!G) return;
-    G.reset(); anims = {}; shake = null; hintIdx = -1; busy = false; lockUntil = 0; exitStreak = 0; session++; winDone = false; aimSel = -1;
+    G.reset(); anims = {}; shake = null; hintIdx = -1; busy = false; lockUntil = 0; exitStreak = 0; session++; winDone = false; aimSel = -1; playMs = 0; lastTapAt = 0;
     updateHUD(); refreshTutorial(); draw();
   }
 
@@ -1347,7 +1486,8 @@
     if (!free && S.coins < Store.PRICES.hint) { SFX.error(); buzz('error'); openLowCoins(); return; }
     if (!Store.spendBooster('hint')) { SFX.error(); buzz('error'); toast(t('game.not_enough_coins')); return; }
     SFX.hint(); buzz('button');
-    hintIdx = i; hintUntil = performance.now() + 2000;
+    hintIdx = i; hintUntil = performance.now() + 2600;
+    focusArrow(i); // büyük tahtada ipucu oku ekranda değilse oraya kaydır
     updateHUD(); kick();
     if (tut && tut.id === 3) { $('btn-hint').classList.remove('pulse'); tut.step = 1; refreshTutorial(); }
     return { index: i, free: free };
@@ -1482,17 +1622,23 @@
     startLevel: startLevel, setLang: setLang, show: show,
     tapArrow: function (i) { var r = tapArrow(i); return r ? JSON.parse(JSON.stringify(r)) : null; },
     busy: function () { return locked(); },
-    view: function () { return { s: view.s, x: view.x, y: view.y, cell: lay.cell }; },
+    view: function () { return { s: view.s, x: view.x, y: view.y, cell: lay.cell, sMin: lay.sMin, sMax: lay.sMax, W: lay.W, H: lay.H, ox: lay.ox, oy: lay.oy, pannable: pannable(), overview: overview(), tray: trayBox() }; },
+    boardPoint: function (u, v) { var r = cv.getBoundingClientRect(); return { x: r.left + (lay.ox + u * lay.cell) * view.s + view.x, y: r.top + (lay.oy + v * lay.cell) * view.s + view.y }; },
+    hitTest: function (x, y) { var r = cv.getBoundingClientRect(); return hitTest(x - r.left, y - r.top); },
+    celebration: function () { var f = $('cel-flame'); return f ? { size: f.getAttribute('data-size'), perf: f.getAttribute('data-perf'), gold: f.classList.contains('gold'), sparks: f.classList.contains('sparks'), msg: $('cel-msg').textContent, fast: !!$('cel-fast') } : null; },
+    setPlayMs: function (v) { playMs = v; },
     fastAnim: function (on) { animScale = on ? 0.02 : 1; },
     mapInfo: function () { var sc = $('map-scroll'); return mapSt ? { chapters: mapSt.chapters, rendered: Object.keys(mapSt.rendered).map(Number).sort(function (a, b) { return a - b; }), scrollTop: sc.scrollTop, chH: MAP.CH_H, nodes: sc.querySelectorAll('.node').length } : null; },
     mapScrollToChapter: function (c) { var sc = $('map-scroll'); sc.scrollTop = Math.max(0, (mapSt.chapters - c) * MAP.CH_H); updateMapWindow(); },
     ads: function () { return { paused: adPause, bannerShown: ['menu', 'map'].filter(function (n) { var b = document.querySelector('#scr-' + n + ' .banner'); return b && !b.hidden; }) }; },
     endless: function () { return { cached: Object.keys(endless).map(Number), queue: genQueue.slice(), job: genJob ? genJob.id : 0, stats: genStats.slice() }; },
     zoomAt: function (x, y, s) { zoomAt(x, y, s); },
+    focus: function (i) { var hd = E.headOf(LV.arrows[i]), c = lay.cell; viewAnim = null; fling = null; view.x = lay.W / 2 - (lay.ox + (hd[0] + 0.5) * c) * view.s; view.y = lay.H / 2 - (lay.oy + (hd[1] + 0.5) * c) * view.s; clampView(); draw(); },
+    fit: fitView,
     startDaily: startDaily, openCalendar: openCalendar,
     dailyLevel: function (ymd) { var d = dailyLevel(ymd || Store.ymd()); return d ? JSON.parse(JSON.stringify(d)) : null; },
     cellCenter: function (i) {
-      var t0 = E.cellsOf(LV.arrows[i])[0], r = cv.getBoundingClientRect(), c = lay.cell; // kuyruk hücresinin merkezi
+      var t0 = E.cellsOf(LV.arrows[i])[0], r = cv.getBoundingClientRect(), c = lay.cell; // kuyruk hücresinin merkezi (ekran dışında olabilir: önce __ok.focus(i))
       return { x: r.left + (lay.ox + (t0[0] + 0.5) * c) * view.s + view.x, y: r.top + (lay.oy + (t0[1] + 0.5) * c) * view.s + view.y };
     }
   };

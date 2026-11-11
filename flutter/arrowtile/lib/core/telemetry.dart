@@ -42,9 +42,15 @@ abstract class Telemetry {
 
   static String _tier(String? diff) => (diff == null || diff.isEmpty) ? 'unknown' : diff;
 
-  /// Seviye (yeniden) başladı. [tier]: easy | medium | hard | extreme; [chapter]: bölüm numarası.
-  void levelStart({required int level, required String? tier, required int chapter}) =>
-      _log('level_start', <String, Object>{'level': level, 'tier': _tier(tier), 'chapter': chapter});
+  /// 1.2.0: tahta boyu parametresi ("28x45"; yalnızca rakam ve x — kişisel veri değil). Verilmezse alan yazılmaz.
+  static Map<String, Object> _board(String? board, bool shaped) => <String, Object>{
+        if (board != null && RegExp(r'^\d{1,2}x\d{1,2}$').hasMatch(board)) 'board': board,
+        if (board != null) 'shaped': shaped ? 1 : 0,
+      };
+
+  /// Seviye (yeniden) başladı. [tier]: easy | medium | hard | extreme; [chapter]: bölüm numarası; [board]: tahta "GxY" (1.2.0).
+  void levelStart({required int level, required String? tier, required int chapter, String? board, bool shaped = false}) =>
+      _log('level_start', <String, Object>{'level': level, 'tier': _tier(tier), 'chapter': chapter, ..._board(board, shaped)});
 
   /// Seviye tamamlandı. [mistakes]: çarpışma sayısı; [hintsUsed]: bu denemede kullanılan ipucu; [durationS]: saniye (0..3600).
   void levelComplete({
@@ -54,6 +60,9 @@ abstract class Telemetry {
     required int mistakes,
     required int hintsUsed,
     required int durationS,
+    int? chapter,
+    String? board,
+    bool shaped = false,
   }) =>
       _log('level_complete', <String, Object>{
         'level': level,
@@ -62,11 +71,13 @@ abstract class Telemetry {
         'mistakes': mistakes,
         'hints_used': hintsUsed,
         'duration_s': durationS.clamp(0, 3600).toInt(),
+        if (chapter != null) 'chapter': chapter,
+        ..._board(board, shaped),
       });
 
   /// Canlar bitti (seviye başarısız).
-  void levelFail({required int level, required String? tier}) =>
-      _log('level_fail', <String, Object>{'level': level, 'tier': _tier(tier)});
+  void levelFail({required int level, required String? tier, int? chapter, String? board, bool shaped = false}) =>
+      _log('level_fail', <String, Object>{'level': level, 'tier': _tier(tier), if (chapter != null) 'chapter': chapter, ..._board(board, shaped)});
 
   void hintUsed({required int level}) => _log('hint_used', <String, Object>{'level': level});
 

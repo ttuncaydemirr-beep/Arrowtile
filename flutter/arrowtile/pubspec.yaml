@@ -2,8 +2,8 @@ name: arrowtile
 description: "Arrowtile — süre yok, internetsiz ok bulmacası. (Flutter sürümü; web referansı: game/)"
 publish_to: "none"
 
-# versionName 1.1.6, versionCode 10 (build numarası). Play'e her yüklemede "+N" kısmını 1 artırın.
-version: 1.1.6+10
+# versionName 1.2.0, versionCode 11 (build numarası). Play'e her yüklemede "+N" kısmını 1 artırın.
+version: 1.2.0+11
 
 environment:
   sdk: ">=3.10.0 <4.0.0" # google_mobile_ads 9.x: Dart >=3.10 / Flutter >=3.38.1; önerilen: Flutter stable >= 3.41
@@ -41,3 +41,17 @@ flutter:
     - lib/data/levels.json
     - assets/sfx/
     - assets/images/
+    - assets/fonts/OFL.txt
+  # 1.2.0 (docs/24 §7.4): Readex Pro (SIL OFL 1.1) — Latin (tr/en/de) + Arapça tek aile; sabit ağırlıklar tools/flutter/make-fonts.py ile
+  # game/assets/fonts/ReadexPro-VF.ttf'ten üretildi. Lisans: assets/fonts/OFL.txt (main.dart → LicenseRegistry).
+  fonts:
+    - family: ReadexPro
+      fonts:
+        - asset: assets/fonts/ReadexPro-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/ReadexPro-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/ReadexPro-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/ReadexPro-Bold.ttf
+          weight: 700

@@ -62,7 +62,7 @@ const INIT = `(() => {
       const im = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
       const W = cv.width, H = cv.height, colC = new Array(W).fill(0), rowC = new Array(H).fill(0);
       for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const p = (y * W + x) * 4;
-        if (Math.abs(im[p] - 246) <= 2 && Math.abs(im[p + 1] - 248) <= 2 && Math.abs(im[p + 2] - 250) <= 2 && im[p + 3] > 250) { colC[x]++; rowC[y]++; } }
+        if (Math.abs(im[p] - 251) <= 2 && Math.abs(im[p + 1] - 249) <= 2 && Math.abs(im[p + 2] - 245) <= 2 && im[p + 3] > 250) { colC[x]++; rowC[y]++; } }
       const xs = colC.map((c, i) => c > 6 ? i : -1).filter(i => i >= 0), ys = rowC.map((c, i) => c > 6 ? i : -1).filter(i => i >= 0);
       if (!xs.length) return null;
       const pd = w >= 21 ? 0.1 : 0.3; // v1.3: geniş tahtada tepsi dolgusu 0,1 hücre (theme.js boardPadFor)
@@ -74,8 +74,8 @@ const INIT = `(() => {
       const cv = document.getElementById('board'), ctx = cv.getContext('2d');
       const x = Math.round((lay.ox + (cx + 0.5) * lay.cell) * lay.dpr), y = Math.round((lay.oy + (cy + 0.5) * lay.cell) * lay.dpr);
       const p = ctx.getImageData(x, y, 1, 1).data;
-      // v1.2: tahta tek düz yüzey (hücre çukuru yok); boş hücre merkezi tahta rengindedir (246,248,250)
-      return Math.abs(p[0] - 246) + Math.abs(p[1] - 248) + Math.abs(p[2] - 250) > 30;
+      // v1.2: tahta tek düz yüzey (hücre çukuru yok); boş hücre merkezi tahta rengindedir (251,249,245)
+      return Math.abs(p[0] - 251) + Math.abs(p[1] - 249) + Math.abs(p[2] - 245) > 30;
     },
     color(lay, cx, cy, dx) { const cv = document.getElementById('board');
       const x = Math.round((lay.ox + (cx + 0.5 + (dx || 0)) * lay.cell) * lay.dpr), y = Math.round((lay.oy + (cy + 0.5) * lay.cell) * lay.dpr);
@@ -127,7 +127,7 @@ const base = (extra = {}) => Object.assign({ lang: 'tr', coins: 50, freeHints: 2
 
 async function startLevel(page, id) { // haritadan dokunarak seviye başlat
   await page.evaluate(() => window.__ok.show('map')); await wait(350);
-  await page.evaluate(id => { window.__ok.mapScrollToChapter(Math.ceil(id / 10)); document.querySelector('.node[data-level="' + id + '"]').scrollIntoView({ block: 'center' }); }, id); // v1.5: harita tembel liste
+  await page.evaluate(id => { window.__ok.mapScrollToChapter(Math.ceil(id / 20)); document.querySelector('.node[data-level="' + id + '"]').scrollIntoView({ block: 'center' }); }, id); // harita tembel liste (1.2.0: bölüm = 20 seviye)
   await wait(100);
   await page.tap('.node[data-level="' + id + '"]');
   await page.waitForFunction(id => window.__ok.screen() === 'game' && window.__ok.level().id === id, id);
@@ -237,7 +237,7 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
     {
       const P = track(await newPage(browser, { ...VP, seed: base({ coins: 0 }) })); const page = P.page;
       const id = LEVELS.findIndex((Lx, k) => k >= 3 && blockedArrow(Lx)) + 1, L = LEVELS[id - 1], b = blockedArrow(L);
-      const runs = [[2, 1, 15], [1, 2, 8], [0, 3, 7]], got = []; // sv4 Orta ×1,5: ★15, ★★23, ★★★30 (fark 15 / 8 / 7)
+      const runs = [[2, 1, 10], [1, 2, 5], [0, 3, 5]], got = []; // 1.2.0: sv4 Kolay ×1: ★10, ★★15, ★★★20 (fark 10 / 5 / 5)
       for (const [coll, expStars, expCoins] of runs) {
         const c0 = (await sstate(page)).coins;
         const ly = await startLevel(page, id);
@@ -301,18 +301,18 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
   } catch (e) { check('TEST ÇALIŞTIRILAMADI ('+group+')', false, String(e).slice(0,160)); }
   try {
     // bölüm bonusu
-    const st11 = {}; for (let k = 1; k <= 9; k++) st11[k] = 1;
+    const st11 = {}; for (let k = 1; k <= 19; k++) st11[k] = 1; // 1.2.0: bölüm = 20 seviye
     const P = track(await newPage(browser, { seed: base({ coins: 0, stars: st11 }) })); const page = P.page;
-    let ly = await startLevel(page, 10); await solveByTouch(page, ly, 10);
+    let ly = await startLevel(page, 20); await solveByTouch(page, ly, 20);
     let s = await sstate(page);
-    check('bölüm bonusu: 10. seviye (son eksik, Aşırı zor ×3) bitince +60 +150 (tek bölüm bonusu)', s.coins === 210 && s.chapterBonus.includes(1), String(s.coins));
+    check('bölüm bonusu: 20. seviye (son eksik, Aşırı zor ×3) bitince +60 +150 (tek bölüm bonusu)', s.coins === 210 && s.chapterBonus.includes(1), String(s.coins));
     check('bölüm sonu etiketi gösteriliyor', await page.isVisible('#end-sheet .tag'));
-    await page.evaluate(() => { const st = Object.assign({}, window.__ok.state().stars); st[10] = 1; window.__ok.debugPatch({ stars: st }); }); // yıldız artırma tekrarında bonus tekrar verilmemeli
-    ly = await startLevel(page, 10); await solveByTouch(page, ly, 10); s = await sstate(page);
+    await page.evaluate(() => { const st = Object.assign({}, window.__ok.state().stars); st[20] = 1; window.__ok.debugPatch({ stars: st }); }); // yıldız artırma tekrarında bonus tekrar verilmemeli
+    ly = await startLevel(page, 20); await solveByTouch(page, ly, 20); s = await sstate(page);
     check('bölüm bonusu ikinci kez verilmez (★ 1 → 3: yalnızca +30 fark)', s.coins === 210 + 30, String(s.coins));
     // bölüm tamamlanmadan bonus yok (bölüm 2'de yalnızca 1 seviye)
-    ly = await startLevel(page, 11); await solveByTouch(page, ly, 11); s = await sstate(page);
-    check('bölüm eksikken bonus yok (sv11 Kolay → +20)', s.coins === 260, String(s.coins));
+    ly = await startLevel(page, 21); await solveByTouch(page, ly, 21); s = await sstate(page);
+    check('bölüm eksikken bonus yok (sv21 Kolay → +20)', s.coins === 260, String(s.coins));
     await P.ctx.close();
   } catch (e) { check('TEST ÇALIŞTIRILAMADI ('+group+')', false, String(e).slice(0,160)); }
   try {
@@ -436,7 +436,8 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
   function residue(str, l) {
     // sözlük değerlerini (yer tutucular serbest) metinden çıkar; kalan harfler = sabit metin
     let s = str;
-    const vals = dictVals(l).concat(Object.values(I18N[l]).filter(() => false)).sort((a, b) => b.length - a.length);
+    const vals = dictVals(l).concat(Object.keys(I18N[l]).filter(k => k.startsWith('cel.')).flatMap(k => I18N[l][k].split('|'))) // 1.2.0: kutlama mesajları "|" ile ayrılmış seçeneklerdir
+      .sort((a, b) => b.length - a.length);
     for (const v of vals) {
       const re = new RegExp(v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\\{[a-z]+\\\}/g, '[\\d\\/]+'), 'g');
       s = s.replace(re, ' ');
@@ -548,7 +549,7 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
         let dirOk = true;
         if (hr >= 0) { const a = L.arrows[hr], hc = headC(a), s = a.dir === 'R' ? 1 : -1;
           const tip = await page.evaluate(([ly, x, y, s]) => [__qa.color(ly, x, y, s * 0.30), __qa.color(ly, x, y, -s * 0.45)], [ly, hc[0], hc[1], s]);
-          const isCell = c => Math.abs(c[0] - 246) + Math.abs(c[1] - 248) + Math.abs(c[2] - 250) < 30; dirOk = !isCell(tip[0]); }
+          const isCell = c => Math.abs(c[0] - 251) + Math.abs(c[1] - 249) + Math.abs(c[2] - 245) < 30; dirOk = !isCell(tip[0]); }
         check('ar: ok başları gösterdiği yönde çiziliyor (R/L ters değil)', dirOk);
         check('ar: tahta yerleşimi İngilizce ile birebir aynı', Math.abs(lays.ar.ox - lays.en.ox) < 1 && Math.abs(lays.ar.cell - lays.en.cell) < 0.5);
         // Dokunuş: sağ yarıdaki ve sol yarıdaki birer açık oka dokun
@@ -558,7 +559,7 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
         const st = await gstate(page);
         const moved = st.alive.map((v, k) => v ? null : k).filter(k => k !== null);
         check(`ar: ekranın sağındaki oka (ok${target}, x=${tailX(L.arrows[target])}) dokununca o ok hareket etti`, moved.length === 1 && moved[0] === target, 'çıkan: ' + moved.join(','));
-        const blk = blockedArrow(L);
+        const blk = (() => { const al = L.arrows.map((_, k) => k !== target); for (let i = 0; i < L.arrows.length; i++) { if (i === target) continue; const o = obstacle(L, al, i); if (o) return { i, ...o }; } return null; })(); // hedef ok çıktıktan sonra da engelli olan ok
         await tapArrow(page, ly, L, blk.i); await idle(page);
         const st2 = await gstate(page);
         check('ar: kapalı oka dokununca çarpışma (yanlış ok değil)', st2.lives === 2 && st2.alive.filter(Boolean).length === st.alive.filter(Boolean).length);

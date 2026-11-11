@@ -81,6 +81,29 @@
     src.start(t0, Math.random() * 0.5); src.stop(t0 + o.dur + 0.02);
   }
 
+  // Rüzgâr esintisi: iki katmanlı filtreli gürültü. Kazanç doğrusal rampayla 90 ms'de yükselir (tık olmaz), ~0,5 sn'de söner.
+  function breeze(p) {
+    var t0 = now(), dur = 0.52;
+    function layer(f0, f1, f2, q, peak, attack) {
+      var src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+      var bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = q;
+      bp.frequency.setValueAtTime(f0 * p, t0);
+      bp.frequency.linearRampToValueAtTime(f1 * p, t0 + dur * 0.45);
+      bp.frequency.linearRampToValueAtTime(f2 * p, t0 + dur);
+      var lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2600; lp.Q.value = 0.3;
+      var g = ctx.createGain();
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(peak, t0 + attack);
+      g.gain.setValueAtTime(peak, t0 + attack + 0.05);
+      g.gain.linearRampToValueAtTime(peak * 0.35, t0 + dur * 0.7);
+      g.gain.linearRampToValueAtTime(0, t0 + dur);
+      src.connect(bp); bp.connect(lp); lp.connect(g); g.connect(master);
+      src.start(t0, Math.random() * 0.4); src.stop(t0 + dur + 0.03);
+    }
+    layer(380, 900, 520, 0.7, 0.34, 0.09);   // gövde: alçak "hışş"
+    layer(1100, 1900, 1300, 1.1, 0.10, 0.12); // hava: hafif üst katman
+  }
+
   function safe(name, gap, fn) {
     return function () {
       try { if (ready(name, gap)) fn.apply(null, arguments); } catch (e) { /* sessiz */ }
@@ -106,10 +129,10 @@
     }),
 
     // Ok çıkışı: havalı whoosh + yükselen ince ton. pitch (0..1) ardışık çıkışlarda yükseltilebilir
+    // 1.2.0 (docs/17 §1): yumuşak "rüzgâr esintisi" — kendi üretimimiz (gürültü + bant geçiren süpürme + alçak geçiren),
+    // yumuşak başlangıç (tık yok), ton yok. Ok hareketi başına tek ses.
     slideOut: safe('slideOut', 40, function (pitch) {
-      var p = 1 + (pitch || 0) * 0.5;
-      noise({ f0: 500 * p, f1: 3200 * p, dur: 0.24, q: 1.2, gain: 0.28, attack: 0.03 });
-      tone({ f0: 420 * p, f1: 980 * p, dur: 0.18, type: 'sine', gain: 0.09, attack: 0.02 });
+      breeze(1 + (pitch || 0) * 0.25);
     }),
 
     // Çarpışma: boğuk "tonk" + kısa düşük gürültü

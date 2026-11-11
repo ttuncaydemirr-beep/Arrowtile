@@ -386,22 +386,23 @@ const CL = (h, id, cb) => h.M.continueAfterLevel(id, cb, h.M.openLevelEnd(id));
   const S = ctx.window.Store; S.load();
   const LG = require(path.join(__dirname, '..', 'game', 'js', 'levelgen.js'));
   const mult = id => S.levelReward(id, 3) / 20;
-  const expect = [1, 1, 1, 1.5, 1.5, 1.5, 2, 2, 3, 3];
-  check('seviye çarpanı bölüm içinde 1,1,1,1.5,1.5,1.5,2,2,3,3 (1., 2., 50. bölüm)', [0, 10, 490].every(b => expect.every((m, k) => mult(b + k + 1) === m)));
-  check('★/★★/★★★ taban 10/15/20 × çarpan (seviye 9: 30/45/60)', [1, 2, 3].map(st => S.levelReward(9, st)).join() === '30,45,60' && [1, 2, 3].map(st => S.levelReward(4, st)).join() === '15,23,30');
+  // 1.2.0 (docs/24): bölüm = 20 seviye; 5 Kolay (×1), 5 Orta (×1,5), 5 Zor (×2), 5 Aşırı zor (×3)
+  const expect = [1, 1, 1, 1, 1, 1.5, 1.5, 1.5, 1.5, 1.5, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3];
+  check('seviye çarpanı bölüm içinde 5×1, 5×1.5, 5×2, 5×3 (1., 2., 50. bölüm)', [0, 20, 980].every(b => expect.every((m, k) => mult(b + k + 1) === m)));
+  check('★/★★/★★★ taban 10/15/20 × çarpan (seviye 16: 30/45/60)', [1, 2, 3].map(st => S.levelReward(16, st)).join() === '30,45,60' && [1, 2, 3].map(st => S.levelReward(6, st)).join() === '15,23,30');
   check('Store.tierOfLevel == LevelGen.tierOf (ilk 600 seviye)', Array.from({ length: 600 }, (_, i) => i + 1).every(id => S.tierOfLevel(id) === LG.tierOf(id)));
-  check('bölüm bonusu tek: 150 (tüm bölümler)', S.CHAPTER_BONUS === 150 && S.chapterBonusFor(1) === 150 && S.chapterBonusFor(7) === 150 && S.chapterBonusFor(500) === 150 && S.PER_CHAPTER === 10);
-  // bölüm 1: 9 seviye bitince bonus yok, 10. seviyede 150
+  check('bölüm bonusu tek: 150 (tüm bölümler), bölüm = 20 seviye', S.CHAPTER_BONUS === 150 && S.chapterBonusFor(1) === 150 && S.chapterBonusFor(7) === 150 && S.chapterBonusFor(250) === 150 && S.PER_CHAPTER === 20);
+  // bölüm 1: 19 seviye bitince bonus yok, 20. seviyede 150
   let bonuses = [];
-  for (let id = 1; id <= 10; id++) { const r = S.completeLevel(id, 3, false); bonuses.push(r.bonus); }
-  check('bölüm 1 bonusu yalnızca 10. seviyenin tamamlanmasında (+150), bir kez', JSON.stringify(bonuses) === '[0,0,0,0,0,0,0,0,0,150]' && S.get().chapterBonus.join() === '1');
-  const coins0 = S.get().coins; S.completeLevel(10, 3, false);
+  for (let id = 1; id <= 20; id++) { const r = S.completeLevel(id, 3, false); bonuses.push(r.bonus); }
+  check('bölüm 1 bonusu yalnızca 20. seviyenin tamamlanmasında (+150), bir kez', bonuses.slice(0, 19).every(b => b === 0) && bonuses[19] === 150 && S.get().chapterBonus.join() === '1');
+  const coins0 = S.get().coins; S.completeLevel(20, 3, false);
   check('aynı bölümün bonusu tekrar verilmez', S.get().coins === coins0 && S.get().chapterBonus.length === 1);
-  // toplam kazanç bölüm 1 (tüm ★★★): 3×20 + 3×30 + 2×40 + 2×60 = 350 + 150 bonus; başlangıç 50
-  check('bölüm 1 tüm ★★★: 50 + 350 + 150 = 550 jeton', coins0 === 50 + (3 * 20 + 3 * 30 + 2 * 40 + 2 * 60) + 150, String(coins0));
-  S.completeLevel(11, 3, false);
-  for (let id = 12; id <= 20; id++) S.completeLevel(id, 1, false);
-  check('bölüm 2 bonusu da 150 (kademe fark etmez), 11. seviye 1 yıldız sonrası', S.get().chapterBonus.join() === '1,2' && S.get().unlocked === 21);
+  // toplam kazanç bölüm 1 (tüm ★★★): 5×20 + 5×30 + 5×40 + 5×60 = 750 + 150 bonus; başlangıç 50
+  check('bölüm 1 tüm ★★★: 50 + 750 + 150 = 950 jeton', coins0 === 50 + (5 * 20 + 5 * 30 + 5 * 40 + 5 * 60) + 150, String(coins0));
+  S.completeLevel(21, 3, false);
+  for (let id = 22; id <= 40; id++) S.completeLevel(id, 1, false);
+  check('bölüm 2 bonusu da 150 (kademe fark etmez), 21. seviye 3 yıldız sonrası', S.get().chapterBonus.join() === '1,2' && S.get().unlocked === 41);
 }
 
 // 21) docs/20 (1.1.3): geç gelen reklam yok — yerleştirme belirteci, hazır değilse atla, bir kez göster, bırak, ses yalnızca ekrandayken

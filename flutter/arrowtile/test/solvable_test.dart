@@ -1,4 +1,4 @@
-// Hazır paketteki seviyelerin (ilk 200) tamamı: yapı (komşu hücreler, sınır, çakışma yok, baş kendi gövdesine bakmaz), çözülebilirlik,
+// Hazır paketteki seviyelerin (ilk 100, 1.2.0) tamamı: yapı (komşu hücreler, sınır, çakışma yok, baş kendi gövdesine bakmaz), çözülebilirlik,
 // par = ok sayısı, kademe = bölüm kademesi. Kaynak: lib/data/levels.json (tools/flutter/export-levels.js). Özet eşitliği: levelgen_golden_test.dart.
 import 'dart:convert';
 import 'dart:io';
@@ -14,7 +14,7 @@ void main() {
 
   test('$kPrebuilt seviye var, kimlikler 1..$kPrebuilt', () {
     expect(levels.length, kPrebuilt);
-    expect(kPrebuilt, 200);
+    expect(kPrebuilt, 100);
     for (int i = 0; i < levels.length; i++) {
       expect(levels[i].id, i + 1);
     }
@@ -29,12 +29,16 @@ void main() {
         for (int k = 0; k < a.cells.length; k++) {
           final List<int> c = a.cells[k];
           if (c[0] < 0 || c[1] < 0 || c[0] >= lv.w || c[1] >= lv.h) ok = false;
+          if (!lv.inMask(c[0], c[1])) ok = false; // 1.2.0: şekilli tahtada hücre maske içinde
           if (!seen.add(c[1] * lv.w + c[0])) ok = false; // çakışma
           if (k > 0 && (c[0] - a.cells[k - 1][0]).abs() + (c[1] - a.cells[k - 1][1]).abs() != 1) ok = false; // komşuluk
         }
         if (!ownLineOk(a.cells, a.dir, lv.w, lv.h)) ok = false;
       }
       if (!solve(lv).solvable) ok = false;
+      final ({int w, int h}) sz = lv.id <= 3 ? (w: lv.w, h: lv.h) : sizeOf(lv.id);
+      if (lv.w != sz.w || lv.h != sz.h) ok = false; // tahta = bölüm × kademe ölçeği
+      if (lv.mask != null && (lv.mask!.length != lv.h || lv.mask!.any((String r) => r.length != lv.w))) ok = false;
       if (!ok) bad.add('${lv.id}');
     }
     expect(bad, isEmpty, reason: 'geçersiz seviyeler: ${bad.join(',')}');
