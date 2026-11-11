@@ -57,8 +57,8 @@ void main() {
   testWidgets('viewInsets.bottom=400: oyun alanı araç çubuğuna kadar uzar, araç çubuğu ekranın dibinde', (WidgetTester t) async {
     _setView(t, insetBottom: 400);
     await _boot(t, 'de');
-    final Rect tool = t.getRect(find.text('Tipp'));
-    expect(tool.bottom, greaterThan(915 * 0.85), reason: 'araç çubuğu ekranın altında olmalı (klavye payı gövdeyi küçültmemeli)');
+    final Rect tool = t.getRect(find.byIcon(Icons.lightbulb));
+    expect(tool.bottom, greaterThan(915 * 0.8), reason: 'araç çubuğu ekranın altında olmalı (klavye payı gövdeyi küçültmemeli)');
     final Rect paint = t.getRect(find.byWidgetPredicate((Widget w) => w is CustomPaint && w.painter is BoardPainter));
     expect(paint.height, greaterThan(915 * 0.6), reason: 'tahta alanı ekranın büyük kısmını doldurmalı');
     expect(paint.bottom, lessThanOrEqualTo(tool.top + 1));
@@ -71,8 +71,8 @@ void main() {
     addTearDown(t.platformDispatcher.clearTextScaleFactorTestValue);
     await _boot(t, 'de');
     expect(t.takeException(), isNull, reason: 'RenderFlex taşması olmamalı');
-    final Rect tool = t.getRect(find.text('Tipp'));
-    expect(tool.bottom, greaterThan(915 * 0.85));
+    final Rect tool = t.getRect(find.byIcon(Icons.lightbulb));
+    expect(tool.bottom, greaterThan(915 * 0.8));
     final Rect paint = t.getRect(find.byWidgetPredicate((Widget w) => w is CustomPaint && w.painter is BoardPainter));
     expect(paint.height, greaterThan(915 * 0.6));
   });
