@@ -132,7 +132,7 @@ async function overflowReport(page) {
     // v1.2 (docs/08): geri alma yok, çarpışma kalıcı can kaybı
     check('v1.2: oyun ekranında geri alma düğmesi yok, araç çubuğunda yalnızca ipucu + baştan', !(await page.$('#btn-undo')) && (await page.$$('.toolbar .tool')).length === 2);
     await page.tap('#btn-hint'); await wait(100);
-    check('ipucu: başlangıçta 2 ücretsiz hak, kullanınca 2→1', (await ss(page)).freeHints === 1);
+    check('ipucu: base() kaydında 2 ücretsiz hak (mevcut oyuncu), kullanınca 2→1', (await ss(page)).freeHints === 1);
     for (let k = 0; k < 3; k++) { await tapArrowTouch(page, b); await wait(80); await idle(page); }
     await page.waitForSelector('#dead-sheet', { timeout: 3000 }).catch(() => {});
     check('can bitince "Canın bitti" penceresi', await page.isVisible('#dead-sheet'));
@@ -242,7 +242,7 @@ async function overflowReport(page) {
     check('kayıt göçü bir kez uygulanır (yeniden açılışta jeton artmaz)', r.coins === 70);
     await ctx.close();
     { const N = await newPage(browser, 'tr-TR', { storage: {} }); r = await ss(N.page);
-      check('yeni oyuncu: 50 jeton + 2 ücretsiz ipucu', r.coins === 50 && r.freeHints === 2 && !('freeUndos' in r)); await N.ctx.close(); }
+      check('yeni oyuncu (v1.1.6): 50 jeton + 0 ücretsiz ipucu', r.coins === 50 && r.freeHints === 0 && !('freeUndos' in r)); await N.ctx.close(); }
     const P = await newPage(browser, 'tr-TR', { seed: base({ freeHints: 0, coins: 120 }) });
     await P.page.evaluate(() => window.__ok.startLevel(8)); await wait(300);
     check('ipucu düğmesinde fiyat 50', /50/.test(await P.page.textContent('#hint-sub')));

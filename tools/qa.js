@@ -270,7 +270,7 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
     // ilk bitirme (öğretici seviye 1, temiz kayıt) → +20
     const P = track(await newPage(browser, {})); const page = P.page;
     let s = await sstate(page);
-    check('başlangıç (v1.2): 50 jeton, 2 ücretsiz ipucu, geri alma yok', s.coins === 50 && s.freeHints === 2 && !('freeUndos' in s));
+    check('başlangıç (v1.1.6): 50 jeton, 0 ücretsiz ipucu, geri alma yok', s.coins === 50 && s.freeHints === 0 && !('freeUndos' in s));
     await page.tap('#btn-play'); await page.waitForFunction(() => window.__ok.screen() === 'game'); await wait(320);
     await solveByTouch(page, await lay(page, 1), 1);
     s = await sstate(page);

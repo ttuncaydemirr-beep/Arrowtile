@@ -48,7 +48,7 @@
   function defaults(lang) {
     return {
       lang: lang || detectLang(), sound: true, vibration: true,
-      coins: 50, freeHints: 2,
+      coins: 50, freeHints: 0,
       stars: {}, unlocked: 1, themesOwned: ['emaye'], theme: 'emaye',
       daily: { lastDate: null, streakDay: 0 },
       tutorialDone: [], chapterBonus: [],

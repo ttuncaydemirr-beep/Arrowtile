@@ -172,6 +172,6 @@ void main() {
     expect(r.lang, 'de');
     expect(r.ads.adFree, isTrue);
     expect(r.coins, 50);
-    expect(r.freeHints, 2);
+    expect(r.freeHints, 0);
   });
 }

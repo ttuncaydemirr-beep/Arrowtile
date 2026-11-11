@@ -62,7 +62,7 @@ class SaveData {
     this.sound = true,
     this.vibration = true,
     this.coins = 50,
-    this.freeHints = 2,
+    this.freeHints = 0,
     Map<int, int>? stars,
     this.unlocked = 1,
     List<String>? themesOwned,
