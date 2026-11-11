@@ -54,7 +54,7 @@ jobs:
         with:
           name: arrowtile-deneme-apk
           path: flutter/arrowtile/Arrowtile-deneme.apk
-          retention-days: 14
+          retention-days: 3
       # main'e her gönderimde "Deneme APK" sürümü güncellenir: telefondan Releases sayfasından doğrudan indirilir.
       - name: Deneme APK sürümünü güncelle
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -95,7 +95,7 @@ jobs:
         with:
           name: arrowtile-debug-eea-apk
           path: flutter/arrowtile/Arrowtile-debug-eea.apk
-          retention-days: 3
+          retention-days: 1
 
   smoke:
     name: Emülatörde açılış ve geri dönüş testi
@@ -215,7 +215,7 @@ jobs:
         with:
           name: arrowtile-debug-ads-${{ matrix.variant }}-apk
           path: flutter/arrowtile/Arrowtile-debug-ads-${{ matrix.variant }}.apk
-          retention-days: 3
+          retention-days: 1
 
   smoke-ads:
     name: Emülatörde reklam donma testi (${{ matrix.variant }})
@@ -296,7 +296,7 @@ jobs:
         with:
           name: arrowtile-firebase-ci-apk
           path: flutter/arrowtile/Arrowtile-firebase-ci.apk
-          retention-days: 3
+          retention-days: 1
 
   smoke-firebase:
     name: Emülatörde Firebase başlatma + onay sinyali + geri dönüş testi
