@@ -1,0 +1,4 @@
+Sürüm 1.1.6
+- Oyun ekranında bazı telefonlarda arayüzün ekranın üst kısmına sıkışması düzeltildi.
+- Büyük yazı boyutunda oyun ekranı artık taşmıyor.
+- Küçük iyileştirmeler ve kararlılık düzeltmeleri.

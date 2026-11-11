@@ -48,7 +48,7 @@ node tools/test-daily.js
 | Workflow | Ne zaman çalışır | Ne yapar |
 |---|---|---|
 | `ci.yml` (**CI**) | `main`'e her gönderimde ve her PR'da | Web doğrulamaları → `flutter analyze` + `flutter test` → yayın modunda deneme APK → APK'yı Android emülatöründe açıp çökme denetimi |
-| `release.yml` (**Release AAB (imzalı)**) | Yalnızca elle: Actions → Run workflow | Play Store'a yüklenecek imzalı `app-release.aab`. Anahtar, AdMob kimlikleri ve Firebase `google-services.json` GitHub secrets'tan okunur; eksikse veya test kimliği girilmişse açıklayıcı hatayla durur. Kurulum: [docs/14](docs/14-ci-imzali-derleme.md) |
+| `release.yml` (**Release AAB (imzalı)**) | Yalnızca elle: Actions → Run workflow | Play Store'a yüklenecek imzalı `app-release.aab`. Anahtar, AdMob kimlikleri ve Firebase `google-services.json` GitHub secrets'tan okunur; eksikse veya test kimliği girilmişse açıklayıcı hatayla durur. İsteğe bağlı 10. secret `PLAY_SERVICE_ACCOUNT_JSON` varsa ve `track` ≠ none ise AAB'yi doğrudan Play'e (iç/kapalı test) yükler. Kurulum: [docs/14](docs/14-ci-imzali-derleme.md), Play yükleme: [docs/25](docs/25-play-otomatik-yukleme.md) |
 | `pages.yml` (**Gizlilik sayfası**) | `dist/privacy-site/` değişince ve elle | Gizlilik politikasını GitHub Pages'e yayınlar |
 
 ### Deneme APK (telefonda denemek için)
@@ -57,9 +57,9 @@ Her başarılı `main` derlemesinden sonra **Releases → Deneme APK** altında 
 
 ### Play Store paketi (imzalı AAB)
 
-1. Yükleme anahtarını oluştur ve 9 secret'ı gir (sonuncusu Firebase `GOOGLE_SERVICES_JSON`): [docs/14-ci-imzali-derleme.md](docs/14-ci-imzali-derleme.md)
+1. Yükleme anahtarını oluştur ve 9 zorunlu secret'ı gir (sonuncusu Firebase `GOOGLE_SERVICES_JSON`; 10. `PLAY_SERVICE_ACCOUNT_JSON` isteğe bağlı): [docs/14-ci-imzali-derleme.md](docs/14-ci-imzali-derleme.md)
 2. Her yüklemeden önce `flutter/arrowtile/pubspec.yaml` içindeki `version: 1.1.3+N` değerinde `N`'i (versionCode) bir artır.
-3. **Actions → Release AAB (imzalı) → Run workflow** → bitince **Artifacts → arrowtile-release-aab**.
+3. **Actions → Release AAB (imzalı) → Run workflow** → bitince **Artifacts → arrowtile-release-aab**. İsteğe bağlı: `track` seçerek doğrudan Play'e yükle (bilgisayarsız; kurulum: [docs/25](docs/25-play-otomatik-yukleme.md)).
 4. Play Console'a yükleme adımları ve form yanıtları: [docs/10-play-store-yukleme.md](docs/10-play-store-yukleme.md)
 
 ### Gizlilik politikası adresi

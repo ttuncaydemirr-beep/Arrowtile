@@ -1,0 +1,4 @@
+Version 1.1.6
+- Behoben: Auf manchen Handys wurde der Spielbildschirm in den oberen Teil des Displays gequetscht.
+- Der Spielbildschirm läuft bei großer Schrift nicht mehr über.
+- Kleine Verbesserungen und Stabilitätskorrekturen.

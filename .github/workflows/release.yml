@@ -6,9 +6,54 @@ name: Release AAB (imzalı)
 #   ADMOB_APP_ID, ADMOB_INTERSTITIAL_ID, ADMOB_REWARDED_ID, ADMOB_BANNER_ID
 #   GOOGLE_SERVICES_JSON  (Firebase google-services.json dosyasının TÜM içeriği; docs/14 §3 ve docs/19)
 # Hiçbiri yoksa derleme bilerek durur: release'te test kimliğiyle/debug anahtarıyla paket üretilmez.
+#
+# İSTEĞE BAĞLI (10. secret): PLAY_SERVICE_ACCOUNT_JSON  (Play servis hesabı anahtarı; docs/25-play-otomatik-yukleme.md)
+# Tanımlıysa ve `track` != none ise imzalı AAB, derlemeden sonra doğrudan Google Play'e yüklenir.
+# Tanımlı değilse yükleme atlanır (::warning::), AAB yine artifact olarak üretilir (eski davranış).
 
 on:
   workflow_dispatch:
+    inputs:
+      track:
+        description: "Play'e yükleme kanalı (none = yükleme yok, yalnızca AAB artifact)"
+        type: choice
+        options:
+          - none
+          - internal
+          - alpha
+          - internal+alpha
+        default: internal+alpha
+      status:
+        description: "Sürüm durumu: completed = yayına hazır sürüm oluşur; draft = taslak (Play Console'da elle tamamlanır)"
+        type: choice
+        options:
+          - completed
+          - draft
+        default: completed
+      hold_for_review:
+        description: "alpha için: değişiklikleri otomatik incelemeye GÖNDERME (Publishing overview'da 'Send for review' ile siz gönderirsiniz)"
+        type: boolean
+        default: true
+      release_notes_tr:
+        description: "Sürüm notu TR (boşsa flutter/arrowtile/release-notes/tr.txt; en çok 500 karakter; satır sonu için \\n)"
+        type: string
+        required: false
+        default: ""
+      release_notes_en:
+        description: "Sürüm notu EN (boşsa release-notes/en.txt; en çok 500 karakter)"
+        type: string
+        required: false
+        default: ""
+      release_notes_de:
+        description: "Sürüm notu DE (boşsa release-notes/de.txt; en çok 500 karakter)"
+        type: string
+        required: false
+        default: ""
+      release_notes_ar:
+        description: "Sürüm notu AR (boşsa release-notes/ar.txt; en çok 500 karakter)"
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -81,6 +126,44 @@ jobs:
           ' || exit 1
           case "$KEY_PASS$KS_PASS$KEY_ALIAS" in *\\*) echo "::error::Şifre/alias içinde ters eğik çizgi (\\) olmamalı (key.properties bozulur)."; exit 1;; esac
 
+      - name: Play yükleme ön denetimi (isteğe bağlı secret)
+        id: play
+        working-directory: ${{ github.workspace }}
+        env:
+          PLAY_SA_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          TRACK: ${{ inputs.track }}
+        run: |
+          # Girdiler yalnızca env üzerinden okunur (komut enjeksiyonu yok); secret değeri günlüğe yazılmaz.
+          upload=false; internal=false; alpha=false
+          case "$TRACK" in
+            none|"") echo "Play yüklemesi istenmedi (track=none); yalnızca AAB artifact üretilecek." ;;
+            internal|alpha|internal+alpha)
+              if [ -z "$PLAY_SA_JSON" ]; then
+                echo "::warning title=Play yüklemesi atlandı::PLAY_SERVICE_ACCOUNT_JSON secret'ı tanımlı değil; AAB Play'e yüklenmeyecek, yalnızca artifact olarak üretilecek. Kurulum: docs/25-play-otomatik-yukleme.md"
+              else
+                printf '%s' "$PLAY_SA_JSON" | python3 -c '
+          import json, sys
+          try:
+              d = json.load(sys.stdin)
+          except Exception:
+              print("::error title=PLAY_SERVICE_ACCOUNT_JSON geçersiz::PLAY_SERVICE_ACCOUNT_JSON geçerli bir JSON değil. Google Cloud Console - Service accounts - Keys - Add key - JSON ile indirdiğiniz dosyanın TÜM içeriğini ({ ile başlayıp } ile biten) olduğu gibi yapıştırın. Adımlar: docs/25-play-otomatik-yukleme.md.")
+              sys.exit(1)
+          if not isinstance(d, dict) or d.get("type") != "service_account" or not d.get("client_email") or not d.get("private_key"):
+              print("::error title=PLAY_SERVICE_ACCOUNT_JSON servis hesabı anahtarı değil::JSON içinde type=service_account, client_email ve private_key alanları olmalı. OAuth istemci dosyası ya da google-services.json yapıştırılmış olabilir. Adımlar: docs/25-play-otomatik-yukleme.md.")
+              sys.exit(1)
+          ' || exit 1
+                upload=true
+                case "$TRACK" in internal|internal+alpha) internal=true;; esac
+                case "$TRACK" in alpha|internal+alpha) alpha=true;; esac
+              fi ;;
+            *) echo "::error::Bilinmeyen track değeri."; exit 1 ;;
+          esac
+          {
+            echo "upload=$upload"
+            echo "internal=$internal"
+            echo "alpha=$alpha"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
@@ -91,6 +174,41 @@ jobs:
           channel: stable
           cache: true
       - run: flutter --version
+
+      - name: Play sürüm notlarını hazırla (whatsnew)
+        id: notes_dir
+        if: steps.play.outputs.upload == 'true'
+        working-directory: ${{ github.workspace }}
+        env:
+          NOTES_TR: ${{ inputs.release_notes_tr }}
+          NOTES_EN: ${{ inputs.release_notes_en }}
+          NOTES_DE: ${{ inputs.release_notes_de }}
+          NOTES_AR: ${{ inputs.release_notes_ar }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib
+          out = pathlib.Path(os.environ['RUNNER_TEMP']) / 'whatsnew'
+          out.mkdir(parents=True, exist_ok=True)
+          src = pathlib.Path('flutter/arrowtile/release-notes')
+          found = 0
+          for lang, loc in (('tr', 'tr-TR'), ('en', 'en-US'), ('de', 'de-DE'), ('ar', 'ar')):
+              text = os.environ.get('NOTES_' + lang.upper(), '').replace('\\n', '\n').strip()
+              origin = 'girdi'
+              if not text:
+                  f = src / (lang + '.txt')
+                  origin = str(f)
+                  text = f.read_text(encoding='utf-8').strip() if f.is_file() else ''
+              if not text:
+                  print(f"::warning title=Sürüm notu yok ({loc})::{loc} için girdi de {src}/{lang}.txt de boş; bu dilde sürüm notu gönderilmeyecek.")
+                  continue
+              if len(text) > 500:
+                  raise SystemExit(f"::error title=Sürüm notu çok uzun ({loc})::{loc} sürüm notu {len(text)} karakter; Play en çok 500 kabul eder ({origin}).")
+              (out / ('whatsnew-' + loc)).write_text(text + '\n', encoding='utf-8')
+              found += 1
+              print(f"{loc}: {len(text)} karakter ({origin})")
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as g:
+              g.write('dir=' + (str(out) if found else '') + '\n')
+          PY
 
       - name: Anahtar deposu ve key.properties oluştur
         working-directory: ${{ github.workspace }}
@@ -160,3 +278,36 @@ jobs:
           path: flutter/arrowtile/build/app/outputs/bundle/release/app-release.aab
           retention-days: 30
           if-no-files-found: error
+
+      # ---- İsteğe bağlı: Google Play'e doğrudan yükleme (docs/25). AAB artifact'ı yukarıda zaten yüklendi; bu adımlar başarısız olsa bile AAB elde kalır.
+      - name: Eşleme (mapping) dosyası var mı?
+        id: mapping
+        if: steps.play.outputs.upload == 'true'
+        run: |
+          M=build/app/outputs/mapping/release/mapping.txt
+          if [ -s "$M" ]; then echo "file=flutter/arrowtile/$M" >> "$GITHUB_OUTPUT"; else echo "file=" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Play - iç test (internal)
+        if: steps.play.outputs.internal == 'true'
+        uses: r0adkll/upload-google-play@v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.arrowtile.puzzle
+          releaseFiles: flutter/arrowtile/build/app/outputs/bundle/release/app-release.aab
+          track: internal
+          status: ${{ inputs.status }}
+          whatsNewDirectory: ${{ steps.notes_dir.outputs.dir }}
+          mappingFile: ${{ steps.mapping.outputs.file }}
+
+      - name: Play - kapalı test (alpha)
+        if: steps.play.outputs.alpha == 'true'
+        uses: r0adkll/upload-google-play@v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.arrowtile.puzzle
+          releaseFiles: flutter/arrowtile/build/app/outputs/bundle/release/app-release.aab
+          track: alpha
+          status: ${{ inputs.status }}
+          changesNotSentForReview: ${{ inputs.hold_for_review }}
+          whatsNewDirectory: ${{ steps.notes_dir.outputs.dir }}
+          mappingFile: ${{ steps.mapping.outputs.file }}
