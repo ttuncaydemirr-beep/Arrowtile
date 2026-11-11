@@ -52,7 +52,7 @@
       coins: 50, freeHints: 0,
       stars: {}, unlocked: 1, themesOwned: ['emaye'], theme: 'emaye',
       daily: { lastDate: null, streakDay: 0 },
-      tutorialDone: [], chapterBonus: [],
+      tutorialDone: [], chapterBonus: [], cbv: PER_CHAPTER, // cbv: chapterBonus numaralarının bölüm uzunluğu (1.2.0: 20; eksikse eski 10'luk bölüm → göç)
       ads: { since: 0, lastAt: 0, adFree: false, test: false, coinDate: null, coinCount: 0 }, // reklam sayacı + "reklamları kaldır" (ads.js) + günlük reklam-jeton hakkı
       appearance: 'auto',   // G7: auto | light | dark
       relaxed: false,       // G3: rahat mod
@@ -101,7 +101,18 @@
     }
     if (Array.isArray(raw.tutorialDone)) s.tutorialDone = raw.tutorialDone.map(Number).filter(function (n) { return n >= 1 && n <= 3; });
     else if (raw.tutorialDone === true) s.tutorialDone = [1, 2, 3];
-    if (Array.isArray(raw.chapterBonus)) s.chapterBonus = raw.chapterBonus.map(Number).filter(function (n) { return n >= 1 && n <= MAX_CHAPTERS; });
+    if (Array.isArray(raw.chapterBonus)) {
+      var cb = raw.chapterBonus.map(Number);
+      // 1.2.0 göçü (docs/26 §C): 1.2.0 öncesi kayıtlarda bölüm = 10 seviye. Eski bölüm k (seviye 10k−9..10k) yeni 20'lik bölüm ⌈k/2⌉'nin
+      // yarısıdır ve o aralık için 150 jeton zaten ödenmiştir → yeni bölüm ⌈k/2⌉ ödenmiş sayılır (çift ödeme yok). Numaralar yeni bölümlere
+      // taşındığı için eski "bölüm 3" (seviye 21–30) yeni bölüm 3'ü (seviye 41–60) kilitlemez. Göç bir kez: kayıt cbv = 20 ile yazılır.
+      if (raw.cbv !== PER_CHAPTER) {
+        var mg = [];
+        cb.forEach(function (k) { if (k >= 1 && Math.floor(k) === k) { var n = Math.ceil(k / 2); if (mg.indexOf(n) < 0) mg.push(n); } });
+        cb = mg;
+      }
+      s.chapterBonus = cb.filter(function (n) { return n >= 1 && n <= MAX_CHAPTERS; });
+    }
     if (raw.ads && typeof raw.ads === 'object') {
       s.ads.since = int(raw.ads.since, 0, 0, 1000);
       s.ads.lastAt = int(raw.ads.lastAt, 0, 0, 8.64e15);

@@ -14,7 +14,7 @@ const Map<String, double> kTierMult = <String, double>{'easy': 1, 'medium': 1.5,
 const List<int> kStarBase = <int>[0, 10, 15, 20];
 const Map<String, int> kThemePrice = <String, int>{'emaye': 0, 'lokum': 300, 'cini': 500, 'bakir': 750, 'gece': 1000};
 
-/// v1.5 (docs/15 §5): bölüm = 10 seviye; kademe SEVİYE bazında (1-3 Kolay, 4-6 Orta, 7-8 Zor, 9-10 Aşırı zor).
+/// 1.2.0 (docs/24): bölüm = 20 seviye; kademe SEVİYE bazında (5 Kolay → 5 Orta → 5 Zor → 5 Aşırı zor).
 String tierOfLevel(int id) => tierOf(id);
 
 /// Bölüm bonusu tek: bölüm tamamlanınca [kChapterBonus] (150) jeton.

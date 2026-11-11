@@ -20,23 +20,28 @@ const cp = a => ({ cells: LG.cellsOf(a).map(c => [c[0], c[1]]), dir: a.dir });
   write('rng_golden.json', { rng, hash: strs.map(s => ({ s, h: LG.hash(s) })) });
 }
 
-// ---------------------------------------------------------------- 2) seviye üretimi
-// v1.1 (docs/15 §5): bölüm = 10 seviye. Tam ok listesi altın: her kademeden küçük ve en büyük tahtada örnekler (özet altın testi ayrıca
-// tools/level-hashes.json üzerinden rastgele örneklenmiş seviyelerde çalışır).
-const GEN_IDS = [4, 7, 9, 38, 201, 204, 207, 209];
-const EXTRA_HASH_IDS = [5001, 5002, 5004, 5007, 5009, 5010, 12345, 99999]; // 5.000 sonrası (level-hashes.json'da yok)
+// ---------------------------------------------------------------- 2) seviye üretimi (1.2.0 v2: build2, docs/24, docs/26)
+// Bölüm = 20 seviye; tahta bölüm × kademe ölçeği (TIER_SIZE_PCT). Tam ok listesi altın: her kademeden küçük tahtada, şekilli (maskeli)
+// ve en büyük bölümde örnekler (özet altın testi ayrıca tools/level-hashes.json üzerinden ≥ 40 seviyede çalışır).
+const GEN_IDS = [4, 9, 14, 18, 56, 58, 177];
+const EXTRA_HASH_IDS = [5001, 5002, 5006, 5011, 5016, 5020, 5177, 5180, 12345, 99999]; // 5.000 sonrası (level-hashes.json'da yok)
 {
   const levels = GEN_IDS.map(id => {
     const t0 = Date.now(), L = LG.makeLevel(id), ms = Date.now() - t0;
-    const m = LG.measure({ w: L.w, h: L.h, arrows: L.arrows });
-    return { id, ms, level: { id: L.id, w: L.w, h: L.h, par: L.par, diff: L.diff, chapter: L.chapter, ok: L.ok, rounds: L.rounds, arrows: L.arrows.map(cp) },
-      measure: { depth: m.depth, initialFree: m.initialFree, freeRatio: m.freeRatio, fill: m.fill, arrows: m.arrows, curved: m.curved, curvedRatio: m.curvedRatio, score: m.score } };
+    const m = L.m;
+    return { id, ms, level: { id: L.id, w: L.w, h: L.h, par: L.par, diff: L.diff, chapter: L.chapter, ok: L.ok, rounds: L.rounds, mask: L.mask || null, arrows: L.arrows.map(cp) },
+      measure: { depth: m.depth, initialFree: m.initialFree, freeRatio: m.freeRatio, fill: m.fill, arrows: m.arrows, curved: m.curved, meanTurns: m.meanTurns, meanLen: m.meanLen, maxLen: m.maxLen, score: m.score } };
   });
-  const specs = [1, 3, 4, 7, 9, 10, 11, 20, 21, 38, 100, 200, 201, 209, 210, 1619, 5000, 5001, 99999].map(id => { const s = LG.specFor(id); return { id, spec: { w: s.w, h: s.h, fill: s.fill, fillMax: s.fillMax, maxFree: s.maxFree, curve: s.curve, maxLen: s.maxLen, tries: s.tries, effort: s.effort, passes: s.passes, cycles: s.cycles, tier: s.tier, chapter: s.chapter, index: s.index, minDepth: s.minDepth, maxDepth: s.maxDepth }, seed0: LG.seedFor(id, 0), seed3: LG.seedFor(id, 3) }; });
-  const sizes = [1, 2, 3, 4, 5, 10, 15, 20, 21, 22, 30, 100, 500].map(ch => ({ ch, size: LG.sizeOfChapter(ch) }));
-  const extraHashes = EXTRA_HASH_IDS.map(id => { const t0 = Date.now(), L = LG.makeLevel(id); return { id, hash: LG.levelHash(L), ms: Date.now() - t0 }; });
-  write('levelgen_golden.json', { levels, specs, sizes, extraHashes });
-  levels.forEach(l => console.log(`  seviye ${l.id}: ${l.level.w}x${l.level.h} ${l.level.diff} ok=${l.level.ok} ${l.level.arrows.length} ok, tur ${l.level.rounds}, ${l.ms} ms`));
+  const specs = [1, 3, 4, 5, 6, 10, 11, 15, 16, 20, 21, 25, 26, 30, 31, 35, 36, 40, 56, 57, 58, 59, 60, 100, 101, 161, 177, 180, 181, 1619, 5000, 5001, 99999]
+    .map(id => { const s = LG.specFor(id); return { id, spec: { w: s.w, h: s.h, tier: s.tier, chapter: s.chapter, index: s.index, shape: s.shape }, seed0: LG.seedFor(id, 0), seed3: LG.seedFor(id, 3) }; });
+  const sizes = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 18, 19, 100, 250, 251, 5000].map(ch => ({ ch, size: LG.sizeOfChapter(ch),
+    tiers: LG.TIER_ORDER.map((t, k) => LG.sizeOf((ch - 1) * LG.PER_CHAPTER + k * 5 + 1)) }));
+  // maske üretimi: aynı tohumla JS makeMask satırları (Dart makeMask birebir aynı olmalı)
+  const masks = [[14, 21, 'organic', 11], [14, 21, 'ring', 12], [28, 45, 'ringOrganic', 13], [23, 37, 'organic', 14], [19, 29, 'ring', 15], [9, 13, 'full', 16]]
+    .map(([w, h, kind, seed]) => { const m = LG.makeMask(w, h, kind, LG.rng(seed)), rows = []; for (let y = 0; y < h; y++) { let r = ''; for (let x = 0; x < w; x++) r += m[y * w + x] ? '1' : '0'; rows.push(r); } return { w, h, kind, seed, rows }; });
+  const extraHashes = EXTRA_HASH_IDS.map(id => { const t0 = Date.now(), L = LG.makeLevel(id); return { id, hash: LG.levelHash(L), w: L.w, h: L.h, diff: L.diff, ms: Date.now() - t0 }; });
+  write('levelgen_golden.json', { version: LG.VERSION, levels, specs, sizes, masks, extraHashes });
+  levels.forEach(l => console.log(`  seviye ${l.id}: ${l.level.w}x${l.level.h} ${l.level.diff}${l.level.mask ? ' (şekilli)' : ''} ok=${l.level.ok} ${l.level.arrows.length} ok, tur ${l.level.rounds}, ${l.ms} ms`));
 }
 
 // ---------------------------------------------------------------- 3) günlük bulmaca (5 tarih)
@@ -157,7 +162,10 @@ function loadStore(initial) {
       { appearance: 'dark', relaxed: true, aim: true }, { appearance: 'blue', relaxed: 'y', aim: 1 },
       { dp: { done: { '2026-11-01': 3, '2026-11-02': 7, 'bad': 1, '2026-11-03': 0 }, streak: 5, best: 9, trophies: 12, last: '2026-11-02' } },
       { dp: { done: [1, 2], streak: -3, best: 'z', trophies: 1e9, last: 'x' } },
-      { tips: ['aim_suggest', 'BAD', 'zoom_tip', 5, 'a'.repeat(25)] }
+      { tips: ['aim_suggest', 'BAD', 'zoom_tip', 5, 'a'.repeat(25)] },
+      // 1.2.0: ok rengi + chapterBonus göçü (cbv yok/10 → eski 10'luk bölüm numaraları 20'liğe taşınır; cbv 20 → olduğu gibi)
+      { arrowColor: 'mono' }, { arrowColor: 'pink' }, { chapterBonus: [1, 2, 3, 7] }, { chapterBonus: [2], cbv: 10 }, { chapterBonus: [1, 2, 3], cbv: 20 },
+      { chapterBonus: [9, 10, 'x', 2.5, 19, 20, 21], stars: { '1': 3 } }, { chapterBonus: [5000, 10000], cbv: 20 }
     ];
     out.sanitize = raws.map(raw => ({ raw, state: S.sanitize(raw) }));
   }

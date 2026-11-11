@@ -6,7 +6,8 @@ import 'daily.dart';
 const List<String> kLangs = <String>['tr', 'en', 'de', 'ar'];
 const List<String> kThemeIds = <String>['emaye', 'lokum', 'cini', 'bakir', 'gece'];
 const int kMaxLevel = 99999; // sonsuz devam: kayıtta kabul edilen en büyük seviye no
-const int kMaxChapters = 10000; // Math.ceil(99999 / 10) — bölüm = 10 seviye (v1.1)
+const int kMaxChapters = 5000; // Math.ceil(99999 / 20) — bölüm = 20 seviye (1.2.0)
+const int kChapterBonusVersion = 20; // kayıttaki chapterBonus numaralarının bölüm uzunluğu (cbv); eksikse 1.2.0 öncesi 10'luk bölüm → göç
 const int kUndoRefund = 20; // eski ücretsiz geri alma hakkı başına jeton (kayıt göçü)
 
 final RegExp _ymdRe = RegExp(r'^\d{4}-\d{2}-\d{2}$');
@@ -50,10 +51,12 @@ class SaveData {
   DailyReward daily;
   List<int> tutorialDone;
   List<int> chapterBonus;
+  int cbv; // chapterBonus numaralarının bölüm uzunluğu (1.2.0: 20)
   AdsState ads;
   String appearance; // auto | light | dark
   bool relaxed;
   bool aim;
+  String arrowColor; // 1.2.0: color (renkli) | mono (tek renk ince çizgi)
   List<String> tips;
   DailyProgress dp;
 
@@ -70,10 +73,12 @@ class SaveData {
     DailyReward? daily,
     List<int>? tutorialDone,
     List<int>? chapterBonus,
+    this.cbv = kChapterBonusVersion,
     AdsState? ads,
     this.appearance = 'auto',
     this.relaxed = false,
     this.aim = false,
+    this.arrowColor = 'color',
     List<String>? tips,
     DailyProgress? dp,
   })  : stars = stars ?? <int, int>{},
@@ -104,10 +109,12 @@ class SaveData {
       'daily': daily.toJson(),
       'tutorialDone': tutorialDone,
       'chapterBonus': chapterBonus,
+      'cbv': cbv,
       'ads': ads.toJson(),
       'appearance': appearance,
       'relaxed': relaxed,
       'aim': aim,
+      'arrowColor': arrowColor,
       'tips': tips,
       'dp': dp.toJson(),
     };
@@ -147,6 +154,29 @@ int jsInt(dynamic v, int d, [int? min, int? max]) {
 }
 
 bool _isMap(dynamic v) => v is Map;
+
+/// chapterBonus onarımı + 1.2.0 göçü (docs/26 §C; storage.js sanitize ile aynı).
+/// 1.2.0 öncesi kayıtlarda ([cbv] ≠ 20) bölüm = 10 seviyedir: eski bölüm k (seviye 10k−9..10k), yeni 20'lik bölüm ⌈k/2⌉'nin
+/// yarısıdır ve o aralık için 150 jeton zaten ödenmiştir → yeni bölüm ⌈k/2⌉ ödenmiş sayılır (ÇİFT ÖDEME YOK). Numaralar yeni
+/// bölümlere taşındığı için eski "bölüm 3" (seviye 21–30) yeni bölüm 3'ü (seviye 41–60) KİLİTLEMEZ. Kayıt cbv = 20 ile yazılır,
+/// göç bir kez uygulanır. Not: JS tamsayı olmayan değerleri de tutar; burada yalnızca tamsayılar alınır (kayıt zaten tamsayı yazar).
+List<int> migrateChapterBonus(List<dynamic> raw, dynamic cbv) {
+  final bool old = !(cbv is num && cbv == kChapterBonusVersion);
+  final List<int> ints = <int>[
+    for (final dynamic x in raw)
+      if (_toNumber(x) >= 1 && _toNumber(x) == _toNumber(x).floorToDouble() && _toNumber(x) < 1e15) _toNumber(x).toInt()
+  ];
+  List<int> cbList = ints;
+  if (old) {
+    final List<int> mg = <int>[];
+    for (final int k in ints) {
+      final int n = (k + 1) ~/ 2; // ⌈k/2⌉
+      if (!mg.contains(n)) mg.add(n);
+    }
+    cbList = mg;
+  }
+  return <int>[for (final int n in cbList) if (n >= 1 && n <= kMaxChapters) n];
+}
 
 /// Bozuk/eksik alanları tek tek onarır. [raw] jsonDecode çıktısı (ya da herhangi bir değer).
 SaveData sanitize(dynamic raw, String defaultLang) {
@@ -203,11 +233,7 @@ SaveData sanitize(dynamic raw, String defaultLang) {
   }
   final dynamic cb = r['chapterBonus'];
   if (cb is List) {
-    // Not: JS tamsayı olmayan değerleri de tutar; burada yalnızca tamsayılar alınır (kayıt zaten tamsayı yazar).
-    s.chapterBonus = <int>[
-      for (final dynamic x in cb)
-        if (_toNumber(x) >= 1 && _toNumber(x) <= kMaxChapters && _toNumber(x) == _toNumber(x).floorToDouble()) _toNumber(x).toInt()
-    ];
+    s.chapterBonus = migrateChapterBonus(cb, r['cbv']);
   }
   final dynamic ad = r['ads'];
   if (_isMap(ad)) {
@@ -225,6 +251,7 @@ SaveData sanitize(dynamic raw, String defaultLang) {
   }
   if (r['relaxed'] is bool) s.relaxed = r['relaxed'] as bool;
   if (r['aim'] is bool) s.aim = r['aim'] as bool;
+  if (r['arrowColor'] == 'color' || r['arrowColor'] == 'mono') s.arrowColor = r['arrowColor'] as String;
   final dynamic dpr = r['dp'];
   if (_isMap(dpr)) {
     final Map<dynamic, dynamic> p = dpr as Map<dynamic, dynamic>;
