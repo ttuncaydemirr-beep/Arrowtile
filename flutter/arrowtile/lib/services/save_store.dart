@@ -59,7 +59,7 @@ class SaveStore {
     } catch (_) {}
   }
 
-  // ---- sonsuz seviye önbelleği (son 4 seviye) ----
+  // ---- sonsuz seviye önbelleği (en yüksek numaralı 6 seviye; üretici sürümü kGenVersion değişince geçersiz) ----
   Map<int, Level> loadEndless() {
     try {
       final String? txt = _prefs?.getString(endlessKey);
@@ -83,7 +83,7 @@ class SaveStore {
     try {
       final List<int> ids = levels.keys.toList()..sort((int a, int b) => b.compareTo(a));
       final Map<String, dynamic> keep = <String, dynamic>{
-        for (final int id in ids.take(4)) '$id': levels[id]!.toJson()
+        for (final int id in ids.take(6)) '$id': levels[id]!.toJson()
       };
       p.setString(endlessKey, jsonEncode(<String, dynamic>{'v': kGenVersion, 'levels': keep}));
     } catch (_) {}

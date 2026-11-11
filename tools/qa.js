@@ -127,7 +127,7 @@ const base = (extra = {}) => Object.assign({ lang: 'tr', coins: 50, freeHints: 2
 
 async function startLevel(page, id) { // haritadan dokunarak seviye başlat
   await page.evaluate(() => window.__ok.show('map')); await wait(350);
-  await page.evaluate(id => { window.__ok.mapScrollToChapter(Math.ceil(id / 10)); document.querySelector('.node[data-level="' + id + '"]').scrollIntoView({ block: 'center' }); }, id); // v1.5: harita tembel liste
+  await page.evaluate(id => { window.__ok.mapScrollToChapter(Math.ceil(id / 20)); document.querySelector('.node[data-level="' + id + '"]').scrollIntoView({ block: 'center' }); }, id); // harita tembel liste (1.2.0: bölüm = 20 seviye)
   await wait(100);
   await page.tap('.node[data-level="' + id + '"]');
   await page.waitForFunction(id => window.__ok.screen() === 'game' && window.__ok.level().id === id, id);

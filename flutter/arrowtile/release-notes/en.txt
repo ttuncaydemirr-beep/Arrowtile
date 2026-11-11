@@ -1,4 +1,8 @@
-Version 1.1.6
-- Fixed the game screen being squeezed into the top part of the screen on some phones.
-- The game screen no longer overflows with large text sizes.
-- Minor improvements and stability fixes.
+Version 1.2.0
+- Chapters now have 20 levels: Easy, Medium, Hard and Very hard; the board grows from chapter to chapter.
+- New long, winding arrows and shaped boards.
+- Big boards: drag to move, pinch to zoom, plus a "Fit" button; tap anywhere on an arrow's cells.
+- Arrows follow their own path as they leave, with a new wind sound.
+- Torch celebration and speed badge at the end of each level.
+- Settings: Arrow color (Colorful / Single color).
+- Fresh colors and a new font.

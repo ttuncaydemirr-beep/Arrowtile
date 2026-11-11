@@ -1,8 +1,13 @@
 // Arrowtile — game_screen.dart: oyun ekranı (main.js "OYUN" bölümü): tahta, girdi, animasyon, öğretici, ipucu, bitiş pencereleri.
 //
-// Web ile aynı kurallar: isabet okun çizgisine (polyline) en yakın mesafe, eşik 0,5 hücre, belirsizlik 0,18; çıkış animasyonu
-// sürerken yeni dokunuşlar yok sayılır (ok tahtayı terk edince kilit açılır); yakınlaştırma ≤ 5×; azaltılmış hareket
-// (MediaQuery.disableAnimations) süreleri kısaltır, tahta sarsıntısını kapatır.
+// 1.2.0 (docs/24 §1.3, docs/26) — web ile aynı kurallar:
+//  - Tahta ekrana sığmak zorunda değil: varsayılan yakınlıkta hücre ≥ 20 px (_minCell). Sığan hücre ≥ 18 px ise (_fitOk) tam sığar,
+//    kaydırma yok; daha küçükse tahta ekrandan büyük açılır. Tek parmak = kaydırma (ataletli), iki parmak = yakınlaştırma
+//    (sMin = tüm tahta … sMax = hücre ≈ 64 px). > 10 px hareket eden parmak ASLA dokunuş sayılmaz. "Sığdır" ↔ "Yakınlaştır".
+//  - İsabet HÜCRE bazlı: okun kapladığı hücrenin herhangi bir yerine dokunmak yeter; boş hücrede en yakın ok (0,45 hücre içinde),
+//    iki ok neredeyse eşit uzaklıktaysa (0,12) hiçbiri oynamaz.
+//  - Çıkış: ok kendi yolunu izleyerek SABİT hızla tahta kenarına dek gider, kenarda kırpılır; 110 ms sonra sıradaki oka dokunulabilir.
+//  - Azaltılmış hareket (MediaQuery.disableAnimations) süreleri kısaltır, sarsıntı/atalet/geçişleri kapatır.
 // Not: InteractiveViewer yerine ham işaretçi olayları (Listener) kullanılır; böylece web'deki pinch/pan/kenetleme
 // kuralları ve isabet hesabı birebir korunur.
 import 'dart:async';
@@ -12,6 +17,7 @@ import 'dart:ui' show FlutterView;
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart' show HardwareKeyboard;
 
 import '../../config/ads_config.dart';
 import '../../core/daily.dart' as dl;
@@ -26,6 +32,7 @@ import '../../l10n/app_localizations.dart';
 import '../../state/app_controller.dart';
 import '../../state/app_scope.dart';
 import '../board_painter.dart';
+import '../celebration.dart';
 import '../flow.dart';
 import '../rewarded_flow.dart';
 import '../tokens.dart';
@@ -46,12 +53,36 @@ class _Tut {
 class _Gest {
   String type; // tap | pan | pinch | none
   final double x0, y0, vx, vy, d0, s0, mx, my;
+  double lx = 0, ly = 0, lt = 0, sx = 0, sy = 0; // kaydırma hızı (yumuşatılmış, px/ms)
   _Gest(this.type, {this.x0 = 0, this.y0 = 0, this.vx = 0, this.vy = 0, this.d0 = 1, this.s0 = 1, this.mx = 0, this.my = 0});
 }
 
-const double _hitMax = 0.5; // hücre birimi — isabet eşiği
-const double _ambig = 0.18; // iki ok neredeyse eşit yakınsa hiçbiri oynamaz
-const double _zMax = 5; // yakınlaştırma üst sınırı
+class _View {
+  double s, x, y;
+  _View(this.s, this.x, this.y);
+}
+
+class _ViewAnim {
+  final _View from, to;
+  final double t0, dur;
+  const _ViewAnim(this.from, this.to, this.t0, this.dur);
+}
+
+class _Fling {
+  double vx, vy, t;
+  _Fling(this.vx, this.vy, this.t);
+}
+
+// AYAR (main.js ile aynı): varsayılan en küçük hücre, kaydırmasız kabul edilen en küçük hücre, en büyük hücre, en yakın hücre (px)
+const double _minCell = 20;
+const double _fitOk = 18;
+const double _maxCell = 72;
+const double _zoomCell = 64;
+const double _topBand = 36; // tahta alanının üstünde zorluk etiketi için ayrılan şerit (px)
+const double _hitNear = 0.45; // hücre birimi — boş hücrede en yakın ok eşiği
+const double _ambig = 0.12; // iki ok neredeyse eşit yakınsa hiçbiri oynamaz
+const double _panSlop = 10; // bu kadar (px) hareket eden parmak artık dokunuş değildir
+const int _crashToastMs = 2500; // "Çarptı! −1 can" bildirimi (sahip kararı); diğerleri 1,6 sn
 
 class GameScreen extends StatefulWidget {
   final Level level;
@@ -85,6 +116,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   _Gest? gest;
   Size _lastSize = Size.zero;
   final List<Timer> _timers = <Timer>[];
+  _ViewAnim? _viewAnim; // yumuşak görünüm geçişi (Sığdır / oka odaklan)
+  _Fling? _fling; // kaydırma ataleti
+  double _playMs = 0, _lastTapAt = 0; // hız rozeti: etkin oyun süresi (dokunuşlar arası en çok 8 sn sayılır)
 
   /// Tam ekran reklam gösteriliyor (docs/15 §4): animasyon döngüsü (ticker) ve ses duraklar, reklam kapanınca devam eder.
   bool _adPause = false;
@@ -101,7 +135,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       ..reset()
       ..start();
     diag('level', 'start', <String, Object?>{'lvl': lv.isDaily ? 'daily' : lv.id});
-    if (!lv.isDaily) app.telemetry.levelStart(level: lv.id, tier: lv.diff, chapter: chapterOf(lv.id));
+    if (!lv.isDaily) {
+      app.telemetry.levelStart(level: lv.id, tier: lv.diff, chapter: chapterOf(lv.id), board: '${lv.w}x${lv.h}', shaped: lv.mask != null);
+    }
   }
 
   int get _attemptSeconds => _attemptClock.elapsed.inSeconds;
@@ -143,7 +179,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
 
   /// `AUTOPLAY_FROM` / test: seviyeyi kendiliğinden çözer; seviye sonunda "Sonraki"ne basılır ([_EndSheetState]).
   void _startAutoPlay() {
-    app.markTip('aim_suggest'); // "önce seç" önerisi penceresi otomatik oyunu engellemesin
+    app.markTip('zoom_tip'); // büyük tahta ipucu otomatik oyunda görünmesin
     debugPrint('AUTOPLAY: level ${lv.id} opened');
     _autoTimer = Timer.periodic(const Duration(milliseconds: 160), (Timer t) {
       if (!mounted) {
@@ -173,9 +209,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       if (_ticker.isActive) _ticker.stop();
     } else {
       _repaint.ping();
-      if (model.anims.isNotEmpty || model.shake != null || model.hintIdx >= 0 || model.flashIds.isNotEmpty) _kick();
+      if (_animating) _kick();
     }
   }
+
+  bool get _animating =>
+      model.anims.isNotEmpty || model.shake != null || model.hintIdx >= 0 || model.flashIds.isNotEmpty || _viewAnim != null || _fling != null;
 
   /// 1.1.4: seviye sonunda show() çağrıldı ve SDK sonucu bekleniyor: 0 yok, 1 "Reklam açılıyor…", 2 "reklam gecikiyor".
   final ValueNotifier<int> _adWait = ValueNotifier<int>(0);
@@ -245,7 +284,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     _resetPointers();
     if (_adPause && !app.mon.isAdShowing) _adPause = false; // bayat "reklam gösteriliyor" bayrağı
     _repaint.ping();
-    if (model.anims.isNotEmpty || model.shake != null || model.hintIdx >= 0 || model.flashIds.isNotEmpty) _kick();
+    if (_animating) _kick();
     setState(() {});
     if (!_pausePending) return;
     _pausePending = false;
@@ -295,64 +334,120 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   void _resetPointers() {
     ptrs.clear();
     gest = null;
+    _fling = null;
   }
 
   bool get _locked => busy || model.nowMs < lockUntil;
 
-  // ---------------------------------------------------------------- yerleşim / görünüm
+  // ---------------------------------------------------------------- yerleşim / görünüm (main.js resize/clampV/fitView)
   void _layout(double W, double H) {
     final double padF = boardPadFor(lv.w) * 2;
-    final double c = math.min(math.min((W - 4) / (lv.w + padF), (H - 16) / (lv.h + padF + 0.1)), 72.0).floorToDouble();
+    final double fit = math.min(math.min((W - 4) / (lv.w + padF), (H - 12 - _topBand) / (lv.h + padF + 0.1)), _maxCell);
+    // sığan hücre _fitOk px'ten küçük değilse tahta tam sığar (kaydırma yok); daha küçükse varsayılan hücre _minCell olur ve kaydırılır
+    final double c = fit >= _fitOk ? fit.floorToDouble() : _minCell;
     model.cell = c;
+    model.fit = fit;
     model.width = W;
     model.height = H;
+    model.sMin = math.min(1.0, fit / c);
+    model.sMax = math.max(2.5, _zoomCell / c);
     model.ox = ((W - lv.w * c) / 2).roundToDouble();
-    model.oy = ((H - lv.h * c) / 2).roundToDouble();
+    model.oy = _topBand + ((H - _topBand - lv.h * c) / 2).roundToDouble();
     _clampView();
   }
 
-  List<double> _trayBox() {
-    final double p = boardPadFor(lv.w) * model.cell;
-    return <double>[model.ox - p, model.oy - p, model.ox + lv.w * model.cell + p, model.oy + lv.h * model.cell + p];
+  List<double> _trayBox() => model.trayBox();
+
+  /// Görünümü sınırla: tahta kenarda durur (baş/son payı x: 2/2, y: _topBand/8); ekrandan küçükse ortalanır.
+  _View _clampV(_View v) {
+    v.s = math.max(model.sMin, math.min(model.sMax, v.s));
+    final List<double> b = _trayBox();
+    for (int ax = 0; ax < 2; ax++) {
+      final double lo = b[ax] * v.s, hi = b[ax + 2] * v.s;
+      final double size = ax == 0 ? model.width : model.height;
+      final double m0 = ax == 0 ? 2 : _topBand, m1 = ax == 0 ? 2 : 8;
+      final double cur = ax == 0 ? v.x : v.y;
+      double nv;
+      if (hi - lo <= size - m0 - m1 + 0.5) {
+        nv = m0 + (size - m0 - m1 - (hi - lo)) / 2 - lo;
+      } else {
+        nv = math.min(m0 - lo, math.max(size - m1 - hi, cur));
+      }
+      if (ax == 0) {
+        v.x = nv;
+      } else {
+        v.y = nv;
+      }
+    }
+    return v;
   }
 
   void _clampView() {
-    model.vs = math.max(1.0, math.min(_zMax, model.vs));
-    if (model.vs <= 1.001) {
-      model.vs = 1;
-      model.vx = 0;
-      model.vy = 0;
-      return;
-    }
-    final List<double> b = _trayBox();
-    const double m = 12;
-    for (int ax = 0; ax < 2; ax++) {
-      final double lo = b[ax] * model.vs;
-      final double hi = b[ax + 2] * model.vs;
-      final double size = ax == 0 ? model.width : model.height;
-      final double v = ax == 0 ? model.vx : model.vy;
-      double nv;
-      if (hi - lo + 2 * m <= size) {
-        nv = (size - (lo + hi)) / 2;
-      } else {
-        nv = math.min(m - lo, math.max(size - m - hi, v));
-      }
-      if (ax == 0) {
-        model.vx = nv;
-      } else {
-        model.vy = nv;
-      }
-    }
+    final _View v = _clampV(_View(model.vs, model.vx, model.vy));
+    model.vs = v.s;
+    model.vx = v.x;
+    model.vy = v.y;
+    model.minimap = _pannable() && !winDone;
   }
 
   Offset _toBoard(double px, double py) => Offset((px - model.vx) / model.vs, (py - model.vy) / model.vs);
 
+  /// Tahta (tepsi) şu yakınlıkta ekrandan büyük mü (kaydırılabilir mi).
+  bool _pannable() {
+    final List<double> b = _trayBox();
+    return (b[2] - b[0]) * model.vs > model.width - 3.5 || (b[3] - b[1]) * model.vs > model.height - _topBand - 7.5;
+  }
+
+  /// Tüm tahta görünür ve bu, varsayılan yakınlıktan farklı (sMin < 1).
+  bool _overview() => model.sMin < 0.999 && model.vs <= model.sMin + 0.005;
+
+  bool get _fitVisible => model.sMin < 0.999 || model.vs > 1.01;
+
+  /// Görünümü yumuşak geçişle (bx, by) tahta noktası ekran ortasına gelecek şekilde ns yakınlığına götürür.
+  void _animateView(double ns, double bx, double by) {
+    final _View to = _View(ns, 0, 0);
+    to.s = math.max(model.sMin, math.min(model.sMax, ns));
+    to.x = model.width / 2 - bx * to.s;
+    to.y = model.height / 2 - by * to.s;
+    _clampV(to);
+    _fling = null;
+    if (_reduced) {
+      _viewAnim = null;
+      model.vs = to.s;
+      model.vx = to.x;
+      model.vy = to.y;
+      _afterViewChange();
+      return;
+    }
+    _viewAnim = _ViewAnim(_View(model.vs, model.vx, model.vy), to, model.nowMs, 281);
+    _kick();
+  }
+
+  /// "Sığdır": tüm tahtayı göster; tahta zaten sığdırılmışsa varsayılan yakınlığa (hücre ≥ _minCell) döner.
   void _fitView() {
-    model.vs = 1;
-    model.vx = 0;
-    model.vy = 0;
+    final Offset c = _toBoard(model.width / 2, model.height / 2);
+    _animateView(_overview() ? 1 : (model.sMin < 0.999 ? model.sMin : 1), c.dx, c.dy);
     _hud();
-    _repaint.ping();
+  }
+
+  /// Ok görünür alanda değilse görünümü oka kaydırır (ipucu).
+  void _focusArrow(int i) {
+    final List<int> hd = headOf(lv.arrows[i]);
+    final double c = model.cell;
+    final double bx = model.ox + (hd[0] + 0.5) * c, by = model.oy + (hd[1] + 0.5) * c;
+    final double sx = bx * model.vs + model.vx, sy = by * model.vs + model.vy, m = 2.5 * c * model.vs;
+    if (sx > m && sy > m + 30 && sx < model.width - m && sy < model.height - m) return;
+    _animateView(math.max(model.vs, math.min(1.0, model.sMax)), bx, by);
+  }
+
+  void _zoomAt(double px, double py, double ns) {
+    final Offset bp = _toBoard(px, py);
+    _viewAnim = null;
+    _fling = null;
+    model.vs = math.max(model.sMin, math.min(model.sMax, ns));
+    model.vx = px - bp.dx * model.vs;
+    model.vy = py - bp.dy * model.vs;
+    _afterViewChange();
   }
 
   void _afterViewChange() {
@@ -360,6 +455,25 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     _repaint.ping();
     if (mounted) setState(() {});
   }
+
+  /// Test: görünüm durumu (web __ok.view()).
+  @visibleForTesting
+  ({double s, double x, double y, double cell, double sMin, double sMax, bool pannable, bool overview}) get debugView =>
+      (s: model.vs, x: model.vx, y: model.vy, cell: model.cell, sMin: model.sMin, sMax: model.sMax, pannable: _pannable(), overview: _overview());
+
+  /// Test: (u, v) tahta hücre koordinatının (hücre birimi) ekrandaki yeri (oyun alanı yerel koordinatı).
+  @visibleForTesting
+  Offset debugBoardPoint(double u, double v) =>
+      Offset((model.ox + u * model.cell) * model.vs + model.vx, (model.oy + v * model.cell) * model.vs + model.vy);
+
+  @visibleForTesting
+  (int, List<int>?) debugHitTest(double px, double py) => _hitTest(px, py);
+
+  @visibleForTesting
+  void debugZoomAt(double px, double py, double s) => _zoomAt(px, py, s);
+
+  @visibleForTesting
+  void debugFit() => _fitView();
 
   // ---------------------------------------------------------------- animasyon döngüsü
   void _onTick(Duration _) {
@@ -392,30 +506,43 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         active = true;
       }
     }
+    final _ViewAnim? va = _viewAnim;
+    if (va != null) {
+      // yumuşak görünüm geçişi (ease-out kübik)
+      final double qv = math.min(1.0, (now - va.t0) / va.dur);
+      final double ev = 1 - (1 - qv) * (1 - qv) * (1 - qv);
+      model.vs = va.from.s + (va.to.s - va.from.s) * ev;
+      model.vx = va.from.x + (va.to.x - va.from.x) * ev;
+      model.vy = va.from.y + (va.to.y - va.from.y) * ev;
+      if (qv >= 1) {
+        _viewAnim = null;
+        _clampView();
+        if (mounted) setState(() {});
+      } else {
+        active = true;
+      }
+    }
+    final _Fling? fl = _fling;
+    if (fl != null) {
+      // kaydırma ataleti: hız 300 ms zaman sabitiyle söner; kenara dayanan eksende durur
+      final double dtf = math.min(40.0, now - fl.t), kf = math.exp(-dtf / 300);
+      fl.t = now;
+      model.vx += fl.vx * dtf;
+      model.vy += fl.vy * dtf;
+      fl.vx *= kf;
+      fl.vy *= kf;
+      final double fx0 = model.vx, fy0 = model.vy;
+      _clampView();
+      if (model.vx != fx0) fl.vx = 0;
+      if (model.vy != fy0) fl.vy = 0;
+      if (fl.vx.abs() + fl.vy.abs() < 0.03) {
+        _fling = null;
+      } else {
+        active = true;
+      }
+    }
     _repaint.ping();
     if (!active) _ticker.stop();
-  }
-
-  double _offscreenCells(Arrow a) {
-    // gövde başı izler; kuyruk önce (uzunluk−1) adımda başın yerine gelir, sonra baş doğrusundan çıkar
-    final List<int> hd = headOf(a);
-    final int extra = a.cells.length - 1;
-    final double c = model.cell;
-    final List<int> d = kDirs[a.dir]!;
-    final double tx = model.ox + hd[0] * c;
-    final double ty = model.oy + hd[1] * c;
-    return extra + _offscreenFrom(tx, ty, c, d);
-  }
-
-  double _offscreenFrom(double tx, double ty, double c, List<int> d) {
-    final double L = -model.vx / model.vs;
-    final double R = (model.width - model.vx) / model.vs;
-    final double Tp = -model.vy / model.vs;
-    final double B = (model.height - model.vy) / model.vs;
-    if (d[0] > 0) return (R - tx) / c + 0.2;
-    if (d[0] < 0) return (tx + c - L) / c + 0.2;
-    if (d[1] > 0) return (B - ty) / c + 0.3;
-    return (ty + c - Tp) / c + 0.3;
   }
 
   double _boardLeaveCells(Arrow a) {
@@ -429,47 +556,46 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   }
 
   // ---------------------------------------------------------------- girdi
-  double _segDist(double u, double v, Arrow a) {
-    final List<List<int>> cl = a.cells;
-    double best = 1e9;
-    for (int k = 0; k < cl.length; k++) {
-      final double x1 = cl[k][0] + 0.5, y1 = cl[k][1] + 0.5;
-      final List<int> b = k + 1 < cl.length ? cl[k + 1] : cl[k];
-      final double x2 = b[0] + 0.5, y2 = b[1] + 0.5;
-      final double dx = x2 - x1, dy = y2 - y1;
-      final double L2 = dx * dx + dy * dy;
-      final double q = L2 > 0 ? math.max(0.0, math.min(1.0, ((u - x1) * dx + (v - y1) * dy) / L2)) : 0;
-      final double px = x1 + q * dx - u, py = y1 + q * dy - v;
-      final double dd = math.sqrt(px * px + py * py);
-      if (dd < best) best = dd;
-      if (cl.length > 1 && k == cl.length - 2) break;
-    }
-    return best;
-  }
-
-  /// İsabet: {i} ya da belirsizse {amb}. i = -1 → isabet yok.
+  /// 1.2.0 İsabet HÜCRE bazlı (main.js hitTest): okun hücresine dokunmak yeter. Boş hücrede komşu 3x3 hücrelerden en yakın ok
+  /// (hücre karesine uzaklık ≤ [_hitNear]); iki farklı ok neredeyse eşit uzaklıktaysa ({amb}) hiçbiri oynamaz.
   (int, List<int>?) _hitTest(double px, double py) {
     final Offset b = _toBoard(px, py);
     final double u = (b.dx - model.ox) / model.cell, v = (b.dy - model.oy) / model.cell;
+    final int w = lv.w, h = lv.h, fx = u.floor(), fy = v.floor();
+    final List<int> grid = _liveGrid();
+    if (fx >= 0 && fy >= 0 && fx < w && fy < h && grid[fy * w + fx] >= 0) return (grid[fy * w + fx], null);
     int best = -1, second = -1;
     double bd = 1e9, sd = 1e9;
-    for (int i = 0; i < lv.arrows.length; i++) {
-      if (!g.alive[i]) continue;
-      final double d = _segDist(u, v, lv.arrows[i]);
-      if (d < bd) {
-        second = best;
-        sd = bd;
-        best = i;
-        bd = d;
-      } else if (d < sd) {
-        second = i;
-        sd = d;
+    for (int ny = fy - 1; ny <= fy + 1; ny++) {
+      for (int nx = fx - 1; nx <= fx + 1; nx++) {
+        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+        final int k = grid[ny * w + nx];
+        if (k < 0) continue;
+        final double dx = u < nx ? nx - u : (u > nx + 1 ? u - nx - 1 : 0);
+        final double dy = v < ny ? ny - v : (v > ny + 1 ? v - ny - 1 : 0);
+        final double d = math.sqrt(dx * dx + dy * dy);
+        if (k == best) {
+          if (d < bd) bd = d;
+        } else if (d < bd) {
+          second = best;
+          sd = bd;
+          best = k;
+          bd = d;
+        } else if (k == second) {
+          if (d < sd) sd = d;
+        } else if (d < sd) {
+          second = k;
+          sd = d;
+        }
       }
     }
-    if (best < 0 || bd > _hitMax) return (-1, null);
-    if (second >= 0 && sd <= _hitMax && sd - bd < _ambig) return (-1, <int>[best, second]);
+    if (best < 0 || bd > _hitNear) return (-1, null);
+    if (second >= 0 && sd <= _hitNear && sd - bd < _ambig) return (-1, <int>[best, second]);
     return (best, null);
   }
+
+  /// Canlı okların ızgarası (hücre → ok, -1 boş); dokunuş başına bir kez hesaplanır.
+  List<int> _liveGrid() => g.grid();
 
   void _onBoardTap(double px, double py) {
     if (_locked || _modalOpen) return;
@@ -510,8 +636,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
 
   void _down(PointerDownEvent e) {
     ptrs[e.pointer] = e.localPosition;
+    _fling = null;
+    _viewAnim = null;
     if (ptrs.length == 1) {
-      gest = _Gest('tap', x0: e.localPosition.dx, y0: e.localPosition.dy, vx: model.vx, vy: model.vy);
+      gest = _Gest('tap', x0: e.localPosition.dx, y0: e.localPosition.dy, vx: model.vx, vy: model.vy)
+        ..lx = e.localPosition.dx
+        ..ly = e.localPosition.dy
+        ..lt = model.nowMs;
     } else if (ptrs.length == 2) {
       final List<Offset> l = ptrs.values.toList();
       final double d = (l[0] - l[1]).distance;
@@ -532,14 +663,21 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       final double d = (l[0] - l[1]).distance;
       final double mx = (l[0].dx + l[1].dx) / 2, my = (l[0].dy + l[1].dy) / 2;
       final double bx = (gs.mx - gs.vx) / gs.s0, by = (gs.my - gs.vy) / gs.s0;
-      model.vs = math.max(1.0, math.min(_zMax, gs.s0 * d / gs.d0));
+      model.vs = math.max(model.sMin, math.min(model.sMax, gs.s0 * d / gs.d0));
       model.vx = mx - bx * model.vs;
       model.vy = my - by * model.vs;
       _afterViewChange();
     } else if (gs.type == 'tap' || gs.type == 'pan') {
       final double dx = e.localPosition.dx - gs.x0, dy = e.localPosition.dy - gs.y0;
-      if (gs.type == 'tap' && math.sqrt(dx * dx + dy * dy) > 10) gs.type = model.vs > 1.01 ? 'pan' : 'none';
+      // kaydırma eşiği: bu kadar hareket eden parmak artık dokunuş değildir (kaydırma asla ok oynatmaz)
+      if (gs.type == 'tap' && math.sqrt(dx * dx + dy * dy) > _panSlop) gs.type = _pannable() ? 'pan' : 'none';
       if (gs.type == 'pan') {
+        final double nowm = model.nowMs, dtm = math.max(1.0, nowm - gs.lt);
+        gs.sx = 0.6 * gs.sx + 0.4 * (e.localPosition.dx - gs.lx) / dtm; // yumuşatılmış hız (px/ms)
+        gs.sy = 0.6 * gs.sy + 0.4 * (e.localPosition.dy - gs.ly) / dtm;
+        gs.lx = e.localPosition.dx;
+        gs.ly = e.localPosition.dy;
+        gs.lt = nowm;
         model.vx = gs.vx + dx;
         model.vy = gs.vy + dy;
         _afterViewChange();
@@ -552,11 +690,34 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     ptrs.remove(e.pointer);
     final _Gest? gs = gest;
     if (!cancel && gs != null && gs.type == 'tap' && ptrs.isEmpty) _onBoardTap(gs.x0, gs.y0);
+    if (!cancel &&
+        gs != null &&
+        gs.type == 'pan' &&
+        ptrs.isEmpty &&
+        !_reduced &&
+        model.nowMs - gs.lt < 80 &&
+        math.sqrt(gs.sx * gs.sx + gs.sy * gs.sy) > 0.25) {
+      _fling = _Fling(gs.sx, gs.sy, model.nowMs);
+      _kick();
+    }
     if (ptrs.isEmpty) {
       gest = null;
     } else if (gs != null && gs.type == 'pinch') {
       gest = _Gest('none');
     }
+  }
+
+  /// Masaüstü / emülatör fare tekerleği: tekerlek = kaydırma; Ctrl + tekerlek ya da kaydırılamayan tahta = yakınlaştırma.
+  void _wheel(PointerSignalEvent e) {
+    if (e is! PointerScrollEvent) return;
+    final bool ctrl = HardwareKeyboard.instance.isControlPressed || HardwareKeyboard.instance.isAltPressed;
+    if (ctrl || !_pannable()) {
+      _zoomAt(e.localPosition.dx, e.localPosition.dy, model.vs * (e.scrollDelta.dy < 0 ? 1.15 : 1 / 1.15));
+      return;
+    }
+    model.vx -= e.scrollDelta.dx;
+    model.vy -= e.scrollDelta.dy;
+    _afterViewChange();
   }
 
   // ---------------------------------------------------------------- dokunma → ok
@@ -573,26 +734,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     model.hintIdx = -1;
     final Arrow a = lv.arrows[i];
     final double now = model.nowMs;
-    final double per = _reduced ? 30 : Anim.slidePerCell;
+    if (_lastTapAt > 0) _playMs += math.min(8000.0, now - _lastTapAt); // hız rozeti: etkin oyun süresi (bekleme sayılmaz)
+    _lastTapAt = now;
     if (r.isExit) {
-      final double dist = _offscreenCells(a);
-      double dur = math.max(Anim.slideMin, dist * per);
-      if (_reduced) dur = math.max(120.0, dist * per);
+      // 1.2.0 (docs/17 §11): ok kendi yolunu izleyerek SABİT hızla tahta kenarına dek gider ve kenarda kırpılarak kaybolur
+      // (gövdenin tamamı, kuyruk dahil, yol boyunca akar; solma yok). Mesafe = kuyruğun tahtayı terk etmesi.
+      final double dist = _boardLeaveCells(a) + 0.6;
+      double dur = math.min(Anim.exitMax, math.max(Anim.exitMin, dist * Anim.exitPerCell));
+      if (_reduced) dur = math.min(dur, 180);
       model.anims[i] = BoardAnim(kind: 'exit', t0: now, dur: dur, dist: dist, done: () {
-        if (g.isWon) _onWin();
+        if (g.isWon && !model.anims.values.any((BoardAnim x) => x.kind == 'exit')) _onWin();
       });
-      // easeSlide(q)·dist = tahtadan çıkış mesafesi olan q'yu ikiye bölerek bul
-      final double need = math.min(dist, _boardLeaveCells(a));
-      double lo = 0, hi = 1;
-      for (int it = 0; it < 18; it++) {
-        final double mid = (lo + hi) / 2;
-        if (easeSlide(mid) * dist < need) {
-          lo = mid;
-        } else {
-          hi = mid;
-        }
-      }
-      lockUntil = now + hi * dur;
+      // Ok yola çıktıktan kısa süre sonra (tapGap, sahip onayı 110 ms) sıradaki oka dokunulabilir; oyun durumu dokunuş anında güncellendi.
+      lockUntil = now + math.min(dur, Anim.tapGap);
       app.sfx.slideOut(math.min(1.0, exitStreak / 6));
       exitStreak++;
       app.buzz('slideOut');
@@ -616,7 +770,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
           model.shake = ShakeAnim(model.nowMs, Anim.shake, d[0].toDouble(), d[1].toDouble());
         }
         if (r.lifeLost) {
-          app.toast(loc.gameCrash);
+          app.toast(loc.gameCrash, ms: _crashToastMs);
           _heartCtl.forward(from: 0);
         }
         _hud();
@@ -633,6 +787,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
   void _onWin() {
     if (winDone) return;
     winDone = true;
+    model.minimap = false;
     diag('level', 'end', <String, Object?>{'lvl': lv.isDaily ? 'daily' : lv.id});
     busy = true;
     final int my = session;
@@ -656,7 +811,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         stars: stars,
         mistakes: g.collisions,
         hintsUsed: _hintsUsed,
-        durationS: _attemptSeconds);
+        durationS: _attemptSeconds,
+        chapter: chapterOf(id),
+        board: '${lv.w}x${lv.h}',
+        shaped: lv.mask != null);
+    model.minimap = false;
     final eco.CompleteResult res = app.finishLevel(id, stars, g.relaxed);
     _hideTutorial();
     tut = null;
@@ -674,6 +833,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     final int my = session;
     final int token = app.mon.openLevelEnd(id); // 1.1.3: geçiş reklamı yalnızca bu yerleştirme etkinken
     _levelEndToken = token;
+    final Celebration cel = celebrationOf(AppLocalizations.of(context),
+        tier: lv.diff, revived: g.revived, collisions: collisions, arrows: lv.arrows.length, playMs: _playMs);
     // yıldız sesleri: k. yıldız 200 + k·(190 + 180) ms'de; jeton sesi bunlardan sonra
     for (int k = 0; k < stars; k++) {
       _laterAlways(_reduced ? 50.0 + k * 80 : 200.0 + k * (Anim.starPop * 0.5 + Anim.starStagger), () {
@@ -687,6 +848,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     }
     await showSheet<void>(context, dismissible: false, builder: (BuildContext ctx) {
       return _EndSheet(
+        cel: cel,
         stars: stars,
         res: res,
         collisions: collisions,
@@ -749,7 +911,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(color: pal.starC, borderRadius: BorderRadius.circular(999)),
-              child: Text(loc.dpTrophyWon, style: const TextStyle(color: Color(0xFF1D2C3B), fontSize: 14, fontWeight: FontWeight.w800)),
+              child: Text(loc.dpTrophyWon, style: const TextStyle(color: Color(0xFF22252B), fontSize: 14, fontWeight: FontWeight.w800)),
             ),
           ),
         DpStats(info),
@@ -775,7 +937,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
 
   Future<void> _onDead() async {
     busy = true;
-    if (!daily) app.telemetry.levelFail(level: lv.id, tier: lv.diff);
+    if (!daily) {
+      app.telemetry.levelFail(level: lv.id, tier: lv.diff, chapter: chapterOf(lv.id), board: '${lv.w}x${lv.h}', shaped: lv.mask != null);
+    }
     app.sfx.error();
     app.buzz('error');
     final int my = session;
@@ -828,6 +992,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     winDone = false;
     _levelEndToken = 0;
     model.aimSel = -1;
+    _playMs = 0;
+    _lastTapAt = 0;
+    _clampView();
     _beginAttempt();
     _hud();
     _repaint.ping();
@@ -885,7 +1052,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     app.sfx.hint();
     app.buzz('button');
     model.hintIdx = i;
-    hintUntil = model.nowMs + 2000;
+    hintUntil = model.nowMs + 2600;
+    _focusArrow(i); // büyük tahtada ipucu oku ekranda değilse oraya kaydır
     app.commit();
     _kick();
     final _Tut? t = tut;
@@ -976,16 +1144,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     if (_tipsDone || !mounted) return;
     _tipsDone = true;
     final AppLocalizations loc = AppLocalizations.of(context);
-    // v1.2/v1.3: sığdırılmış hücre 26 px'ten küçükse ilk büyük seviyede bir kez "önce seç, sonra fırlat" önerisi
-    if (model.cell < 26 && !app.save.aim && !app.hasTip('aim_suggest')) {
-      app.markTip('aim_suggest');
-      confirmBox(context, loc.gameAimSuggest, () => app.setAim(true), yesLabel: loc.commonYes);
-      return;
-    }
-    // G2: büyük tahtada bir kez yakınlaştırma ipucu
-    if (model.cell < 36 && !app.hasTip('zoom_tip') && tut == null) {
+    // 1.2.0: tahta ekrana sığmıyorsa bir kez kaydırma/yakınlaştırma ipucu. İsabet hücre bazlı olduğundan otomatik
+    // "önce seç, sonra fırlat" önerisi kaldırıldı (sahip onayı); ayar Ayarlar'da duruyor.
+    if (_pannable() && !app.hasTip('zoom_tip') && tut == null) {
       app.markTip('zoom_tip');
-      app.toast(loc.gameZoomTip);
+      app.toast(loc.gamePanTip, ms: 2600);
     }
   }
 
@@ -1003,6 +1166,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       model.theme = th;
       model.recolor();
     }
+    model.mono = app.save.arrowColor == 'mono';
     final String? bubble = _bubbleText(loc);
     final int target = _tutorialTarget();
 
@@ -1025,12 +1189,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                 _lastSize = sz;
                 _checkShrunk(ctx, sz);
                 _layout(sz.width, sz.height);
-                WidgetsBinding.instance.addPostFrameCallback((_) => _oneTimeTips());
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() {}); // araç çubuğundaki "Sığdır" düğmesi yeni yerleşime göre
+                  _oneTimeTips();
+                });
               }
               return Stack(children: <Widget>[
                 Positioned.fill(
                   child: Listener(
                     behavior: HitTestBehavior.opaque,
+                    onPointerSignal: _wheel,
                     onPointerDown: _down,
                     onPointerMove: _move,
                     onPointerUp: (PointerUpEvent e) => _end(e, false),
@@ -1039,13 +1207,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                   ),
                 ),
                 if (lv.diff != null)
-                  Positioned(top: 10, left: 0, right: 0, child: IgnorePointer(child: Center(child: TierBadge(lv.diff!)))),
-                if (model.vs > 1.01)
-                  PositionedDirectional(
-                    top: 8,
-                    end: 8,
-                    child: AppButton(loc.gameFit, icon: Icons.fit_screen, block: false, fontSize: 16, onTap: _fitView),
-                  ),
+                  Positioned(top: 6, left: 0, right: 0, child: IgnorePointer(child: Center(child: TierBadge(lv.diff!)))),
                 if (tut != null && target >= 0) _hand(target),
                 if (bubble != null) _bubble(bubble, loc, pal),
               ]);
@@ -1211,7 +1373,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
     final bool free = app.save.freeHints > 0;
     final bool pulse = tut != null && tut!.id == 3 && tut!.step == 0;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+      padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
       child: Row(children: <Widget>[
         Expanded(
           child: _ToolButton(
@@ -1239,6 +1401,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
             },
           ),
         ),
+        // 1.2.0: üçüncü düğme "Sığdır" (tüm tahta) ↔ "Yakınlaştır" (varsayılan) — yalnızca tahta ekrandan büyükse / yakınken
+        if (_fitVisible) ...<Widget>[
+          const SizedBox(width: 8),
+          Expanded(
+            child: _ToolButton(
+              key: const ValueKey<String>('btn-fit'),
+              icon: _overview() ? Icons.zoom_in : Icons.fit_screen,
+              iconColor: pal.inkC,
+              label: _overview() ? loc.gameZoomDefault : loc.gameFit,
+              sub: ' ',
+              subColor: pal.inkSoftC,
+              onTap: () {
+                app.sfx.button();
+                _fitView();
+              },
+            ),
+          ),
+        ],
       ]),
     );
   }
@@ -1253,6 +1433,7 @@ class _ToolButton extends StatefulWidget {
   final bool pulse;
   final VoidCallback onTap;
   const _ToolButton({
+    super.key,
     required this.icon,
     required this.iconColor,
     required this.label,
@@ -1303,8 +1484,8 @@ class _ToolButtonState extends State<_ToolButton> with SingleTickerProviderState
           animation: _c,
           builder: (BuildContext ctx, Widget? _) {
             return Container(
-              constraints: const BoxConstraints(minHeight: 72),
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              constraints: const BoxConstraints(minHeight: 56),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               decoration: BoxDecoration(
                 color: pal.boardC,
                 borderRadius: BorderRadius.circular(16),
@@ -1313,10 +1494,17 @@ class _ToolButtonState extends State<_ToolButton> with SingleTickerProviderState
                   if (widget.pulse) BoxShadow(color: rgba(pal.star, 0.7 * (1 - _c.value)), spreadRadius: 8 * _c.value),
                 ],
               ),
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: <Widget>[
+              // 1.2.0: tek satır araç çubuğu (56 px): simge solda (RTL'de sağda), etiket + alt satır yanında
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
                 Icon(widget.icon, size: 24, color: widget.iconColor),
-                FitText(widget.label, style: TextStyle(color: pal.inkC, fontSize: 15, fontWeight: FontWeight.w800, height: 1.15), minFont: 12, maxLines: 3),
-                Text(widget.sub, maxLines: 1, style: TextStyle(color: widget.subColor, fontSize: 12, fontWeight: FontWeight.w700)),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: <Widget>[
+                    FitText(widget.label, style: TextStyle(color: pal.inkC, fontSize: 15, fontWeight: FontWeight.w800, height: 1.15), minFont: 11, maxLines: 2),
+                    if (widget.sub.trim().isNotEmpty)
+                      Text(widget.sub, maxLines: 1, style: TextStyle(color: widget.subColor, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ]),
+                ),
               ]),
             );
           },
@@ -1364,12 +1552,14 @@ class _BouncingHandState extends State<_BouncingHand> with SingleTickerProviderS
 
 // ---------------------------------------------------------------- seviye sonu penceresi
 class _EndSheet extends StatefulWidget {
+  final Celebration cel;
   final int stars, collisions, levelId;
   final eco.CompleteResult res;
   final bool relaxed, reduced, allDone;
   final Future<void> Function() onNext, onReplay, onMap;
   final ValueListenable<int> adWait;
   const _EndSheet({
+    required this.cel,
     required this.adWait,
     required this.stars,
     required this.res,
@@ -1427,11 +1617,26 @@ class _EndSheetState extends State<_EndSheet> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(color: pal.starC, borderRadius: BorderRadius.circular(999)),
-            child: Text(t, style: const TextStyle(color: Color(0xFF1D2C3B), fontSize: 14, fontWeight: FontWeight.w800)),
+            child: Text(t, style: const TextStyle(color: Color(0xFF22252B), fontSize: 14, fontWeight: FontWeight.w800)),
           ),
         );
+    final Celebration cel = widget.cel;
+    final bool legend = cel.tier == 'extreme' && cel.perf == 'flawless';
     return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      sheetTitle(context, loc.endTitle),
+      // 1.2.0 kutlama: meşale/alev + kademe × performans mesajı (başlık), "Seviye tamamlandı!" alt satırda
+      TorchFlame(cel: cel, reduced: widget.reduced),
+      Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(cel.msg,
+            key: const ValueKey<String>('cel-msg'),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: legend ? pal.starC : pal.inkC, fontSize: 24, fontWeight: FontWeight.w800, height: 1.2)),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: 2, bottom: 4),
+        child: Text(loc.endTitle,
+            textAlign: TextAlign.center, style: TextStyle(color: pal.inkSoftC, fontSize: 14, fontWeight: FontWeight.w700)),
+      ),
       StarsBig(stars: widget.stars, reduced: widget.reduced),
       sheetText(context, widget.collisions == 0 ? loc.endPerfect : loc.endCollisions(widget.collisions)),
       if (widget.relaxed) sheetText(context, loc.endRelaxedNote, color: pal.successC, weight: FontWeight.w700),
@@ -1444,6 +1649,20 @@ class _EndSheetState extends State<_EndSheet> {
         ]),
       ),
       Wrap(alignment: WrapAlignment.center, children: <Widget>[
+        if (cel.fast && cel.fastMsg != null)
+          Padding(
+            key: const ValueKey<String>('cel-fast'),
+            padding: const EdgeInsets.all(4),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(color: Color.alphaBlend(rgba(pal.star, 0.30), pal.cellC), borderRadius: BorderRadius.circular(999)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+                Icon(Icons.bolt, size: 16, color: pal.inkC),
+                const SizedBox(width: 4),
+                Flexible(child: Text(cel.fastMsg!, style: TextStyle(color: pal.inkC, fontSize: 14, fontWeight: FontWeight.w800))),
+              ]),
+            ),
+          ),
         if (res.newBest) tag(loc.endNewBest),
         if (res.chapterDone) tag(loc.endChapterDone),
         if (res.chapterDone) tag(loc.mapChapterBonus(res.bonus)),

@@ -10,12 +10,13 @@ class HapticsService {
   bool? _has;
 
   static const Map<String, List<int>> patterns = <String, List<int>>{
-    'tap': <int>[8],
-    'slideOut': <int>[12],
-    'bump': <int>[30, 40, 30],
-    'levelWin': <int>[20, 60, 20, 60, 40],
-    'error': <int>[60],
-    'button': <int>[6],
+    // 1.2.0 (docs/17 §7, theme.js vibrate): tüm olaylarda TEK kısa darbe (16 ms); ok hareketi başına tek titreşim (1.1.5)
+    'tap': <int>[16],
+    'slideOut': <int>[16],
+    'bump': <int>[16],
+    'levelWin': <int>[16],
+    'error': <int>[16],
+    'button': <int>[16],
   };
 
   /// Test: istenen her titreşimin adı (1.1.5: ok hareketi başına tek titreşim denetimi).

@@ -236,6 +236,14 @@ class AppController extends ChangeNotifier {
     telemetry.settingChanged(name: 'aim_mode', value: v ? 'on' : 'off');
   }
 
+  /// 1.2.0: Ayarlar → Görünüm → Ok rengi: 'color' (Renkli, varsayılan) | 'mono' (Tek renk ince çizgi). Kalıcı.
+  void setArrowColor(String m) {
+    if (m != 'color' && m != 'mono') return;
+    save.arrowColor = m;
+    commit();
+    telemetry.settingChanged(name: 'arrow_color', value: m);
+  }
+
   void setAppearance(String m) {
     if (!<String>['auto', 'light', 'dark'].contains(m)) return;
     save.appearance = m;
@@ -277,11 +285,12 @@ class AppController extends ChangeNotifier {
   String? toastText;
   int _toastSeq = 0;
 
-  void toast(String msg) {
+  /// Bildirim. [ms]: görünme süresi (1.2.0: çarpma uyarısı 2,5 sn, büyük tahta ipucu 2,6 sn; diğerleri 1,6 sn).
+  void toast(String msg, {int ms = 1600}) {
     toastText = msg;
     final int my = ++_toastSeq;
     notifyListeners();
-    Timer(const Duration(milliseconds: 1600), () {
+    Timer(Duration(milliseconds: ms), () {
       if (my == _toastSeq) {
         toastText = null;
         notifyListeners();
@@ -314,10 +323,10 @@ class AppController extends ChangeNotifier {
         final Level lv = Level.fromJson(j);
         _endless[id] = lv;
         store.saveEndless(_endless);
-        // son 4 seviye bellekte kalır
-        if (_endless.length > 4) {
+        // en yüksek numaralı 6 seviye bellekte kalır (oynanan + önceden üretilen 2 + geri dönüş)
+        if (_endless.length > 6) {
           final List<int> ids = _endless.keys.toList()..sort((int a, int b) => b.compareTo(a));
-          for (final int old in ids.skip(4)) {
+          for (final int old in ids.skip(6)) {
             _endless.remove(old);
           }
         }
@@ -328,11 +337,16 @@ class AppController extends ChangeNotifier {
     });
   }
 
-  /// Sıradaki sonsuz seviyeyi oyuncu oynarken önceden üret.
-  void prefetchNext(int id) {
-    if (id + 1 > prebuilt.length && id + 1 <= kMaxLevel) {
-      unawaited(ensureLevel(id + 1).then((Level _) {}, onError: (Object _) {}));
+  /// Sıradaki seviyeleri oyuncu oynarken arka plan izolatında önceden üret (1.2.0: paket 100 seviye; sonrası izolatta).
+  /// Sırayla (biri bitince diğeri) — aynı anda tek izolat; UI iş parçacığı hiç üretim yapmaz.
+  void prefetchNext(int id, {int ahead = 2}) {
+    Future<void> chain = Future<void>.value();
+    for (int k = 1; k <= ahead; k++) {
+      final int n = id + k;
+      if (n <= prebuilt.length || n > kMaxLevel) continue;
+      chain = chain.then((_) => ensureLevel(n).then((Level _) {}, onError: (Object _) {}));
     }
+    unawaited(chain);
   }
 
   /// Günlük bulmaca (tarih tohumlu; izolatta üretilir).

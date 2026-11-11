@@ -928,6 +928,10 @@
   "@settingsArrowColorDesc": {
     "description": "settings.arrow_color_desc"
   },
+  "settingsLicenses": "Açık kaynak lisansları",
+  "@settingsLicenses": {
+    "description": "settings.licenses"
+  },
   "gameZoomDefault": "Yakınlaştır",
   "@gameZoomDefault": {
     "description": "game.zoom_default"

@@ -62,6 +62,38 @@ class SettingsScreen extends StatelessWidget {
                     ]),
                   ),
                 ),
+                // 1.2.0 (docs/17 §13): ok rengi — Renkli (varsayılan) / Tek renk (ince çizgi; açık temada koyu, koyu temada açık). Kalıcı.
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(loc.settingsArrowColor, style: TextStyle(color: pal.inkC, fontSize: 17, fontWeight: FontWeight.w700)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: pal.cellC, borderRadius: BorderRadius.circular(14)),
+                    child: Row(children: <Widget>[
+                      for (final String m in <String>['color', 'mono']) ...<Widget>[
+                        if (m != 'color') const SizedBox(width: 6),
+                        Expanded(
+                            child: _SegBtn(
+                          key: ValueKey<String>('ac-$m'),
+                          label: m == 'color' ? loc.settingsAcColor : loc.settingsAcMono,
+                          lead: _ArrowColorPreview(mono: m == 'mono'),
+                          on: app.save.arrowColor == m,
+                          onTap: () {
+                            app.sfx.button();
+                            app.setArrowColor(m);
+                          },
+                        )),
+                      ],
+                    ]),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(loc.settingsArrowColorDesc, style: TextStyle(color: pal.inkSoftC, fontSize: 14)),
+                ),
               ]),
               _Group(label: loc.settingsLanguage, children: <Widget>[
                 Padding(
@@ -135,6 +167,14 @@ class SettingsScreen extends StatelessWidget {
               // 1.1.4 (docs/21): sürüm metnine 7 kez dokununca gizli "Tanılama" ekranı açılır
               _VersionTap(
                 child: Text(loc.settingsVersion(AppInfo.version), textAlign: TextAlign.center, style: TextStyle(color: pal.inkSoftC, fontSize: 13)),
+              ),
+              // 1.2.0: açık kaynak lisansları (Readex Pro OFL 1.1 + Flutter paketleri)
+              Center(
+                child: TextButton(
+                  key: const ValueKey<String>('btn-licenses'),
+                  onPressed: () => showLicensePage(context: context, applicationName: loc.appName, applicationVersion: AppInfo.version),
+                  child: Text(loc.settingsLicenses, style: TextStyle(color: pal.accentC, fontSize: 14, fontWeight: FontWeight.w700)),
+                ),
               ),
               if (AdsConfig.usingTestIdsInRelease)
                 Padding(
@@ -363,7 +403,8 @@ class _SegBtn extends StatelessWidget {
   final String label;
   final bool on;
   final VoidCallback onTap;
-  const _SegBtn({required this.label, required this.on, required this.onTap});
+  final Widget? lead; // 1.2.0: ok rengi önizlemesi
+  const _SegBtn({super.key, required this.label, required this.on, required this.onTap, this.lead});
   @override
   Widget build(BuildContext context) {
     final Palette pal = Palette.of(context);
@@ -383,9 +424,37 @@ class _SegBtn extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             boxShadow: on ? <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 2))] : null,
           ),
-          child: FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 3),
+          child: lead == null
+              ? FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 3)
+              : Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
+                  lead!,
+                  const SizedBox(width: 8),
+                  Flexible(child: FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 2)),
+                ]),
         ),
       ),
+    );
+  }
+}
+
+/// Ok rengi önizlemesi: üç kısa çizgi (renkli: tema renkleri; tek renk: mürekkep rengi, ince).
+class _ArrowColorPreview extends StatelessWidget {
+  final bool mono;
+  const _ArrowColorPreview({required this.mono});
+  @override
+  Widget build(BuildContext context) {
+    final Palette pal = Palette.of(context);
+    final List<int> cols = arrowThemeById(AppScope.of(context).save.theme).colors;
+    return ExcludeSemantics(
+      child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+        for (int i = 0; i < 3; i++)
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 1.5),
+            width: 22,
+            height: mono ? 2 : 4,
+            decoration: BoxDecoration(color: mono ? pal.inkC : rgba(cols[i % cols.length]), borderRadius: BorderRadius.circular(2)),
+          ),
+      ]),
     );
   }
 }

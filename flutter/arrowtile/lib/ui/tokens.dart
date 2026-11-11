@@ -4,6 +4,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+/// 1.2.0 (docs/24 §7.4): uygulama yazı tipi ailesi (pubspec.yaml fonts). Sistem yazı tipleri yalnızca yedek.
+const String kAppFont = 'ReadexPro';
+
 /// 0xRRGGBB + alfa (0..1) → Color.
 Color rgba(int rgb, [double alpha = 1]) {
   final int a = (alpha.clamp(0.0, 1.0) * 255).round();
@@ -38,43 +41,45 @@ class Palette {
     required this.dark,
   });
 
+  // 1.2.0 (docs/24 §7): araştırmaya dayalı palet "Kum ve Mürekkep" (sıcak nötr zemin, kahraman oklar; kırmızı yalnızca çarpma/can,
+  // altın yalnızca ipucu/yıldız). theme.js colors ile aynı.
   static const Palette light = Palette(
-    bg: 0xE3E9EE, // porselen gri-mavi zemin
-    board: 0xF6F8FA, // tahta yüzü
-    boardEdge: 0xC9D3DC, // tahta kenarı / alt kalınlık
-    cell: 0xE6ECF1,
-    cellDot: 0xC3CED8,
-    ink: 0x1D2C3B, // lacivert mürekkep
-    inkSoft: 0x5B6B7B,
-    accent: 0x2456A6, // kobalt
+    bg: 0xEFEAE2, // kum zemin
+    board: 0xFBF9F5, // tahta yüzü ("kâğıt levha")
+    boardEdge: 0xD8D0C3, // tahta kenarı / alt kalınlık
+    cell: 0xEEE8DE,
+    cellDot: 0xCFC6B8,
+    ink: 0x22252B, // mürekkep (metin + tek renk oklar)
+    inkSoft: 0x6A6760,
+    accent: 0x1E7A78, // derin çam yeşili-turkuaz
     accentInk: 0xFFFFFF,
-    star: 0xE8A317, // safran
-    starEmpty: 0xC9D3DC,
-    coin: 0xD99A1E,
-    danger: 0xC9372F,
-    success: 0x2E8B57,
+    star: 0xE3A008,
+    starEmpty: 0xD8D0C3,
+    coin: 0xD4951A,
+    danger: 0xD2453B,
+    success: 0x2F8F5B,
     highlight: 0xFFFFFF,
-    highlightRing: 0xE8A317,
-    shadow: 0x1D2C3B,
-    shadowAlpha: 0.18,
+    highlightRing: 0xE3A008,
+    shadow: 0x22252B,
+    shadowAlpha: 0.16,
     dark: false,
   );
 
   static const Palette darkP = Palette(
-    bg: 0x0F1B27,
-    board: 0x172736,
-    boardEdge: 0x0A131C,
-    cell: 0x1E3245,
-    cellDot: 0x2C4560,
-    ink: 0xE9EFF4,
-    inkSoft: 0x93A5B6,
-    accent: 0x5B8DE0,
-    accentInk: 0x0F1B27,
+    bg: 0x14171C, // kömür
+    board: 0x1E2229,
+    boardEdge: 0x0C0E12,
+    cell: 0x272C35,
+    cellDot: 0x3A414D,
+    ink: 0xF2EEE6,
+    inkSoft: 0xA19D94,
+    accent: 0x4DB6AC,
+    accentInk: 0x14171C,
     star: 0xF2B632,
-    starEmpty: 0x2C4560,
+    starEmpty: 0x3A414D,
     coin: 0xF0B23A,
-    danger: 0xEF5B52,
-    success: 0x4DBB7F,
+    danger: 0xF0685E,
+    success: 0x55C08A,
     highlight: 0xFFFFFF,
     highlightRing: 0xF2B632,
     shadow: 0x000000,
@@ -137,7 +142,8 @@ class ArrowTheme {
 }
 
 const List<ArrowTheme> kArrowThemes = <ArrowTheme>[
-  ArrowTheme('emaye', 0, <int>[0x2456A6, 0xC9372F, 0xE09A12, 0x2E8B57, 0x6B4C9A], 0xFFFFFF, 0.78),
+  // 1.2.0 (docs/24 §7): varsayılan ok paleti — turkuaz, kiremit, hardal, çivit, erik (kırmızı/altın anlam renklerinden ayrık)
+  ArrowTheme('emaye', 0, <int>[0x1F8A8A, 0xE0703C, 0xD9A21B, 0x4B5FC1, 0xA0508F], 0xFFFFFF, 0.78),
   ArrowTheme('lokum', 300, <int>[0xE77FA0, 0xF2A65A, 0x7FB8A4, 0xA78BD4, 0xE7C65A], 0xFFFFFF, 0.85),
   ArrowTheme('cini', 500, <int>[0x1F5FA8, 0x1C8C8C, 0xC2362B, 0x2F7A3D, 0x14397A], 0xFFFFFF, 0.80),
   ArrowTheme('bakir', 750, <int>[0xB5652E, 0x8E4A24, 0xD08A45, 0x6E3B1F, 0xC9773A], 0xFFF0DC, 0.80),
@@ -155,8 +161,11 @@ ArrowTheme arrowThemeById(String id) {
 class Shape {
   Shape._();
   static const double margin = 0.12; // okun hücre kenarından içeride kalma payı
-  static const double bodyWidth = 0.18; // gövde kalınlığı (v1.3: %18)
-  static const double headWidth = 0.42; // ok başı genişliği (v1.3: %42; en az headMinPx)
+  static const double bodyWidth = 0.15; // gövde kalınlığı (1.2.0: %18 → %15, daha ince oklar)
+  static const double headWidth = 0.40; // ok başı genişliği (1.2.0: %42 → %40; en az headMinPx)
+  static const double monoBody = 0.085; // 1.2.0 tek renk kipi: ince çizgi gövde (en az monoMinPx)
+  static const double monoHead = 0.34; // tek renk kipi: küçük ok başı (en az 5 px)
+  static const double monoMinPx = 1.6;
   static const double headLength = 0.30;
   static const double headMinPx = 7;
   static const double chevronMinCell = 22; // hücre bundan küçükse şevron çizilmez
@@ -181,7 +190,12 @@ class Anim {
   Anim._();
   static const double slidePerCell = 55;
   static const double slideMin = 160;
-  static const double exitFade = 120;
+  static const double exitFade = 120; // (eski) 1.2.0'da kullanılmaz: ok tahta kenarında kırpılarak kaybolur
+  // 1.2.0 (docs/24 §1.4): çıkış sabit hızla, okun kendi yolunu izleyerek tahta kenarına dek
+  static const double exitPerCell = 26; // hücre başına ms
+  static const double exitMin = 260;
+  static const double exitMax = 1100;
+  static const double tapGap = 110; // çıkış başladıktan sonra sıradaki dokunuşa kadar en kısa ara (sahip onayı)
   static const double bumpForward = 90;
   static const double bumpBack = 220;
   static const double shake = 260;

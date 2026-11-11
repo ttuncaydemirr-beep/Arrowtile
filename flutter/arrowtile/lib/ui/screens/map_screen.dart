@@ -1,5 +1,7 @@
 // Arrowtile — map_screen.dart: seviye haritası (index.html #scr-map, main.js renderers.map).
-// Aşağıdan yukarıya ilerilir; en üstte son bölüm. v1.1 (docs/15 §5): 500 bölüm (sonrası oyuncuyla birlikte uzar; bölüm = 10 seviye).
+// Aşağıdan yukarıya ilerilir; en üstte son bölüm. 1.2.0 (docs/24): 250 bölüm × 20 seviye (5 Kolay → 5 Orta → 5 Zor → 5 Aşırı zor;
+// sonrası oyuncuyla birlikte uzar). Her kademe diliminin başında küçük kademe etiketi; bölüm başlığı (bölümün sonu, en üstte) bonus durumunu
+// gösterir.
 // TEMBEL LİSTE: ListView.builder + sabit itemExtent → yalnızca görünen bölümler (± önbellek) oluşturulur, bölüm sayısı ne olursa olsun
 // çizim maliyeti sabittir. Açılışta oyuncunun bölümüne kaydırılır. Zorluk seviye bazında döner: düğümün köşe noktası kademesini gösterir
 // (Aşırı zor: koyu kırmızı halka). Altta banner (docs/15 §3).
@@ -42,7 +44,7 @@ Color _dotColor(Palette pal, String tier) {
   }
 }
 
-/// Haritadaki bölüm sayısı: en az [kChapters] (500); 5.000 sonrası oyuncunun bölümü + bir sonraki (kilitli).
+/// Haritadaki bölüm sayısı: en az [kChapters] (250); 5.000 sonrası oyuncunun bölümü + bir sonraki (kilitli).
 int mapChapterCount(int unlocked) => math.max(kChapters, (unlocked / kPerChapter).ceil() + 1);
 
 Color tierColor(Palette pal, String tier) {
@@ -70,7 +72,7 @@ class TierBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
       decoration: BoxDecoration(color: tierColor(pal, tier), borderRadius: BorderRadius.circular(999)),
       child: Text(diffName(loc, tier),
-          style: TextStyle(color: dark ? const Color(0xFF1D2C3B) : Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
+          style: TextStyle(color: dark ? const Color(0xFF22252B) : Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
     );
   }
 }
@@ -204,6 +206,14 @@ class _ChapterView extends StatelessWidget {
                   left: pts[i].dx * w - 32,
                   top: pts[i].dy - 32,
                   child: _LevelNode(id: first + i, tier: tierOf(first + i)),
+                ),
+              // 1.2.0: her kademe diliminin (5 seviye) başında küçük etiket (Kolay / Orta / Zor / Aşırı zor)
+              for (int i = 0; i < kPerChapter; i += 5)
+                Positioned(
+                  left: (pts[i].dx + (pts[i].dx > 0.5 ? -0.30 : 0.30)) * w - 60,
+                  width: 120,
+                  top: pts[i].dy - 11,
+                  child: IgnorePointer(child: Center(child: TierBadge(tierOf(first + i), key: ValueKey<String>('tier-label-${first + i}')))),
                 ),
             ]);
           }),
