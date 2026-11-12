@@ -24,6 +24,7 @@ jobs:
       - run: node tools/test-daily.js
       - run: node tools/verify-5000.js --no-write
       - run: node tools/flutter/check-arb.js
+      - run: node tools/contrast.js
 
   flutter:
     name: Flutter analiz, test ve deneme APK

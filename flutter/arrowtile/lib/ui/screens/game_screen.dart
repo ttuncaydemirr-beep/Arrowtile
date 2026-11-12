@@ -905,7 +905,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
       final Palette pal = Palette.of(ctx);
       return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
         sheetTitle(ctx, loc.dpDone),
-        Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Icon(Icons.emoji_events, size: 72, color: pal.starC)),
+        Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: Icon(Icons.emoji_events, size: 72, color: pal.starInkC)),
         if (first)
           Padding(
             padding: const EdgeInsets.all(4),
@@ -1360,7 +1360,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
                 for (int i = 0; i < kMaxLives; i++)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 1),
-                    child: Icon(Icons.favorite, size: 26, color: i < g.lives ? pal.dangerC : rgba(0x888888, 0.28)),
+                    // 1.2.1 (docs/27 §B3): kayıp can içi boş kalp (şekil), yalnızca soluk renk değil
+                    child: i < g.lives
+                        ? Icon(Icons.favorite, size: 26, color: pal.dangerC)
+                        : Icon(Icons.favorite_border, size: 26, color: rgba(pal.inkSoft, 0.8)),
                   ),
               ]),
             ),
@@ -1379,7 +1382,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
         Expanded(
           child: _ToolButton(
             icon: Icons.lightbulb,
-            iconColor: pal.starC,
+            iconColor: pal.starInkC,
             label: loc.gameHint,
             sub: free ? loc.gameFreeLeft(app.save.freeHints) : loc.shopPrice(eco.kHintPrice),
             subColor: free ? pal.successC : pal.inkSoftC,
@@ -1644,9 +1647,9 @@ class _EndSheetState extends State<_EndSheet> {
       Directionality(
         textDirection: TextDirection.ltr,
         child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Icon(Icons.monetization_on, size: 28, color: pal.coinC),
+          Icon(Icons.monetization_on, size: 28, color: pal.coinInkC),
           const SizedBox(width: 6),
-          Flexible(child: Text(loc.endReward(res.coins), style: TextStyle(color: pal.coinC, fontSize: 26, fontWeight: FontWeight.w800))),
+          Flexible(child: Text(loc.endReward(res.coins), style: TextStyle(color: pal.coinInkC, fontSize: 26, fontWeight: FontWeight.w800))),
         ]),
       ),
       Wrap(alignment: WrapAlignment.center, children: <Widget>[

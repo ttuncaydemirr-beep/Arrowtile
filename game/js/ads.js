@@ -47,6 +47,9 @@
   var RULES = { freeUntilLevel: 12, everyLevels: 3, minGapMs: 3 * 60 * 1000, nativeTimeoutMs: 90 * 1000, holdMaxMs: 20 * 1000, returnGraceMs: 1500, testRewardMs: 600, preloadRetryMs: 20 * 1000, loadingOverlayMs: 300 };
   var BANNER_SCREENS = ['menu', 'map']; // v1.1: banner yalnızca Ana menü ve Harita ekranlarında
   var PRODUCT_ID = 'remove_ads';
+  // 1.2.1 (docs/27 §A6): web önizlemede kontrol grubu yalnızca ?holdout=1 ile canlandırılır (Flutter: Remote Config + kurulum kovası).
+  var HOLDOUT = false;
+  try { HOLDOUT = /(^|[?&])holdout=1(&|$)/.test(String(root.location && root.location.search || '').slice(1)); } catch (e) {}
 
   function defaultEnv() {
     return {
@@ -356,8 +359,9 @@
 
     return {
       RULES: RULES, PRODUCT_ID: PRODUCT_ID, BANNER_SCREENS: BANNER_SCREENS,
-      /** Bu ekranda banner gösterilir mi? (yalnızca menu/map ve reklamsız satın alma yoksa) */
-      bannerVisible: function (screen) { return BANNER_SCREENS.indexOf(screen) >= 0 && !isAdFree(); },
+      /** Bu ekranda banner gösterilir mi? (yalnızca menu/map, reklamsız satın alma yoksa, 1.2.1: kontrol grubunda değilse) */
+      bannerVisible: function (screen) { return BANNER_SCREENS.indexOf(screen) >= 0 && !HOLDOUT && !isAdFree(); },
+      bannerGroup: function () { return HOLDOUT ? 'holdout' : 'banner'; },
       openLevelEnd: openLevelEnd, closeLevelEnd: closeLevelEnd,
       setScreenListener: function (fn) { screenListener = typeof fn === 'function' ? fn : null; },
       setLateListener: function (fn) { lateListener = typeof fn === 'function' ? fn : null; },

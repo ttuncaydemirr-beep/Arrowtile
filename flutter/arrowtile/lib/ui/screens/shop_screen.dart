@@ -84,7 +84,8 @@ class _ShopScreenState extends State<ShopScreen> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: on ? <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 2))] : null,
           ),
-          child: FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 3),
+          child: withSelectedMark(
+              pal, FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 3), on),
         ),
       ),
     );
@@ -107,7 +108,7 @@ class _ShopScreenState extends State<ShopScreen> {
     if (th.price == 0) return _priceText(pal, loc.shopFree);
     if (owned) return _priceText(pal, loc.shopOwned);
     return Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
-      Icon(Icons.monetization_on, size: 20, color: pal.coinC),
+      Icon(Icons.monetization_on, size: 20, color: pal.coinInkC),
       const SizedBox(width: 4),
       Flexible(child: _priceText(pal, loc.shopPrice(th.price))),
     ]);
@@ -153,11 +154,11 @@ class _ShopScreenState extends State<ShopScreen> {
     final int free = app.save.freeHints;
     return <Widget>[
       _ItemCard(
-        leading: Icon(Icons.lightbulb, size: 48, color: pal.starC),
+        leading: Icon(Icons.lightbulb, size: 48, color: pal.starInkC),
         title: loc.gameHint,
         desc: loc.shopHintDesc,
         priceWidget: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
-          Icon(Icons.monetization_on, size: 20, color: pal.coinC),
+          Icon(Icons.monetization_on, size: 20, color: pal.coinInkC),
           const SizedBox(width: 4),
           Flexible(child: _priceText(pal, loc.shopPrice(eco.kHintPrice) + (free > 0 ? ' · ${loc.gameFreeLeft(free)}' : ''))),
         ]),
@@ -173,7 +174,7 @@ class _ShopScreenState extends State<ShopScreen> {
   Widget _coinAdItem(BuildContext context, AppController app, AppLocalizations loc, Palette pal) {
     final int left = eco.coinAdsLeft(app.save, app.today());
     return _ItemCard(
-      leading: Icon(Icons.monetization_on, size: 48, color: pal.coinC),
+      leading: Icon(Icons.monetization_on, size: 48, color: pal.coinInkC),
       title: loc.adsWatchCoins(eco.kAdCoins),
       desc: loc.adsCoinsDesc(eco.kMaxCoinAdsPerDay),
       priceWidget: _priceText(pal, left > 0 ? loc.adsCoinsLeft(left, eco.kMaxCoinAdsPerDay) : loc.adsCoinsLimit),

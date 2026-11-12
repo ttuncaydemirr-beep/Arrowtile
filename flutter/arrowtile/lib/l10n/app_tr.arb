@@ -486,7 +486,7 @@
   "@adsRemoveTitle": {
     "description": "ads.remove_title"
   },
-  "adsRemoveDesc": "Seviye aralarındaki reklamlar kalıcı olarak kapanır. Tek seferlik satın alma.",
+  "adsRemoveDesc": "Seviye aralarındaki reklamlar ve menü ile haritadaki banner reklamlar kalıcı olarak kapanır. Tek seferlik satın alma.",
   "@adsRemoveDesc": {
     "description": "ads.remove_desc"
   },

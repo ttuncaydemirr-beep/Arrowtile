@@ -110,7 +110,7 @@ class _MapScreenState extends State<MapScreen> {
           title: loc.mapTitle,
           onBack: () => Navigator.of(context).maybePop(),
           trailing: <Widget>[
-            Semantics(label: loc.mapStarsTotal(total, max), child: Pill(icon: Icons.star, iconColor: pal.starC, text: '$total/$max')),
+            Semantics(label: loc.mapStarsTotal(total, max), child: Pill(icon: Icons.star, iconColor: pal.starInkC, text: '$total/$max')),
             if (!narrow) const CoinPill(), // dar ekranda harita başlığı tek satırda kalsın: haritada jeton gerekmez
           ],
         ),
@@ -184,7 +184,7 @@ class _ChapterView extends StatelessWidget {
                 Directionality(
                   textDirection: TextDirection.ltr,
                   child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    Icon(Icons.star, size: 18, color: pal.starC),
+                    Icon(Icons.star, size: 18, color: pal.starInkC),
                     const SizedBox(width: 2),
                     Text('$cs/${kPerChapter * 3}', style: TextStyle(color: pal.inkSoftC, fontSize: 13, fontWeight: FontWeight.w700)),
                   ]),
@@ -220,6 +220,27 @@ class _ChapterView extends StatelessWidget {
         ),
       ]),
     );
+  }
+}
+
+class _TierDot extends StatelessWidget {
+  final String tier;
+  final Color color, edge;
+  const _TierDot({required this.tier, required this.color, required this.edge});
+  @override
+  Widget build(BuildContext context) {
+    final Widget dot = Container(
+      key: ValueKey<String>('tier-dot-$tier'),
+      width: 16,
+      height: 16,
+      decoration: BoxDecoration(
+        shape: tier == 'easy' || tier == 'extreme' ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: tier == 'medium' ? BorderRadius.circular(4) : (tier == 'hard' ? BorderRadius.circular(2) : null),
+        color: color,
+        border: Border.all(color: edge, width: 2),
+      ),
+    );
+    return tier == 'hard' ? Transform.rotate(angle: math.pi / 4, child: Transform.scale(scale: 0.86, child: dot)) : dot;
   }
 }
 
@@ -326,21 +347,13 @@ class _LevelNode extends StatelessWidget {
               ),
             ),
           ),
-          // kademe noktası (köşede, içeri yalıtımlı): Kolay yeşil, Orta mavi, Zor sarı, Aşırı zor koyu kırmızı
+          // kademe noktası (köşede, içeri yalıtımlı): Kolay yeşil, Orta mavi, Zor sarı, Aşırı zor koyu kırmızı.
+          // 1.2.1 (docs/27 §B3): renk tek başına anlam taşımasın → şekil de farklı: Kolay daire, Orta yuvarlak kare, Zor baklava,
+          // Aşırı zor daire + düğüm çevresinde kırmızı halka.
           PositionedDirectional(
             top: -2,
             end: -2,
-            child: IgnorePointer(
-              child: Container(
-                width: 16,
-                height: 16,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _dotColor(pal, tier),
-                  border: Border.all(color: pal.boardC, width: 2),
-                ),
-              ),
-            ),
+            child: IgnorePointer(child: _TierDot(tier: tier, color: _dotColor(pal, tier), edge: pal.boardC)),
           ),
           if (!locked && stars > 0)
             Positioned(

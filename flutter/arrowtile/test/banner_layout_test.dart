@@ -218,6 +218,14 @@ void main() {
     await _end(t);
   });
 
+  test('Mağaza "Reklamları kaldır" metni banner\'ların da kalktığını söyler (4 dil)', () {
+    final Map<String, String> word = <String, String>{'tr': 'banner', 'en': 'banner', 'de': 'banner', 'ar': 'البانر'};
+    for (final String l in <String>['tr', 'en', 'de', 'ar']) {
+      final String d = lookupAppLocalizations(Locale(l)).adsRemoveDesc.toLowerCase();
+      expect(d, contains(word[l]!), reason: l);
+    }
+  });
+
   group('BannerPolicy', () {
     test('varsayılanlar: menü + harita açık, %50 kontrol grubu; kova kararlı', () {
       for (int b = 0; b < 100; b++) {

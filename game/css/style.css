@@ -4,7 +4,7 @@
 :root {
   --bg: #EFEAE2; --board: #FBF9F5; --edge: #D8D0C3; --cell: #EEE8DE;
   --ink: #22252B; --ink-soft: #6A6760; --accent: #1E7A78; --accent-ink: #FFFFFF;
-  --star: #E3A008; --star-empty: #D8D0C3; --coin: #D4951A; --danger: #D2453B; --success: #2F8F5B;
+  --star: #E3A008; --star-ink: #AD7800; --star-empty: #D8D0C3; --coin: #D4951A; --coin-ink: #A86F0C; --danger: #D2453B; --success: #2F8F5B;
   --shadow: rgba(34,37,43,0.16);
   --card: #FBF9F5;
   --font: "Readex Pro", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;
@@ -20,7 +20,7 @@
   :root:not([data-theme="light"]) {
     --bg: #14171C; --board: #1E2229; --edge: #0C0E12; --cell: #272C35;
     --ink: #F2EEE6; --ink-soft: #A19D94; --accent: #4DB6AC; --accent-ink: #14171C;
-    --star: #F2B632; --star-empty: #3A414D; --coin: #F0B23A; --danger: #F0685E; --success: #55C08A;
+    --star: #F2B632; --star-ink: #F2B632; --star-empty: #3A414D; --coin: #F0B23A; --coin-ink: #F0B23A; --danger: #F0685E; --success: #55C08A;
     --shadow: rgba(0,0,0,0.45); --card: #1E2229;
     color-scheme: dark;
   }
@@ -28,7 +28,7 @@
 :root[data-theme="dark"] {
   --bg: #14171C; --board: #1E2229; --edge: #0C0E12; --cell: #272C35;
   --ink: #F2EEE6; --ink-soft: #A19D94; --accent: #4DB6AC; --accent-ink: #14171C;
-  --star: #F2B632; --star-empty: #3A414D; --coin: #F0B23A; --danger: #F0685E; --success: #55C08A;
+  --star: #F2B632; --star-ink: #F2B632; --star-empty: #3A414D; --coin: #F0B23A; --coin-ink: #F0B23A; --danger: #F0685E; --success: #55C08A;
   --shadow: rgba(0,0,0,0.45); --card: #1E2229;
   color-scheme: dark;
 }
@@ -137,15 +137,17 @@ a { color: var(--accent); }
 .node.current { outline: 4px solid var(--star); outline-offset: 3px; }
 /* v1.5: zorluk seviye bazında döner → düğümün köşesinde kademe noktası; Aşırı zor: koyu kırmızı halka */
 .node::after { content: ""; position: absolute; top: -2px; inset-inline-end: -2px; width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--board); background: var(--success); }
-.node.tier-medium::after { background: var(--accent); }
-.node.tier-hard::after { background: var(--coin); }
+.node.tier-medium::after { background: var(--accent); border-radius: 4px; }
+/* 1.2.1 (docs/27 §B3): kademe noktası renkle birlikte ŞEKİLLE de ayrılır — Kolay daire, Orta yuvarlak kare, Zor baklava, Aşırı zor daire + düğüm halkası */
+.node.tier-hard::after { background: var(--coin); border-radius: 2px; transform: rotate(45deg) scale(.86); }
 .node.tier-extreme::after { background: #B3263A; }
 .node.tier-extreme { box-shadow: 0 4px 0 #7A1420, 0 0 0 3px #B3263A; }
 .node.tier-extreme.locked { box-shadow: inset 0 0 0 3px var(--edge), 0 4px 0 #7A1420, 0 0 0 3px #B3263A; }
 .node.tier-extreme.current { outline-offset: 6px; }
 
-/* v1.1: banner yer tutucusu (web önizleme) — yalnızca Ana menü ve Harita; ekranın altında yer ayırır, içeriği örtmez */
-.banner { flex: none; height: 56px; margin: 6px 12px 8px; border: 2px dashed var(--edge); border-radius: 10px; display: flex; align-items: center; justify-content: center;
+/* v1.1: banner yer tutucusu (web önizleme) — yalnızca Ana menü ve Harita; ekranın altında yer ayırır, içeriği örtmez.
+   1.2.1 (docs/27 §A1–A3): Flutter AdBannerSlot ile aynı — sabit 56 px yuva, üstünde 16 px dokunulmaz boşluk, tam genişlik (kayma yok). */
+.banner { flex: none; box-sizing: border-box; height: 56px; margin: 16px 0 0; border: 2px dashed var(--edge); border-radius: 10px; display: flex; align-items: center; justify-content: center;
   color: var(--ink-soft); font-weight: 700; font-size: calc(14px * var(--fs-scale)); background: color-mix(in srgb, var(--card) 60%, transparent); }
 .node .ic { width: 22px; height: 22px; }
 .node-stars { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); display: flex; gap: 1px; direction: ltr; }
@@ -156,7 +158,7 @@ a { color: var(--accent); }
 #board { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
 .hearts { display: flex; gap: 2px; direction: ltr; flex: none; }
 .hearts .ic { width: 26px; height: 26px; transition: transform .2s; }
-.hearts .ic.lost { opacity: .28; filter: grayscale(1); }
+.hearts .ic.lost { opacity: .8; } /* 1.2.1 (docs/27 §B3): kayıp can içi boş kalp (şekil), yalnızca soluk renk değil */
 .hearts.shake { animation: hshake .4s; }
 @keyframes hshake { 25% { transform: translateX(-4px); } 50% { transform: translateX(4px); } 75% { transform: translateX(-2px); } }
 .toolbar { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 8px 12px 12px; flex: none; }
@@ -203,7 +205,7 @@ a { color: var(--accent); }
 .stars-big .ic.mid.on { animation-name: starpopmid; }
 @keyframes starpop { 0% { opacity: 0; transform: scale(0); } 60% { opacity: 1; transform: scale(1.15); } 100% { opacity: 1; transform: scale(1); } }
 @keyframes starpopmid { 0% { opacity: 0; transform: scale(0) translateY(-10px); } 60% { opacity: 1; transform: scale(1.15) translateY(-10px); } 100% { opacity: 1; transform: scale(1) translateY(-10px); } }
-.reward { font-family: var(--font-num); font-size: 26px; font-weight: 800; color: var(--coin); display: inline-flex; align-items: center; gap: 6px; direction: ltr; }
+.reward { font-family: var(--font-num); font-size: 26px; font-weight: 800; color: var(--coin-ink); display: inline-flex; align-items: center; gap: 6px; direction: ltr; }
 .tag { display: inline-block; padding: 4px 12px; border-radius: 999px; background: var(--star); color: #22252B; font-weight: 800; font-size: calc(14px * var(--fs-scale)); margin: 4px; }
 
 /* Günlük ödül */
@@ -219,7 +221,7 @@ a { color: var(--accent); }
 .balance { margin: 4px 0 12px; font-weight: 800; font-size: calc(18px * var(--fs-scale)); }
 .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; border-radius: 16px; background: var(--cell); margin-bottom: 14px; }
 .tab { min-height: 48px; border: 0; border-radius: 12px; background: transparent; font-weight: 800; cursor: pointer; padding: 6px 8px; overflow-wrap: normal; }
-.tab.on { background: var(--board); box-shadow: 0 2px 0 var(--edge); }
+.tab.on { background: var(--board); box-shadow: 0 2px 0 var(--edge), inset 0 -3px 0 var(--accent); } /* 1.2.1: seçili sekme alt çizgiyle de belli */
 .item { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 12px; row-gap: 10px; padding: 12px; margin-bottom: 12px; border-radius: 18px; background: var(--card); box-shadow: 0 3px 0 var(--edge); }
 .item canvas { width: 88px; height: 64px; flex: none; border-radius: 12px; background: var(--cell); }
 .item .ic.big { width: 48px; height: 48px; margin-inline: 20px; }
@@ -312,7 +314,7 @@ body.doc-page { user-select: text; -webkit-user-select: text; }
 .set-desc { color: var(--ink-soft); font-size: calc(13px * var(--fs-scale)); font-weight: 600; }
 .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 4px; margin: 10px 0 12px; border-radius: 14px; background: var(--cell); }
 .seg-btn { min-height: 46px; border: 0; border-radius: 10px; background: transparent; font-weight: 800; cursor: pointer; padding: 4px 6px; }
-.seg-btn.on { background: var(--board); box-shadow: 0 2px 0 var(--edge); }
+.seg-btn.on { background: var(--board); box-shadow: 0 2px 0 var(--edge), inset 0 -3px 0 var(--accent); } /* 1.2.1: seçili seçenek alt çizgiyle de belli */
 .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px 0 12px; }
 .code-box { width: 100%; min-height: 96px; border: 2px solid var(--edge); border-radius: 12px; background: var(--cell); color: var(--ink);
   font: 600 13px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace; padding: 10px; resize: none; word-break: break-all;
@@ -375,7 +377,7 @@ body.doc-page { user-select: text; -webkit-user-select: text; }
 .seg2 .seg-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .ac-prev { display: inline-flex; flex-direction: column; gap: 3px; flex: none; }
 .ac-prev i { display: block; width: 22px; height: 4px; border-radius: 2px; }
-.ac-color i:nth-child(1) { background: #1F8A8A; } .ac-color i:nth-child(2) { background: #E0703C; } .ac-color i:nth-child(3) { background: #D9A21B; }
+.ac-color i:nth-child(1) { background: #1F8A8A; } .ac-color i:nth-child(2) { background: #E0703C; } .ac-color i:nth-child(3) { background: #B8850E; }
 .ac-mono i { height: 2px; background: var(--ink); margin: 1px 0; }
 .ac-desc { display: block; padding-bottom: 12px; text-align: start; }
 

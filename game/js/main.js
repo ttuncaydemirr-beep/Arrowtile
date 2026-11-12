@@ -41,9 +41,11 @@
 
   // ---------------------------------------------------------------- ikonlar (satır içi SVG)
   var ICONS = {
-    coin: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--coin)"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.6"/><path d="M12 8.2v7.6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>',
-    star: '<svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9z" fill="var(--star)" stroke="var(--star)" stroke-width="1.4" stroke-linejoin="round"/></svg>',
-    starEmpty: '<svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9z" fill="var(--star-empty)" stroke="var(--star-empty)" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+    coin: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--coin-ink)"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.6"/><path d="M12 8.2v7.6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>',
+    // 1.2.1 (docs/27 §B1/B3): dolu yıldız simge rengi --star-ink (≥ 3:1); boş yıldız ŞEKİLLE ayrılır (içi boş çerçeve, --ink-soft)
+    star: '<svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9z" fill="var(--star-ink)" stroke="var(--star-ink)" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+    starEmpty: '<svg viewBox="0 0 24 24"><path d="M12 2.6l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.4l-5.8 3.1 1.1-6.5L2.6 9.4l6.5-.9z" fill="none" stroke="var(--ink-soft)" stroke-width="2" stroke-linejoin="round"/></svg>',
+    heartEmpty: '<svg viewBox="0 0 24 24"><path d="M12 21s-7.6-4.6-9.5-9.3C1.2 8.4 3.2 4.6 6.9 4.6c2.1 0 3.6 1.2 5.1 3 1.5-1.8 3-3 5.1-3 3.7 0 5.7 3.8 4.4 7.1C19.6 16.4 12 21 12 21z" fill="none" stroke="var(--ink-soft)" stroke-width="2" stroke-linejoin="round"/></svg>',
     heart: '<svg viewBox="0 0 24 24"><path d="M12 21s-7.6-4.6-9.5-9.3C1.2 8.4 3.2 4.6 6.9 4.6c2.1 0 3.6 1.2 5.1 3 1.5-1.8 3-3 5.1-3 3.7 0 5.7 3.8 4.4 7.1C19.6 16.4 12 21 12 21z" fill="var(--danger)"/><path d="M7 8.2c-.9.3-1.6 1.1-1.7 2.1" stroke="#fff" stroke-opacity=".6" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>',
     map: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M3 6l6-2.5 6 2.5 6-2.5v14.5L15 20.5 9 18l-6 2.5z"/><path d="M9 3.5V18M15 6v14.5"/></svg>',
     shop: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><path d="M4.5 8h15l-1.2 12.5H5.7z"/><path d="M8.5 10V6.5a3.5 3.5 0 0 1 7 0V10"/></svg>',
@@ -51,12 +53,12 @@
     gear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.5l1.6 2.6 3-.6.7 3 2.6 1.6-1.4 2.9 1.4 2.9-2.6 1.6-.7 3-3-.6L12 21.5l-1.6-2.6-3 .6-.7-3-2.6-1.6L5.5 12 4.1 9.1l2.6-1.6.7-3 3 .6z"/></svg>',
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
     pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.5"/><rect x="14" y="5" width="4" height="14" rx="1.5"/></svg>',
-    bulb: '<svg viewBox="0 0 24 24"><path d="M12 2.5a6.8 6.8 0 0 0-4 12.3c.7.5 1 1.2 1 2V18h6v-1.2c0-.8.4-1.5 1-2A6.8 6.8 0 0 0 12 2.5z" fill="var(--star)"/><rect x="9" y="19" width="6" height="2.6" rx="1.2" fill="var(--ink-soft)"/><path d="M10 9.5a2.4 2.4 0 0 1 2-2" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>',
+    bulb: '<svg viewBox="0 0 24 24"><path d="M12 2.5a6.8 6.8 0 0 0-4 12.3c.7.5 1 1.2 1 2V18h6v-1.2c0-.8.4-1.5 1-2A6.8 6.8 0 0 0 12 2.5z" fill="var(--star-ink)"/><rect x="9" y="19" width="6" height="2.6" rx="1.2" fill="var(--ink-soft)"/><path d="M10 9.5a2.4 2.4 0 0 1 2-2" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>',
     restart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.6-5.9"/><path d="M20 3.5v5h-5"/></svg>',
     lock: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>',
     hand: '<svg viewBox="0 0 24 24"><path d="M9.2 3.2c.9 0 1.6.7 1.6 1.6v6.4l.9-.2c.9-.1 1.7.4 1.9 1.3l.1.2.6-.1c.8-.1 1.6.4 1.8 1.2l.7-.1c.8-.1 1.6.5 1.7 1.3l.5 3.3c.3 2.6-1.6 4.9-4.2 4.9h-2.9c-1.6 0-3-.8-3.9-2.1l-3.1-4.6c-.5-.7-.3-1.6.4-2.1.6-.4 1.4-.3 1.9.2l1.6 1.7V4.8c0-.9.7-1.6 1.6-1.6z" fill="#fff" stroke="#22252B" stroke-width="1.5" stroke-linejoin="round"/></svg>',
     noads: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M8 15l2-6 2 6M8.7 13h2.6M14.5 9v6h1.2a2.3 2.3 0 0 0 0-6z"/><path d="M3.5 3.5l17 17" stroke="var(--danger)"/></svg>',
-    trophy: '<svg viewBox="0 0 24 24"><path d="M7 3h10v5a5 5 0 0 1-10 0z" fill="var(--star)"/><path d="M7 5H4a3 3 0 0 0 3 4M17 5h3a3 3 0 0 1-3 4" fill="none" stroke="var(--star)" stroke-width="2"/><path d="M10.5 13h3l.5 4h-4z" fill="var(--star)"/><rect x="7.5" y="17" width="9" height="3.5" rx="1.2" fill="var(--coin)"/></svg>',
+    trophy: '<svg viewBox="0 0 24 24"><path d="M7 3h10v5a5 5 0 0 1-10 0z" fill="var(--star-ink)"/><path d="M7 5H4a3 3 0 0 0 3 4M17 5h3a3 3 0 0 1-3 4" fill="none" stroke="var(--star-ink)" stroke-width="2"/><path d="M10.5 13h3l.5 4h-4z" fill="var(--star-ink)"/><rect x="7.5" y="17" width="9" height="3.5" rx="1.2" fill="var(--coin-ink)"/></svg>',
     calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4" stroke-linecap="round"/><circle cx="12" cy="15" r="2" fill="currentColor" stroke="none"/></svg>',
     leaf: '<svg viewBox="0 0 24 24"><path d="M5 19c0-8 5-13 15-14-1 10-6 15-14 15" fill="var(--success)"/><path d="M5 19c3-4 6-7 10-9" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>',
     fit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>',
@@ -820,7 +822,7 @@
       h.querySelector('.relaxed-badge > span:last-child').textContent = t('game.relaxed_badge');
       h.setAttribute('aria-label', t('settings.relaxed'));
     } else {
-      for (var i = 0; i < E.MAX_LIVES; i++) h.insertAdjacentHTML('beforeend', icon('heart', i < G.lives ? '' : 'lost'));
+      for (var i = 0; i < E.MAX_LIVES; i++) h.insertAdjacentHTML('beforeend', i < G.lives ? icon('heart') : icon('heartEmpty', 'lost')); // 1.2.1: kayıp can içi boş kalp
       h.setAttribute('aria-label', t('game.lives') + ': ' + G.lives);
     }
     var hs = $('hint-sub');

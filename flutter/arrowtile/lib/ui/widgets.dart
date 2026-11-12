@@ -285,7 +285,7 @@ class CoinPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppController app = AppScope.of(context);
     final Palette pal = Palette.of(context);
-    return Pill(icon: Icons.monetization_on, iconColor: pal.coinC, text: '${app.save.coins}');
+    return Pill(icon: Icons.monetization_on, iconColor: pal.coinInkC, text: '${app.save.coins}');
   }
 }
 
@@ -449,6 +449,21 @@ Future<void> confirmBox(BuildContext context, String text, VoidCallback onYes, {
   });
 }
 
+/// 1.2.1 (docs/27 §B3): seçili sekme / seçenek işareti — yalnızca zemin rengi değil, altında vurgu çizgisi (web: inset alt çizgi).
+Widget withSelectedMark(Palette pal, Widget child, bool on) {
+  if (!on) return child;
+  return Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
+    child,
+    const SizedBox(height: 3),
+    Container(
+      key: const ValueKey<String>('selected-mark'),
+      width: 24,
+      height: 3,
+      decoration: BoxDecoration(color: pal.accentC, borderRadius: BorderRadius.circular(2)),
+    ),
+  ]);
+}
+
 // ---------------------------------------------------------------- yıldızlar
 class StarsRow extends StatelessWidget {
   final int total;
@@ -458,11 +473,18 @@ class StarsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Palette pal = Palette.of(context);
-    return Directionality(
-      textDirection: TextDirection.ltr,
-      child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
-        for (int i = 1; i <= total; i++) Icon(Icons.star, size: size, color: i <= filled ? pal.starC : pal.starEmptyC),
-      ]),
+    // 1.2.1 (docs/27 §B3): kazanılmamış yıldız yalnızca renkle değil ŞEKİLLE de ayrılır (içi boş çerçeve, ikincil mürekkep ≥ 3:1);
+    // ekran okuyucu için "n/3 yıldız".
+    return Semantics(
+      label: locOf(context).mapStarsTotal(filled, total),
+      excludeSemantics: true,
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
+          for (int i = 1; i <= total; i++)
+            i <= filled ? Icon(Icons.star, size: size, color: pal.starInkC) : Icon(Icons.star_border, size: size, color: pal.inkSoftC),
+        ]),
+      ),
     );
   }
 }
@@ -524,7 +546,9 @@ class _StarsBigState extends State<StarsBig> with SingleTickerProviderStateMixin
                       opacity: t.clamp(0.0, 1.0),
                       child: Transform.scale(
                         scale: sc,
-                        child: Icon(Icons.star, size: 64, color: k < widget.stars ? pal.starC : pal.starEmptyC),
+                        child: k < widget.stars
+                            ? Icon(Icons.star, size: 64, color: pal.starInkC)
+                            : Icon(Icons.star_border, size: 64, color: pal.inkSoftC), // 1.2.1 (docs/27 §B3): şekille ayrılır
                       ),
                     );
                   }),

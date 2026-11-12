@@ -33,7 +33,7 @@ class _DailyRewardBody extends StatelessWidget {
       final Widget content = Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: <Widget>[
         Text(loc.dailyDay(d), style: TextStyle(color: fg, fontSize: 13, fontWeight: FontWeight.w700)),
         const SizedBox(height: 2),
-        Icon(Icons.monetization_on, size: 24, color: pal.coinC),
+        Icon(Icons.monetization_on, size: 24, color: pal.coinInkC),
         Text('${eco.kDailyRewards[d - 1]}', style: TextStyle(color: fg, fontSize: 16, fontWeight: FontWeight.w700)),
         if (d == 7) Text(loc.dailyBonusHint, textAlign: TextAlign.center, style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.w700)),
         if (past) Icon(Icons.check, size: 20, color: fg),
@@ -235,7 +235,7 @@ class _CalendarBodyState extends State<_CalendarBody> {
         ),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
           Text('$d', style: TextStyle(color: pal.inkC, fontSize: 14, fontWeight: FontWeight.w700)),
-          if (done) Icon(Icons.emoji_events, size: 16, color: pal.starC),
+          if (done) Icon(Icons.emoji_events, size: 16, color: pal.starInkC),
         ]),
       ),
     );

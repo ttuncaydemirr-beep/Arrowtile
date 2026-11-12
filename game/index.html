@@ -18,6 +18,8 @@
   <!-- Ana menü -->
   <section id="scr-menu" class="screen" aria-labelledby="menu-title">
     <header class="bar">
+      <!-- 1.2.1 (docs/27 §A2): Ayarlar üst çubukta (dişli simgesi; erişilebilir etiket menu.settings, 4 dil) -->
+      <button class="icon-btn" id="btn-settings" type="button" data-i18n-aria="menu.settings"><span class="ic" data-icon="gear"></span></button>
       <span class="bar-fill"></span>
       <div class="pill coin-pill"><span class="ic" data-icon="coin"></span><span class="num" data-bind="coins">0</span></div>
     </header>
@@ -38,7 +40,6 @@
         <span class="daily-txt"><span data-i18n="menu.daily"></span><small id="daily-ready" data-i18n="menu.daily_ready"></small></span>
         <span class="badge-dot" id="daily-dot"></span>
       </button>
-      <button class="btn ghost fit" id="btn-settings" type="button"><span class="ic" data-icon="gear"></span><span data-i18n="menu.settings"></span></button>
     </div>
     <div class="banner" id="banner-menu" role="complementary" hidden><span data-i18n="ads.banner_placeholder"></span></div>
   </section>

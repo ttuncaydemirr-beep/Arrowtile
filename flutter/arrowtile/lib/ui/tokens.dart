@@ -16,6 +16,8 @@ Color rgba(int rgb, [double alpha = 1]) {
 class Palette {
   final int bg, board, boardEdge, cell, cellDot, ink, inkSoft, accent, accentInk, star, starEmpty, coin, danger, success,
       highlight, highlightRing;
+  /// 1.2.1 (docs/27 §B1): yıldız / jeton SİMGESİ renkleri (kart ve zemin üstünde ≥ 3:1). [star]/[coin] rozet dolgusu olarak kalır.
+  final int starInk, coinInk;
   final int shadow; // 0xRRGGBB
   final double shadowAlpha;
   final bool dark;
@@ -30,8 +32,10 @@ class Palette {
     required this.accent,
     required this.accentInk,
     required this.star,
+    required this.starInk,
     required this.starEmpty,
     required this.coin,
+    required this.coinInk,
     required this.danger,
     required this.success,
     required this.highlight,
@@ -54,12 +58,14 @@ class Palette {
     accent: 0x1E7A78, // derin çam yeşili-turkuaz
     accentInk: 0xFFFFFF,
     star: 0xE3A008,
+    starInk: 0xAD7800,
     starEmpty: 0xD8D0C3,
     coin: 0xD4951A,
+    coinInk: 0xA86F0C,
     danger: 0xD2453B,
     success: 0x2F8F5B,
     highlight: 0xFFFFFF,
-    highlightRing: 0xE3A008,
+    highlightRing: 0xAD7800, // 1.2.1: tahtada ≥ 3:1 (eski 0xE3A008: 2,15)
     shadow: 0x22252B,
     shadowAlpha: 0.16,
     dark: false,
@@ -76,8 +82,10 @@ class Palette {
     accent: 0x4DB6AC,
     accentInk: 0x14171C,
     star: 0xF2B632,
+    starInk: 0xF2B632,
     starEmpty: 0x3A414D,
     coin: 0xF0B23A,
+    coinInk: 0xF0B23A,
     danger: 0xF0685E,
     success: 0x55C08A,
     highlight: 0xFFFFFF,
@@ -108,6 +116,8 @@ class Palette {
   Color get accentInkC => rgba(accentInk);
   Color get starC => rgba(star);
   Color get starEmptyC => rgba(starEmpty);
+  Color get starInkC => rgba(starInk);
+  Color get coinInkC => rgba(coinInk);
   Color get coinC => rgba(coin);
   Color get dangerC => rgba(danger);
   Color get successC => rgba(success);
@@ -143,7 +153,8 @@ class ArrowTheme {
 
 const List<ArrowTheme> kArrowThemes = <ArrowTheme>[
   // 1.2.0 (docs/24 §7): varsayılan ok paleti — turkuaz, kiremit, hardal, çivit, erik (kırmızı/altın anlam renklerinden ayrık)
-  ArrowTheme('emaye', 0, <int>[0x1F8A8A, 0xE0703C, 0xD9A21B, 0x4B5FC1, 0xA0508F], 0xFFFFFF, 0.78),
+  // 1.2.1 (docs/27 §B1): hardal 0xD9A21B → 0xB8850E, çivit 0x4B5FC1 → 0x5468CC (tahtada ≥ 3:1, açık ve koyu)
+  ArrowTheme('emaye', 0, <int>[0x1F8A8A, 0xE0703C, 0xB8850E, 0x5468CC, 0xA0508F], 0xFFFFFF, 0.78),
   ArrowTheme('lokum', 300, <int>[0xE77FA0, 0xF2A65A, 0x7FB8A4, 0xA78BD4, 0xE7C65A], 0xFFFFFF, 0.85),
   ArrowTheme('cini', 500, <int>[0x1F5FA8, 0x1C8C8C, 0xC2362B, 0x2F7A3D, 0x14397A], 0xFFFFFF, 0.80),
   ArrowTheme('bakir', 750, <int>[0xB5652E, 0x8E4A24, 0xD08A45, 0x6E3B1F, 0xC9773A], 0xFFF0DC, 0.80),

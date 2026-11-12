@@ -22,13 +22,15 @@
         inkSoft:    '#6A6760', // ikincil metin
         accent:     '#1E7A78', // kobalt — birincil buton
         accentInk:  '#FFFFFF',
-        star:       '#E3A008', // safran yıldız
+        star:       '#E3A008', // safran yıldız (zemin/rozet dolgusu)
+        starInk:    '#AD7800', // 1.2.1 (docs/27 §B1): yıldız SİMGESİ (kart/zemin üstünde ≥ 3:1)
         starEmpty:  '#D8D0C3',
         coin:       '#D4951A',
+        coinInk:    '#A86F0C', // 1.2.1: jeton simgesi ve ödül yazısı (≥ 3:1)
         danger:     '#D2453B', // can / hata
         success:    '#2F8F5B',
         highlight:  '#FFFFFF', // ipucu halkası iç
-        highlightRing: '#E3A008',
+        highlightRing: '#AD7800', // 1.2.1: ipucu halkası tahtada ≥ 3:1 (eski #E3A008: 2,15)
         shadow:     'rgba(34,37,43,0.16)'
       },
       dark: {
@@ -42,8 +44,10 @@
         accent:     '#4DB6AC',
         accentInk:  '#14171C',
         star:       '#F2B632',
+        starInk:    '#F2B632',
         starEmpty:  '#3A414D',
         coin:       '#F0B23A',
+        coinInk:    '#F0B23A',
         danger:     '#F0685E',
         success:    '#55C08A',
         highlight:  '#FFFFFF',
@@ -57,7 +61,7 @@
     // names: dil bazlı tema adları (i18n.js'e de kopyalanabilir)
     arrowThemes: [
       { id: 'emaye',  name: 'Emaye', names: { tr: 'Emaye', en: 'Enamel', de: 'Emaille', ar: 'مينا' },  price: 0,
-        colors: ['#1F8A8A', '#E0703C', '#D9A21B', '#4B5FC1', '#A0508F'], // 1.2.0 (docs/24 §7): araştırmaya dayalı varsayılan ok paleti; kırmızı (çarpma) ve altın (ipucu) anlam renklerinden ayrık
+        colors: ['#1F8A8A', '#E0703C', '#B8850E', '#5468CC', '#A0508F'], // 1.2.0 (docs/24 §7): araştırmaya dayalı varsayılan ok paleti; kırmızı (çarpma) ve altın (ipucu) anlam renklerinden ayrık. 1.2.1 (docs/27 §B1): hardal #D9A21B → #B8850E (açık tahtada 2,19 → 3,12), çivit #4B5FC1 → #5468CC (koyu tahtada 2,82 → 3,21)
         chevron: 'rgba(255,255,255,0.78)' },
       { id: 'lokum',  name: 'Lokum', names: { tr: 'Lokum', en: 'Delight', de: 'Lokum', ar: 'راحة الحلقوم' },  price: 300,
         colors: ['#E77FA0', '#F2A65A', '#7FB8A4', '#A78BD4', '#E7C65A'],

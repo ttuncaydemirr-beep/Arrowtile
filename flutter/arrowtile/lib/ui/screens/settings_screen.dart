@@ -424,13 +424,16 @@ class _SegBtn extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
             boxShadow: on ? <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 2))] : null,
           ),
-          child: lead == null
-              ? FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 3)
-              : Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-                  lead!,
-                  const SizedBox(width: 8),
-                  Flexible(child: FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 2)),
-                ]),
+          child: withSelectedMark(
+              pal,
+              lead == null
+                  ? FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 3)
+                  : Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
+                      lead!,
+                      const SizedBox(width: 8),
+                      Flexible(child: FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 2)),
+                    ]),
+              on),
         ),
       ),
     );
