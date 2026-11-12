@@ -81,10 +81,10 @@ Tüm sesler Web Audio ile kodla üretilir ve C majör pentatonik dizide kalır, 
 | # | id | TR / EN / DE / AR | Renkler | Fiyat |
 |---|---|---|---|---|
 | 1 | emaye | Emaye / Enamel / Emaille / مينا | `#2456A6 #C9372F #E09A12 #2E8B57 #6B4C9A` | ücretsiz (varsayılan) |
-| 2 | lokum | Lokum / Delight / Lokum / راحة الحلقوم | `#E77FA0 #F2A65A #7FB8A4 #A78BD4 #E7C65A` | 300 |
-| 3 | cini | Çini / Tile / Fliese / قيشاني | `#1F5FA8 #1C8C8C #C2362B #2F7A3D #14397A` | 500 |
-| 4 | bakir | Bakır / Copper / Kupfer / نحاس | `#B5652E #8E4A24 #D08A45 #6E3B1F #C9773A` | 750 |
-| 5 | gece | Gece Lambası / Night Light / Nachtlicht / ضوء الليل | `#38D1E0 #F25FA6 #B6F25F #FFC83D #9D7BFF` (koyu şevron) | 1000 |
+| 2 | lokum | Lokum / Delight / Lokum / راحة الحلقوم | `#E2668E #D97511 #579C84 #A081D0 #AE8B19` | 300 |
+| 3 | cini | Çini / Tile / Fliese / قيشاني | `#246EC2 #1C8C8C #C7382C #2F7A3D #5B8DE4` | 500 |
+| 4 | bakir | Bakır / Copper / Kupfer / نحاس | `#B5652E #C76833 #B7722E #A5592F #C9773A` | 750 |
+| 5 | gece | Gece Lambası / Night Light / Nachtlicht / ضوء الليل | `#1B9EAB #F155A0 #649F0D #BB8600 #9B78FF` (koyu şevron) | 1000 |
 
 Fiyatlar yönetici kararıyla (24.10.2026) tasarım belgesindeki ekonomiye göre kesinleşti: 0 / 300 / 500 / 750 / 1000. Tema adları i18n.js'te `theme.emaye … theme.gece` anahtarlarıyla 4 dilde bulunur.
 

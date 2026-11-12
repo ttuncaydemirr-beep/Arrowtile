@@ -334,7 +334,7 @@ function blockedArrow(L, minFree = 0) { const al = L.arrows.map(() => true); for
     // oyunda tema rengi
     const L = LEVELS[4]; let ly = await startLevel(page, 5);
     const col = await page.evaluate(([ly, a]) => __qa.color(ly, a.tx, a.ty, 0) /* v1.3: kuyruktan gövde yönünde 0,3 hücre (merkezdeki şevronun dışı; ince/kıvrımlı gövde buradan geçer) */, [ly, (() => { const c = cells(L.arrows[0]), d = c.length > 1 ? [c[1][0] - c[0][0], c[1][1] - c[0][1]] : D[L.arrows[0].dir]; return { tx: c[0][0] + d[0] * 0.3, ty: c[0][1] + d[1] * 0.3 }; })()]);
-    check('oyunda seçili tema renkleri kullanılıyor (ok0 ≈ #E77FA0)', Math.abs(col[0] - 0xE7) + Math.abs(col[1] - 0x7F) + Math.abs(col[2] - 0xA0) < 60, col.join(','));
+    check('oyunda seçili tema renkleri kullanılıyor (ok0 ≈ #E2668E)', Math.abs(col[0] - 0xE2) + Math.abs(col[1] - 0x66) + Math.abs(col[2] - 0x8E) < 60, col.join(','));
     await page.evaluate(() => window.__ok.show('shop')); await wait(250);
     await page.tap('.item[data-theme="emaye"] .btn'); await wait(200);
     await page.reload(); await page.waitForFunction(() => window.__ok && window.__ok.screen() === 'menu');

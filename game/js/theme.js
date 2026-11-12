@@ -64,16 +64,16 @@
         colors: ['#1F8A8A', '#E0703C', '#B8850E', '#5468CC', '#A0508F'], // 1.2.0 (docs/24 §7): araştırmaya dayalı varsayılan ok paleti; kırmızı (çarpma) ve altın (ipucu) anlam renklerinden ayrık. 1.2.1 (docs/27 §B1): hardal #D9A21B → #B8850E (açık tahtada 2,19 → 3,12), çivit #4B5FC1 → #5468CC (koyu tahtada 2,82 → 3,21)
         chevron: 'rgba(255,255,255,0.78)' },
       { id: 'lokum',  name: 'Lokum', names: { tr: 'Lokum', en: 'Delight', de: 'Lokum', ar: 'راحة الحلقوم' },  price: 300,
-        colors: ['#E77FA0', '#F2A65A', '#7FB8A4', '#A78BD4', '#E7C65A'],
+        colors: ['#E2668E', '#D97511', '#579C84', '#A081D0', '#AE8B19'],
         chevron: 'rgba(255,255,255,0.85)' },
       { id: 'cini',   name: 'Çini', names: { tr: 'Çini', en: 'Tile', de: 'Fliese', ar: 'قيشاني' },   price: 500,
-        colors: ['#1F5FA8', '#1C8C8C', '#C2362B', '#2F7A3D', '#14397A'],
+        colors: ['#246EC2', '#1C8C8C', '#C7382C', '#2F7A3D', '#5B8DE4'],
         chevron: 'rgba(255,255,255,0.80)' },
       { id: 'bakir',  name: 'Bakır', names: { tr: 'Bakır', en: 'Copper', de: 'Kupfer', ar: 'نحاس' },  price: 750,
-        colors: ['#B5652E', '#8E4A24', '#D08A45', '#6E3B1F', '#C9773A'],
+        colors: ['#B5652E', '#C76833', '#B7722E', '#A5592F', '#C9773A'],
         chevron: 'rgba(255,240,220,0.80)' },
       { id: 'gece',   name: 'Gece Lambası', names: { tr: 'Gece Lambası', en: 'Night Light', de: 'Nachtlicht', ar: 'ضوء الليل' }, price: 1000,
-        colors: ['#38D1E0', '#F25FA6', '#B6F25F', '#FFC83D', '#9D7BFF'],
+        colors: ['#1B9EAB', '#F155A0', '#649F0D', '#BB8600', '#9B78FF'],
         chevron: 'rgba(15,27,39,0.70)' }
     ],
 

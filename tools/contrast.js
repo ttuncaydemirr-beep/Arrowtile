@@ -82,7 +82,7 @@ for (const mode of ['light', 'dark']) {
   add('metin', 'birincil düğme yazısı / vurgu', C.accentInk, C.accent, 4.5, mode);
 }
 
-const DEFAULT_SCOPE = r => !/tema (lokum|cini|bakir|gece)/.test(r.group); // satın alınan temalar ayrı raporlanır (docs/27 §B1)
+// 1.2.1 (docs/27 §B1): satın alınan temalar (lokum, cini, bakir, gece) da ZORUNLU — sahip onayıyla açık/koyu tahtada ok ≥ 3:1.
 const fails = rows.filter(r => r.r < r.min);
 const fmt = r => r.r.toFixed(2);
 if (process.argv.includes('--markdown')) {
@@ -92,8 +92,6 @@ if (process.argv.includes('--markdown')) {
 } else {
   for (const r of rows) console.log(`${r.r >= r.min ? 'ok  ' : 'KALDI'} ${r.mode.padEnd(5)} ${r.group.padEnd(26)} ${r.what.padEnd(28)} ${r.fg} / ${r.bg}  ${fmt(r)}:1 (≥ ${r.min})`);
 }
-const core = fails.filter(DEFAULT_SCOPE), shop = fails.filter(r => !DEFAULT_SCOPE(r));
-if (shop.length) console.log(`\nBİLGİ: satın alınan temalarda eşik altı ${shop.length} renk (docs/27 §B1, sahip kararı): ` + shop.map(r => `${r.mode}:${r.what}=${fmt(r)}`).join(', '));
 if (errs.length) { console.error('\nHATA (web ≠ Flutter):\n' + errs.join('\n')); process.exit(1); }
-if (core.length) { console.error(`\nKALDI: ${core.length} çift eşik altında (Kum ve Mürekkep + varsayılan oklar)`); process.exit(1); }
-console.log(`\nGEÇTİ: ${rows.length} çift; web ve Flutter renkleri özdeş; Kum ve Mürekkep + varsayılan ok paleti eşikleri sağlıyor.`);
+if (fails.length) { console.error(`\nKALDI: ${fails.length} çift eşik altında: ` + fails.map(r => `${r.mode}:${r.what}=${fmt(r)}`).join(', ')); process.exit(1); }
+console.log(`\nGEÇTİ: ${rows.length} çift; web ve Flutter renkleri özdeş; tüm ok temaları (satın alınanlar dahil) ve Kum ve Mürekkep eşikleri sağlıyor.`);

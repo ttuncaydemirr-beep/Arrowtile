@@ -80,5 +80,5 @@ Ayrıntı: `docs/27-surum-1-2-1.md`.
   Kapatma kuralı: ≥ 2 hafta sonra gruplar karşılaştırılır; banner grubunda düşüş → o banner kapatılır; anormal yüksek TO → kapatılır.
 - "Reklamları kaldır" metni banner'ları da anar (4 dil).
 - Okunabilirlik: WCAG kontrast aracı `tools/contrast.js`; varsayılan ok hardal/çivit, yıldız/jeton simgesi ve ipucu halkası tonları düzeltildi;
-  boş yıldız ve kayıp can içi boş simge, kademe noktası şekilli, seçili sekme alt çizgili. Satın alınan temalar değiştirilmedi (sahip kararı bekliyor).
+  boş yıldız ve kayıp can içi boş simge, kademe noktası şekilli, seçili sekme alt çizgili. Satın alınan temalar (lokum, çini, bakır, gece) 16 ok rengiyle sahip onayıyla açıldı/koyulaştırıldı: her ok iki tahtada ≥ 3:1, `contrast.js` artık bu temaları da zorunlu denetler (docs/27 §B1).
 - Geliştirici adı "Demir Games Studio" (gizlilik politikası, lisans sayfası, belgeler). Simge adayı `store/icon-candidates/` (uygulama simgesi aynı).

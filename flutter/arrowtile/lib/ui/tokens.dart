@@ -155,10 +155,10 @@ const List<ArrowTheme> kArrowThemes = <ArrowTheme>[
   // 1.2.0 (docs/24 §7): varsayılan ok paleti — turkuaz, kiremit, hardal, çivit, erik (kırmızı/altın anlam renklerinden ayrık)
   // 1.2.1 (docs/27 §B1): hardal 0xD9A21B → 0xB8850E, çivit 0x4B5FC1 → 0x5468CC (tahtada ≥ 3:1, açık ve koyu)
   ArrowTheme('emaye', 0, <int>[0x1F8A8A, 0xE0703C, 0xB8850E, 0x5468CC, 0xA0508F], 0xFFFFFF, 0.78),
-  ArrowTheme('lokum', 300, <int>[0xE77FA0, 0xF2A65A, 0x7FB8A4, 0xA78BD4, 0xE7C65A], 0xFFFFFF, 0.85),
-  ArrowTheme('cini', 500, <int>[0x1F5FA8, 0x1C8C8C, 0xC2362B, 0x2F7A3D, 0x14397A], 0xFFFFFF, 0.80),
-  ArrowTheme('bakir', 750, <int>[0xB5652E, 0x8E4A24, 0xD08A45, 0x6E3B1F, 0xC9773A], 0xFFF0DC, 0.80),
-  ArrowTheme('gece', 1000, <int>[0x38D1E0, 0xF25FA6, 0xB6F25F, 0xFFC83D, 0x9D7BFF], 0x0F1B27, 0.70),
+  ArrowTheme('lokum', 300, <int>[0xE2668E, 0xD97511, 0x579C84, 0xA081D0, 0xAE8B19], 0xFFFFFF, 0.85),
+  ArrowTheme('cini', 500, <int>[0x246EC2, 0x1C8C8C, 0xC7382C, 0x2F7A3D, 0x5B8DE4], 0xFFFFFF, 0.80),
+  ArrowTheme('bakir', 750, <int>[0xB5652E, 0xC76833, 0xB7722E, 0xA5592F, 0xC9773A], 0xFFF0DC, 0.80),
+  ArrowTheme('gece', 1000, <int>[0x1B9EAB, 0xF155A0, 0x649F0D, 0xBB8600, 0x9B78FF], 0x0F1B27, 0.70),
 ];
 
 ArrowTheme arrowThemeById(String id) {
