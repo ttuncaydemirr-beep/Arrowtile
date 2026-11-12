@@ -301,8 +301,9 @@ jobs:
           whatsNewDirectory: ${{ steps.notes_dir.outputs.dir }}
           mappingFile: ${{ steps.mapping.outputs.file }}
 
+      # Yalnızca alpha: AAB doğrudan kapalı teste yüklenir.
       - name: Play - kapalı test (alpha)
-        if: steps.play.outputs.alpha == 'true'
+        if: steps.play.outputs.alpha == 'true' && steps.play.outputs.internal != 'true'
         uses: r0adkll/upload-google-play@v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
@@ -313,3 +314,44 @@ jobs:
           changesNotSentForReview: ${{ inputs.hold_for_review }}
           whatsNewDirectory: ${{ steps.notes_dir.outputs.dir }}
           mappingFile: ${{ steps.mapping.outputs.file }}
+
+      # internal+alpha: AAB iç teste yüklendi; aynı versionCode yeniden yüklenemez ("Version code has already been used"),
+      # bu yüzden kapalı test parçasına API ile yükseltilir (yeniden yükleme yok).
+      - name: Play - kapalı teste yükselt (internal → alpha)
+        if: steps.play.outputs.alpha == 'true' && steps.play.outputs.internal == 'true'
+        working-directory: ${{ github.workspace }}
+        env:
+          PLAY_SA_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          STATUS: ${{ inputs.status }}
+          HOLD: ${{ inputs.hold_for_review }}
+          NOTES_DIR: ${{ steps.notes_dir.outputs.dir }}
+        run: |
+          pip install --quiet google-auth requests
+          python3 - <<'PY'
+          import json, os, re, glob
+          import google.oauth2.service_account as sa, google.auth.transport.requests as gr
+          import requests
+          pkg = "com.arrowtile.puzzle"
+          cred = sa.Credentials.from_service_account_info(json.loads(os.environ["PLAY_SA_JSON"]),
+              scopes=["https://www.googleapis.com/auth/androidpublisher"])
+          cred.refresh(gr.Request())
+          h = {"Authorization": "Bearer " + cred.token}
+          base = f"https://androidpublisher.googleapis.com/androidpublisher/v3/applications/{pkg}/edits"
+          vc = re.search(r"^version:\s*[^+\s]+\+(\d+)", open("flutter/arrowtile/pubspec.yaml").read(), re.M).group(1)
+          ver = re.search(r"^version:\s*([^+\s]+)", open("flutter/arrowtile/pubspec.yaml").read(), re.M).group(1)
+          notes = []
+          d = os.environ.get("NOTES_DIR") or ""
+          for f in sorted(glob.glob(os.path.join(d, "whatsnew-*"))) if d else []:
+              lang = os.path.basename(f)[len("whatsnew-"):]
+              txt = open(f, encoding="utf-8").read().strip()
+              if txt: notes.append({"language": lang, "text": txt[:500]})
+          r = requests.post(base, headers=h); r.raise_for_status(); eid = r.json()["id"]
+          rel = {"name": f"{vc} ({ver})", "versionCodes": [vc], "status": os.environ.get("STATUS") or "completed"}
+          if notes: rel["releaseNotes"] = notes
+          r = requests.put(f"{base}/{eid}/tracks/alpha", headers=h, json={"track": "alpha", "releases": [rel]})
+          if not r.ok: print("::error::" + r.text); r.raise_for_status()
+          hold = (os.environ.get("HOLD") or "").lower() == "true"
+          r = requests.post(f"{base}/{eid}:commit", headers=h, params={"changesNotSentForReview": "true" if hold else "false"})
+          if not r.ok: print("::error::" + r.text); r.raise_for_status()
+          print(f"Kapalı test (alpha): versionCode {vc} atandı, edit {r.json().get('id')}")
+          PY
