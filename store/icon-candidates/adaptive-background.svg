@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 432 432">
+  <!-- Arrowtile simge adayı (1.2.1, "Kum ve Mürekkep"): uyarlanabilir simge ARKA PLAN katmanı, 108 dp = 432 px. Tam taşar. -->
+  <defs>
+    <radialGradient id="g" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#343943"/>
+      <stop offset="1" stop-color="#22252B"/>
+    </radialGradient>
+  </defs>
+  <rect width="432" height="432" fill="url(#g)"/>
+</svg>

@@ -52,6 +52,7 @@ jobs:
       - run: flutter build apk --release
       - run: cp build/app/outputs/flutter-apk/app-release.apk Arrowtile-deneme.apk
       - uses: actions/upload-artifact@v5
+        continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         with:
           name: arrowtile-deneme-apk
           path: flutter/arrowtile/Arrowtile-deneme.apk
@@ -93,6 +94,7 @@ jobs:
       - run: flutter build apk --debug --dart-define=UMP_DEBUG_EEA=true
       - run: cp build/app/outputs/flutter-apk/app-debug.apk Arrowtile-debug-eea.apk
       - uses: actions/upload-artifact@v5
+        continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         with:
           name: arrowtile-debug-eea-apk
           path: flutter/arrowtile/Arrowtile-debug-eea.apk
@@ -137,6 +139,7 @@ jobs:
             test -s pid.txt
             bash .github/scripts/smoke-resume.sh release 0
       - uses: actions/upload-artifact@v5
+        continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         if: always()
         with:
           name: emulator-logcat
@@ -172,6 +175,7 @@ jobs:
             adb install -r Arrowtile-debug-eea.apk
             bash .github/scripts/smoke-resume.sh eea 1
       - uses: actions/upload-artifact@v5
+        continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         if: always()
         with:
           name: emulator-eea
@@ -213,6 +217,7 @@ jobs:
       - run: flutter build apk --debug ${{ matrix.defines }}
       - run: cp build/app/outputs/flutter-apk/app-debug.apk Arrowtile-debug-ads-${{ matrix.variant }}.apk
       - uses: actions/upload-artifact@v5
+        continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         with:
           name: arrowtile-debug-ads-${{ matrix.variant }}-apk
           path: flutter/arrowtile/Arrowtile-debug-ads-${{ matrix.variant }}.apk
@@ -247,6 +252,7 @@ jobs:
             adb install -r Arrowtile-debug-ads-${{ matrix.variant }}.apk
             bash .github/scripts/smoke-ads.sh ads-${{ matrix.variant }} ${{ matrix.variant }}
       - uses: actions/upload-artifact@v5
+        continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         if: always()
         with:
           name: emulator-ads-${{ matrix.variant }}
@@ -294,6 +300,7 @@ jobs:
       - run: flutter build apk --release
       - run: cp build/app/outputs/flutter-apk/app-release.apk Arrowtile-firebase-ci.apk
       - uses: actions/upload-artifact@v5
+        continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         with:
           name: arrowtile-firebase-ci-apk
           path: flutter/arrowtile/Arrowtile-firebase-ci.apk
@@ -324,6 +331,7 @@ jobs:
             adb install -r Arrowtile-firebase-ci.apk
             bash .github/scripts/smoke-firebase.sh
       - uses: actions/upload-artifact@v5
+        continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         if: always()
         with:
           name: emulator-firebase
