@@ -105,6 +105,22 @@ abstract class Telemetry {
   void banner({required String result, int code = -1, required String screen}) =>
       _log('banner', <String, Object>{'result': result, 'code': code, 'screen': screen});
 
+  /// 1.2.1 (docs/27): banner yüklendi. [placement]: menu | map.
+  void bannerLoaded({required String placement}) => _log('banner_loaded', <String, Object>{'placement': placement});
+
+  /// 1.2.1 (docs/27): banner yüklenemedi. [code]: AdMob hata kodu (3 = no fill …) ya da yerel kod (-2 boyut istisnası, -3 boyut yok,
+  /// -4 yükleme istisnası).
+  void bannerFailed({required String placement, required int code}) =>
+      _log('banner_failed', <String, Object>{'placement': placement, 'code': code});
+
+  /// 1.2.1 (docs/27): kullanıcı özelliği banner_group (holdout | banner). Başka değer yazılmaz.
+  void setBannerGroup(String group) {
+    if (group != 'holdout' && group != 'banner') return;
+    try {
+      unawaited(setUserProperty('banner_group', group).catchError((Object _) {}));
+    } catch (_) {}
+  }
+
   /// 1.1.6: oyun alanı beklenenden çok küçük (ekranın <%60'ı, klavye yokken). [screenH]/[boardH]/[insetB]/[padB] tam sayı piksel, [scale] x100.
   void layoutShrunk({required int screenH, required int boardH, required int insetB, required int padB, required int scale}) =>
       _log('layout_shrunk', <String, Object>{'screen_h': screenH, 'board_h': boardH, 'inset_b': insetB, 'pad_b': padB, 'scale': scale});

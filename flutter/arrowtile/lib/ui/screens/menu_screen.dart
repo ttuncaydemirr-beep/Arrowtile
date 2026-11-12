@@ -36,9 +36,20 @@ class MenuScreen extends StatelessWidget {
       canPop: true, // ana menüde geri tuşu uygulamadan çıkar
       child: ScreenScaffold(
         child: Column(children: <Widget>[
+          // 1.2.1 (docs/27 §A2): Ayarlar üst çubukta (dişli simgesi, erişilebilir etiket "Ayarlar" 4 dilde); alttaki düğme kalktı →
+          // menünün en alt düğmesi banner'dan uzaklaştı. RTL'de Row kendiliğinden aynalanır (dişli sağda, jeton solda).
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(children: const <Widget>[Spacer(), CoinPill()]),
+            child: Row(children: <Widget>[
+              IconSquareButton(
+                key: const ValueKey<String>('menu-settings'),
+                icon: Icons.settings_outlined,
+                semanticLabel: loc.menuSettings,
+                onTap: () => Navigator.of(context).push(fadeRoute<void>(const SettingsScreen())),
+              ),
+              const Spacer(),
+              const CoinPill(),
+            ]),
           ),
           Expanded(
             child: Center(
@@ -103,16 +114,12 @@ class MenuScreen extends StatelessWidget {
                         ),
                       ),
                   ]),
-                  const SizedBox(height: 14),
-                  AppButton(loc.menuSettings,
-                      kind: BtnKind.ghost,
-                      icon: Icons.settings_outlined,
-                      onTap: () => Navigator.of(context).push(fadeRoute<void>(const SettingsScreen()))),
                 ]),
               ),
             ),
           ),
-          // banner (docs/15 §3): yalnızca ana menü ve harita; reklamsızda / yüklenmediyse yer kaplamaz; içerik üstte kalır
+          // banner (docs/15 §3): yalnızca ana menü ve harita; 1.2.1: hak varsa yer önceden ayrılır (kayma yok), üstünde 16 dp boşluk;
+          // reklamsızda / kontrol grubunda yer kaplamaz; içerik üstte kalır
           const AdBannerSlot(screen: AdScreen.menu),
         ]),
       ),

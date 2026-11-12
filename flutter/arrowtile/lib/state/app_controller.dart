@@ -11,6 +11,7 @@ import 'package:flutter/services.dart' show rootBundle;
 
 import '../config/ads_config.dart';
 import '../core/ads_rules.dart';
+import '../core/banner_policy.dart';
 import '../core/consent_gate.dart' show TelemetryConsent;
 import '../core/daily.dart' as daily;
 import '../core/diag.dart';
@@ -46,6 +47,7 @@ class AppController extends ChangeNotifier {
     required this.billing,
     this.telemetry = const NoopTelemetry(),
     AdsPlatform? adsPlatform,
+    BannerPolicy bannerPolicy = BannerPolicy.allOn,
   }) {
     sfx.enabled = save.sound;
     haptics.enabled = save.vibration;
@@ -61,6 +63,8 @@ class AppController extends ChangeNotifier {
         persist: persist,
         onInterstitialResult: (String r) => telemetry.interstitial(result: r),
         onAdStage: (String f, String st, int ms) => telemetry.adStage(format: f, stage: st, latencyMs: ms));
+    mon.bannerPolicy = bannerPolicy; // 1.2.1 (docs/27): uzaktan aç/kapa + kontrol grubu; oturum boyunca sabit
+    diag('banner', 'policy', bannerPolicy.toDiag());
     // docs/15 §4: tam ekran reklam gösterilirken ses duraklar (oyun ekranı ayrıca animasyon döngüsünü duraklatır)
     mon.addScreenListener((bool onScreen) => sfx.setHeld(onScreen)); // 1.1.3: ses yalnızca reklam EKRANDAYKEN susar
     sfx.onDeadRecovered = (String reason) => telemetry.audioDeadRecovered(reason: reason); // 1.1.4 (docs/21)
@@ -103,9 +107,14 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  static Future<AppController> create({AdsPlatform? adsPlatform, Telemetry? telemetry}) async {
+  /// [remote]: Remote Config değerleri (main.dart; Firebase yoksa koddaki varsayılanlar). [bannerBucket]: kontrol grubu kovası
+  /// (verilmezse kalıcı kurulum kovası). Testte sahte platform enjekte edildiyse ve kova verilmediyse kova 99 (banner grubu) alınır:
+  /// mevcut düzen testleri rastgele kontrol grubuna düşmesin; holdout testleri kovayı açıkça verir.
+  static Future<AppController> create({AdsPlatform? adsPlatform, Telemetry? telemetry, RemoteFlags? remote, int? bannerBucket}) async {
     final SaveStore store = await SaveStore.open();
     final SaveData save = store.load(detectLang());
+    final int bucket = bannerBucket ?? (adsPlatform != null ? 99 : store.bannerBucket());
+    final BannerPolicy policy = BannerPolicy.from(remote ?? const DefaultRemoteFlags(), bucket);
     if (AdsConfig.autoPlayFrom > 0 && !kReleaseMode) {
       // docs/18 donma testi tohumu: seviye açık, bir seviye sonra geçiş reklamı zamanı
       save.unlocked = math.max(save.unlocked, AdsConfig.autoPlayFrom).clamp(1, kMaxLevel).toInt();
@@ -124,12 +133,17 @@ class AppController extends ChangeNotifier {
         prebuilt: prebuilt,
         billing: billing,
         telemetry: telemetry ?? const NoopTelemetry(),
-        adsPlatform: adsPlatform);
+        adsPlatform: adsPlatform,
+        bannerPolicy: policy);
   }
+
+  /// 1.2.1: banner yerleştirme politikası (Tanılama, telemetri).
+  BannerPolicy get bannerPolicy => mon.bannerPolicy;
 
   /// İlk kare çizildikten sonra çağrılır: ses, satın alma, onay/reklam.
   Future<void> startServices() async {
     telemetry.setLanguage(save.lang);
+    telemetry.setBannerGroup(mon.bannerPolicy.group); // 1.2.1 (docs/27): banner_group = holdout | banner
     unawaited(sfx.init());
     unawaited(billing.start());
     unawaited(platform.refreshOnline());
@@ -144,6 +158,7 @@ class AppController extends ChangeNotifier {
         final TelemetryConsent c = await ConsentSignals.resolve(umpStatus);
         await telemetry.setConsent(c);
         telemetry.setLanguage(save.lang); // toplama onayla açıldıysa kullanıcı özelliği şimdi yazılır
+        telemetry.setBannerGroup(mon.bannerPolicy.group);
       } catch (_) {}
     }());
   }

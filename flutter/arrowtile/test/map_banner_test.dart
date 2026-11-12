@@ -1,6 +1,7 @@
 // 1.1.5 (docs/22): HARİTA banner'ı menüyle AYNI paylaşılan yuva (AdBannerSlot) ve aynı düzen: tam genişlikte alt şerit, harita listesi
 // ŞERİDİN ÜSTÜNDE (Column + Expanded; Stack/Positioned örtüsü yok), yüklenmeden hiçbir şey bağlanmaz; menü haritanın altında kalınca
 // reklamını bırakır (aynı anda tek canlı banner).
+// 1.2.1 (docs/27 §A1): yuva yerini reklam yüklenmeden ÖNCE ayırır (56 dp + üstte 16 dp boşluk); reklam gelince liste KAYMAZ.
 import 'package:arrowtile/l10n/app_localizations.dart';
 import 'package:arrowtile/state/app_controller.dart';
 import 'package:arrowtile/state/app_scope.dart';
@@ -73,39 +74,43 @@ void main() {
     AdBannerSlot.debugLoader = (int w, {required onLoaded, required onFailed, onImpression}) {
       final int n = ++made;
       Future<void>.delayed(Duration(milliseconds: delayMs), () {
-        onLoaded(BannerHandle(ColoredBox(key: ValueKey<String>('fake-ad-$n'), color: Colors.red), const Size(320, 100), () => disposed++));
+        onLoaded(BannerHandle(ColoredBox(key: ValueKey<String>('fake-ad-$n'), color: Colors.red), const Size(320, 50), () => disposed++));
       });
     };
   }
 
-  testWidgets('harita: yüklenmeden hiçbir şey bağlanmaz; yüklenince tam genişlikte alt şerit, harita içeriği örtülmez', (WidgetTester t) async {
+  testWidgets('harita: yer yüklenmeden ayrılır (56 dp + 16 dp boşluk), reklam gelince liste kaymaz; şerit tam genişlik, en altta', (WidgetTester t) async {
     loader(delayMs: 300);
     await _boot(t, const MapScreen());
     await t.pump();
     await t.pump(const Duration(milliseconds: 100));
-    // yüklenmeden: şerit de reklam görünümü de yok; harita listesi tüm yüksekliği kullanır
-    expect(find.byKey(_strip), findsNothing);
+    // yüklenmeden: şerit (boş yer tutucu) VAR, reklam görünümü yok
+    expect(find.byKey(_strip), findsOneWidget);
     expect(find.byKey(_ad), findsNothing);
     expect(find.byWidgetPredicate((Widget w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.startsWith('fake-ad')), findsNothing);
+    final Rect stripBefore = t.getRect(find.byKey(_strip));
+    expect(stripBefore.height, kBannerSlotHeight);
     final double listBottomBefore = t.getRect(find.byType(ListView)).bottom;
     final Rect scaffoldBefore = t.getRect(find.byType(Scaffold).last);
+    expect(stripBefore.top - listBottomBefore, greaterThanOrEqualTo(16), reason: 'harita listesinin sonu ile banner arasında ≥ 16 dp');
 
     await t.pump(const Duration(milliseconds: 400));
     await t.pump();
     expect(find.byKey(_strip), findsOneWidget);
     final Rect strip = t.getRect(find.byKey(_strip));
     final Rect scaffold = t.getRect(find.byType(Scaffold).last);
+    expect(strip, stripBefore, reason: 'yüklenince şerit yer/boyut değiştirmez');
     expect(strip.width, scaffold.width, reason: 'şerit tam genişlikte (daracık kutu değil)');
-    expect(strip.height, 100);
     expect(strip.bottom, scaffold.bottom, reason: 'şerit en altta (SafeArea payı yok)');
     // reklam görünümü tam reklam boyutunda ve şeridin ortasında
     final Rect ad = t.getRect(find.byKey(_ad));
-    expect(ad.size, const Size(320, 100));
+    expect(ad.size, const Size(320, 50));
     expect(ad.center.dx, closeTo(strip.center.dx, 0.5));
-    // harita içeriği ŞERİDİN ÜSTÜNDE: örtüşme yok
+    expect(ad.center.dy, closeTo(strip.center.dy, 0.5));
+    // harita içeriği ŞERİDİN ÜSTÜNDE: örtüşme yok, kayma yok
     final Rect list = t.getRect(find.byType(ListView));
-    expect(list.bottom, lessThanOrEqualTo(strip.top + 0.01), reason: 'harita şeridin altına taşmamalı (Column + Expanded)');
-    expect(list.bottom, closeTo(listBottomBefore - 100, 0.5));
+    expect(list.bottom, lessThanOrEqualTo(strip.top - 16 + 0.01), reason: 'harita şeridin altına taşmamalı (Column + Expanded) ve 16 dp boşluk');
+    expect(list.bottom, closeTo(listBottomBefore, 0.01), reason: 'reklam gelince liste kaymaz');
     expect(scaffoldBefore, scaffold);
     // şerit, kaydırılan listenin / Stack örtüsünün içinde değil
     expect(find.descendant(of: find.byType(ListView), matching: find.byKey(_strip)), findsNothing);

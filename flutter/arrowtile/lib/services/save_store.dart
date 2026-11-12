@@ -1,6 +1,7 @@
 // Arrowtile — save_store.dart: kayıt kalıcılığı (shared_preferences). Anahtar web ile aynı: arrowtile.save.v1.
 // Her erişim try/catch; bozuk veride güvenli varsayılan. Oyun hiçbir zaman çökmez.
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -12,6 +13,9 @@ class SaveStore {
   static const String key = 'arrowtile.save.v1';
   static const String langKey = 'arrowtile.lang';
   static const String endlessKey = 'arrowtile.save.v1.endless';
+  /// 1.2.1 (docs/27): banner kontrol grubu kovası 0..99, kurulum başına sabit. Ayrı anahtar: kayıt şeması (web ile ortak, yedek kodu,
+  /// altın testler) değişmez; "İlerlemeyi sıfırla" ve yedek kodu içe aktarma kovayı DEĞİŞTİRMEZ (grup kurulum boyunca aynı kalır).
+  static const String bannerBucketKey = 'arrowtile.bb.v1';
 
   final SharedPreferences? _prefs;
   SaveStore._(this._prefs);
@@ -51,6 +55,19 @@ class SaveStore {
       p.setString(key, jsonEncode(s.toJson()));
       p.setString(langKey, s.lang);
     } catch (_) {}
+  }
+
+  /// Kayıtlı kovayı döndürür; yoksa/bozuksa [rng] ile 0..99 üretir ve yazar. Kalıcılık yoksa her açılışta yeni kova (oyun etkilenmez).
+  int bannerBucket([math.Random? rng]) {
+    try {
+      final int? have = _prefs?.getInt(bannerBucketKey);
+      if (have != null && have >= 0 && have <= 99) return have;
+    } catch (_) {}
+    final int b = (rng ?? math.Random()).nextInt(100);
+    try {
+      _prefs?.setInt(bannerBucketKey, b);
+    } catch (_) {}
+    return b;
   }
 
   void clearProgress() {

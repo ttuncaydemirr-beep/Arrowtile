@@ -28,6 +28,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'banner_policy.dart';
 import 'diag.dart';
 import 'save_data.dart';
 
@@ -235,9 +236,13 @@ class Monetization {
   bool get isTestMode => !_bridge;
 
   // ---- banner (docs/15 §3) ----
-  /// Bu ekranda banner gösterilir mi? Yalnızca Ana menü ve Harita; "Reklamları kaldır" alınmışsa asla.
-  /// (Reklamın yüklenip yüklenmediği ayrıca bakılır: yüklenmezse banner yer kaplamaz.)
-  bool bannerVisible(AdScreen screen) => kBannerScreens.contains(screen) && !isAdFree();
+  /// 1.2.1 (docs/27): yerleştirme başına uzaktan aç/kapa + kontrol grubu. Varsayılan kısıtsız ([BannerPolicy.allOn]);
+  /// uygulama açılışta Remote Config + kurulum kovasından kurar (AppController). Oturum içinde değişmez.
+  BannerPolicy bannerPolicy = BannerPolicy.allOn;
+
+  /// Bu ekranda banner gösterilir mi? Yalnızca Ana menü ve Harita; "Reklamları kaldır" alınmışsa asla; kontrol grubunda (holdout) ya da
+  /// yerleştirme uzaktan kapatılmışsa asla. Doğruysa yuva (AdBannerSlot) yerini reklam yüklenmeden ÖNCE ayırır (1.2.1: kayma yok).
+  bool bannerVisible(AdScreen screen) => kBannerScreens.contains(screen) && bannerPolicy.allows(screen) && !isAdFree();
 
   // ---- reklam gösterimi dinleyicisi (docs/15 §4: oyun döngüsü + ses duraklar) ----
   final List<void Function(bool active)> _adListeners = <void Function(bool active)>[];

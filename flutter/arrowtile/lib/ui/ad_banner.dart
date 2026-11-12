@@ -1,16 +1,19 @@
-// Arrowtile — ad_banner.dart: uyarlanabilir (adaptive) banner reklam alanı (docs/15 §3).
+// Arrowtile — ad_banner.dart: KÜÇÜK banner reklam alanı (docs/15 §3; 1.2.1: docs/27 §A).
 // Yalnızca Ana menü ve Harita ekranlarının EN ALTINDA (güvenli alanın üstünde: ScreenScaffold SafeArea içinde) kullanılır;
 // görünürlük kuralı core/ads_rules.dart Monetization.bannerVisible(): oyun, seviye sonu, mağaza, ayarlar, günlük bulmacada YOK,
-// "Reklamları kaldır" alınmışsa YOK.
-//  - Reklam yüklenene dek ve yüklenemezse hiç yer kaplamaz (SizedBox.shrink): boşluk bırakmaz.
-//  - Yüklenince ekranın altında banner yüksekliği kadar yer ayrılır; içerik (Expanded) yukarı itilir.
-//  - Reklam yalnızca SDK hazırken (UMP canRequestAds, MobileAds.initialize bitti) istenir; reklamsız satın almada anında kaldırılır.
+// "Reklamları kaldır" alınmışsa YOK, 1.2.1: kontrol grubunda (holdout) ve yerleştirme uzaktan kapatılmışsa YOK.
+//  - 1.2.1 YER AYIRMA: banner'a izin varsa yuva, reklam yüklenmeden ÖNCE sabit yükseklikte ([kBannerSlotHeight] = 56 dp) boş bir alan
+//    ayırır ve üstünde [kBannerGap] = 16 dp dokunulmaz boşluk bırakır; reklam gelince yalnızca bu alanın içine yerleşir → hiçbir düğme kaymaz.
+//    Doldurulamazsa (no fill) ya da SDK hazır değilse alan OTURUM BOYUNCA ayrılı kalır (oyuncu dokunurken düzen değişmesin; docs/27 §A1).
+//    Alan yalnızca banner hakkı kalktığında (reklamsız satın alma) hemen kapanır.
+//  - Boyut: standart (büyük DEĞİL) sabitlenmiş uyarlanabilir banner; yüksekliği yuvayı aşarsa ya da alınamazsa klasik 320x50 banner.
+//  - Reklam yalnızca SDK hazırken (UMP canRequestAds, MobileAds.initialize bitti) istenir.
 //  - Yükleme başarısızsa 60 sn sonra bir daha denenir (ekran açık kaldıkça).
-//  1.1.4 (docs/21): cihazda "banner hiç görünmüyor" bildirimi. Her olay (istek, boyut, yüklendi + boyut, hata kodu/iletisi/yanıt bilgisi,
-//  gösterim) tanılama kaydına ve telemetriye (`banner {result, code}`) yazılır. Düzeltilen boşluklar: uyarlanabilir boyut null dönerse
-//  ya da yükleme istisna verirse hiç yeniden denenmiyordu (ekran yeniden çizilene dek banner istenmezdi); genişlik 0 iken istek atlanır
-//  ve sonraki karede yeniden denenir. Yükleyici testlerde sahtesiyle değiştirilebilir ([AdBannerSlot.debugLoader]).
+//  1.1.4 (docs/21): her olay (istek, boyut, yüklendi + boyut, hata kodu/iletisi/yanıt bilgisi, gösterim) tanılama kaydına ve telemetriye
+//  (`banner {result, code}`; 1.2.1: ayrıca `banner_loaded` / `banner_failed {placement, code}`) yazılır. Yükleyici testlerde sahtesiyle
+//  değiştirilebilir ([AdBannerSlot.debugLoader]).
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -21,6 +24,12 @@ import '../core/ads_rules.dart';
 import '../core/diag.dart';
 import '../state/app_controller.dart';
 import '../state/app_scope.dart';
+
+/// 1.2.1: banner yuvasının sabit yüksekliği (dp). Küçük banner (320x50 ya da standart uyarlanabilir ≤ 56) buna sığar.
+const double kBannerSlotHeight = 56;
+
+/// 1.2.1: yuvanın üstündeki dokunulmaz boşluk (dp): hiçbir düğme banner'a 16 dp'den yakın olmaz (yanlışlıkla tıklama önlemi).
+const double kBannerGap = 16;
 
 /// Yüklenmiş bir banner: çizilecek widget + boyut + bırakma.
 class BannerHandle {
@@ -46,18 +55,19 @@ void googleBannerLoader(
   void Function()? onImpression,
 }) {
   unawaited(() async {
-    AnchoredAdaptiveBannerAdSize? size;
+    // 1.2.1 (docs/27 §A4): KÜÇÜK banner. Standart sabitlenmiş uyarlanabilir boyut (büyük değil); yuvaya (56 dp) sığmazsa ya da
+    // alınamazsa klasik 320x50. Böylece yüklenen reklam önceden ayrılan alanı asla aşmaz (kayma yok).
+    AdSize size = AdSize.banner;
     try {
-      // google_mobile_ads 9: önerilen "büyük sabitlenmiş uyarlanabilir" boyut; alınamazsa eski API ile bir kez daha dene
-      size = await AdSize.getLargeAnchoredAdaptiveBannerAdSize(width);
       // ignore: deprecated_member_use
-      size ??= await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
+      final AnchoredAdaptiveBannerAdSize? a = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
+      if (a != null && a.height > 0 && a.height <= kBannerSlotHeight && a.width <= width) size = a;
+      diag('banner', 'adaptive', <String, Object?>{'w': a?.width, 'h': a?.height, 'used': identical(size, a)});
     } catch (e) {
-      onFailed(-2, 'adaptive size exception: $e');
-      return;
+      diag('banner', 'adaptive', <String, Object?>{'error': '$e'});
     }
-    if (size == null) {
-      onFailed(-3, 'adaptive size null (width=$width)');
+    if (width < size.width) {
+      onFailed(-3, 'width $width < ${size.width}');
       return;
     }
     diag('banner', 'size', <String, Object?>{'w': size.width, 'h': size.height});
@@ -137,7 +147,11 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
     }
   }
 
-  bool _want(AppController app) => app.mon.bannerVisible(widget.screen) && app.mon.platform.sdkReady;
+  /// Bu yerleştirmede banner hakkı var mı (yer ayrılır): kural + kontrol grubu + uzaktan anahtar + reklamsız değil.
+  bool _reserve(AppController app) => app.mon.bannerVisible(widget.screen);
+
+  /// Reklam istenir/tutulur mu: hak var ve SDK hazır.
+  bool _want(AppController app) => _reserve(app) && app.mon.platform.sdkReady;
 
   void _drop() {
     _gen++;
@@ -180,6 +194,7 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
         }
         diag('banner', 'loaded', <String, Object?>{'screen': _scr, 'w': h.size.width, 'h': h.size.height});
         app.telemetry.banner(result: 'loaded', screen: _scr);
+        app.telemetry.bannerLoaded(placement: _scr);
         setState(() {
           _ad = h;
           _loading = false;
@@ -189,6 +204,7 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
         settled = true;
         diag('banner', 'failed', <String, Object?>{'screen': _scr, 'code': code, 'msg': msg});
         app.telemetry.banner(result: code == -3 ? 'size_null' : (code <= -2 ? 'exception' : 'failed'), code: code, screen: _scr);
+        app.telemetry.bannerFailed(placement: _scr, code: code);
         if (kDebugMode) debugPrint('Ads: banner failed ($code): $msg');
         if (!mounted || gen != _gen) return;
         setState(() {
@@ -203,6 +219,7 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
     } catch (e) {
       settled = true;
       diag('banner', 'failed', <String, Object?>{'screen': _scr, 'code': -4, 'msg': '$e'});
+      app.telemetry.bannerFailed(placement: _scr, code: -4);
       _loading = false;
       _scheduleRetry(AdBannerSlot.retryAfter);
     }
@@ -218,6 +235,8 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
   @override
   Widget build(BuildContext context) {
     final AppController app = AppScope.of(context);
+    // 1.2.1: hak yoksa (reklamsız, kontrol grubu, uzaktan kapalı, banner'sız ekran) yuva hiç yer kaplamaz; hak varsa yer HER ZAMAN ayrılır.
+    final bool reserve = _reserve(app);
     // 1.1.5 (docs/22): başka bir ekranın altında kalan (Offstage: TickerMode kapalı) yuva reklamını bırakır; aksi halde menü banner'ı
     // harita açıkken de canlı kalıp aynı anda iki yerel AdView olurdu (haritada dar kutu / ham metin / banner yok bildirimi).
     final bool active = TickerMode.of(context);
@@ -230,7 +249,7 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
           if (!(TickerMode.of(context) && _want(AppScope.read(context)))) setState(_drop);
         });
       }
-      return const SizedBox.shrink();
+      return reserve ? _strip(null) : const SizedBox.shrink();
     }
     return LayoutBuilder(builder: (BuildContext ctx, BoxConstraints bc) {
       final int w = bc.maxWidth.isFinite ? bc.maxWidth.floor() : MediaQuery.sizeOf(ctx).width.floor();
@@ -244,18 +263,25 @@ class _AdBannerSlotState extends State<AdBannerSlot> {
           if (mounted) setState(_drop);
         });
       }
-      final BannerHandle? ad = _ad;
-      if (ad == null) return const SizedBox.shrink(); // yüklenmedi: yer kaplamaz
-      // Tam genişlikte alt şerit (Column'un son çocuğu; harita/menü içeriği Expanded ile ÜSTTE). AdWidget yalnızca yüklendikten sonra,
-      // tam reklam boyutunda SizedBox içinde; Transform/Opacity/Clip yok, kaydırılan listenin içinde değil.
-      return SizedBox(
+      return _strip(_ad);
+    });
+  }
+
+  /// Tam genişlikte alt şerit (Column'un son çocuğu; harita/menü içeriği Expanded ile ÜSTTE): üstte [kBannerGap] boşluk, altında sabit
+  /// [kBannerSlotHeight] yüksekliğinde alan. Reklam yoksa alan boştur (yer tutucu: düz zemin, metin/çerçeve yok — tıklamaya davet etmez).
+  /// AdWidget yalnızca yüklendikten sonra, tam reklam boyutunda SizedBox içinde; Transform/Opacity/Clip yok, kaydırılan listenin içinde değil.
+  Widget _strip(BannerHandle? ad) {
+    final double h = ad == null ? kBannerSlotHeight : math.max(kBannerSlotHeight, ad.size.height);
+    return Padding(
+      padding: const EdgeInsets.only(top: kBannerGap),
+      child: SizedBox(
         key: const ValueKey<String>('ad-banner-strip'),
         width: double.infinity,
-        height: ad.size.height,
-        child: _settled
+        height: h,
+        child: ad != null && _settled
             ? Center(child: SizedBox(key: const ValueKey<String>('ad-banner'), width: ad.size.width, height: ad.size.height, child: ad.view))
             : null,
-      );
-    });
+      ),
+    );
   }
 }

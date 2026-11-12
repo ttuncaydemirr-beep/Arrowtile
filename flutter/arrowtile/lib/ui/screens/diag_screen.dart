@@ -25,6 +25,8 @@ String diagReport(AppController app) {
     'sdk_ready': app.mon.platform.sdkReady,
     'online': app.mon.platform.online,
     'ad_free': app.mon.isAdFree(),
+    // 1.2.1 (docs/27): banner kontrol grubu + uzaktan anahtarlar (banner_group, kova, yüzde, menü/harita, kaynak default|remote)
+    ...app.bannerPolicy.toDiag(),
     'ad_hold': app.mon.adHoldFormat ?? 'none',
     'ads_since': app.save.ads.since,
     'sound': app.save.sound,
