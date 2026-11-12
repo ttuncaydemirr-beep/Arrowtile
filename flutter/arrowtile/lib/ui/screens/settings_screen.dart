@@ -168,11 +168,21 @@ class SettingsScreen extends StatelessWidget {
               _VersionTap(
                 child: Text(loc.settingsVersion(AppInfo.version), textAlign: TextAlign.center, style: TextStyle(color: pal.inkSoftC, fontSize: 13)),
               ),
+              // 1.2.1: geliştirici adı (özel ad: çevrilmez, Arapçada da Latin harfle)
+              Text(AppInfo.developerName,
+                  key: const ValueKey<String>('developer-name'),
+                  textAlign: TextAlign.center,
+                  textDirection: TextDirection.ltr,
+                  style: TextStyle(color: pal.inkSoftC, fontSize: 13)),
               // 1.2.0: açık kaynak lisansları (Readex Pro OFL 1.1 + Flutter paketleri)
               Center(
                 child: TextButton(
                   key: const ValueKey<String>('btn-licenses'),
-                  onPressed: () => showLicensePage(context: context, applicationName: loc.appName, applicationVersion: AppInfo.version),
+                  onPressed: () => showLicensePage(
+                      context: context,
+                      applicationName: loc.appName,
+                      applicationVersion: AppInfo.version,
+                      applicationLegalese: '© 2026 ${AppInfo.developerName}'),
                   child: Text(loc.settingsLicenses, style: TextStyle(color: pal.accentC, fontSize: 14, fontWeight: FontWeight.w700)),
                 ),
               ),

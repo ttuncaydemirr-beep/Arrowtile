@@ -2,10 +2,17 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:arrowtile/config/ads_config.dart';
 import 'package:arrowtile/ui/screens/privacy_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('geliştirici adı Demir Games Studio; gizlilik tarihi web ile aynı', () {
+    expect(AppInfo.developerName, 'Demir Games Studio');
+    final String web = File('../../game/js/privacy.js').readAsStringSync();
+    expect(web, contains("var UPDATED = '${AppInfo.privacyUpdated}'"));
+  });
+
   const String partner = 'https://policies.google.com/technologies/partner-sites';
 
   test('splitLinks: adres bağlantı olur, çevresindeki metin korunur', () {
@@ -34,6 +41,8 @@ void main() {
         'ar': '13',
       };
       expect(data.contains(under13[lang]!), isTrue, reason: data);
+      // 1.2.1: geliştirici adı her dilde
+      expect(arb['privacyPContact'] as String, contains('Demir Games Studio'));
     });
   }
 }

@@ -1,8 +1,5 @@
-Version 1.2.0
-- Kapitel haben jetzt 20 Level: Leicht, Mittel, Schwer und Sehr schwer; das Brett wächst von Kapitel zu Kapitel.
-- Neue lange, verschlungene Pfeile und geformte Bretter.
-- Große Bretter: verschieben, mit zwei Fingern zoomen, „Einpassen“-Taste; tippe auf ein Feld des Pfeils.
-- Pfeile folgen beim Verlassen ihrem eigenen Weg, mit neuem Windgeräusch.
-- Fackel-Feier und Tempo-Abzeichen am Levelende.
-- Einstellungen: Pfeilfarbe (Bunt / Einfarbig).
-- Neue Farben und neue Schrift.
+Version 1.2.1
+- Aufgeräumtes Hauptmenü: Die Einstellungen sind jetzt oben in der Leiste (Zahnrad).
+- Der Werbeplatz in Menü und Karte ist vorab reserviert – Schaltflächen springen nicht mehr, wenn Werbung erscheint.
+- Bessere Lesbarkeit: einige Pfeil-, Stern- und Münzfarben sind deutlicher; nicht verdiente Sterne und verlorene Leben sind als Umriss dargestellt.
+- „Werbung entfernen“ sagt jetzt klar, dass auch Werbebanner entfernt werden.

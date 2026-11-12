@@ -5,7 +5,7 @@
 (function () {
   'use strict';
   var EMAIL = 'nilkaren.tuncay.demir@gmail.com';
-  var UPDATED = '2026-11-10';
+  var UPDATED = '2026-11-12'; // 1.2.1: geliştirici adı (Demir Games Studio) eklendi
   var SECTIONS = [['privacy.h_data', 'privacy.p_data'], ['privacy.h_ads', 'privacy.p_ads'], ['privacy.h_analytics', 'privacy.p_analytics'], ['privacy.h_buy', 'privacy.p_buy'],
                   ['privacy.h_delete', 'privacy.p_delete'], ['privacy.h_contact', 'privacy.p_contact']];
   // Metindeki https:// adresleri tıklanabilir bağlantı olur (Google iş ortağı veri kullanımı sayfası); bağlantı RTL metinde de soldan sağa okunur

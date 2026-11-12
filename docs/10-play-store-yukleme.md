@@ -38,7 +38,7 @@ Kaynaklar sayfanın sonunda.
 2. **Kişisel** hesap türünü seçin. (Şirketiniz yoksa kişisel hesap uygundur. Kuruluş hesabı D-U-N-S numarası ister.)
 3. Tek seferlik kayıt ücretini (25 $) ödeyin.
 4. Kimlik doğrulamasını tamamlayın: kimlik belgesi, adres ve telefon. Onay birkaç gün sürebilir.
-5. **Geliştirici adı** mağazada görünür (ör. "Arrowtile Games"). İletişim e-postası olarak `nilkaren.tuncay.demir@gmail.com` adresini kullanın.
+5. **Geliştirici adı** mağazada görünür: **Demir Games Studio** (sahip kararı; "Demir Games" Play'de alınmış — tüm projelerde aynı ad). İletişim e-postası olarak `nilkaren.tuncay.demir@gmail.com` adresini kullanın.
 
 ## 2. AdMob hesabı, uygulama ve 3 reklam birimi
 

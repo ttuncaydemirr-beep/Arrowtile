@@ -1,8 +1,5 @@
-Sürüm 1.2.0
-- Bölümler artık 20 seviye: Kolay, Orta, Zor ve Aşırı zor; tahta bölümden bölüme büyür.
-- Uzun, kıvrımlı yeni oklar ve şekilli tahtalar.
-- Büyük tahtada kaydırma, iki parmakla yakınlaştırma ve "Sığdır" düğmesi; dokunuş okun hücresinde.
-- Oklar kendi yolunu izleyerek çıkar; yeni rüzgâr sesi.
-- Seviye sonunda meşale kutlaması ve hız rozeti.
-- Ayarlar: Ok rengi (Renkli / Tek renk).
-- Yeni renkler ve yazı tipi.
+Sürüm 1.2.1
+- Daha sade ana menü: Ayarlar artık üst çubukta (dişli simgesi).
+- Menü ve haritadaki reklam alanı önceden ayrılıyor; reklam gelince düğmeler kaymıyor.
+- Okunabilirlik: bazı ok, yıldız ve jeton renkleri daha belirgin; kazanılmayan yıldızlar ve kayıp canlar içi boş simgeyle gösteriliyor.
+- "Reklamları kaldır" artık açıkça banner reklamları da kaldırdığını söylüyor.

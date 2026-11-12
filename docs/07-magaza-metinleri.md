@@ -15,6 +15,7 @@ Kaynak: `game/js/i18n.js` (`store.title`, `store.short`, `store.long`). Bu belge
 
 ## Play Console notları
 
+- Geliştirici adı (Play Console › Ayarlar › Geliştirici hesabı ve mağaza kaydında görünen ad): **Demir Games Studio** (1.2.1; "Demir Games" Play'de alınmış). Gizlilik politikası ve uygulama içi lisans sayfası aynı adı kullanır.
 - Uygulama adı: **Arrowtile** (tüm dillerde Latin harfle). Paket adı önerisi: `com.arrowtile.puzzle` (yayından önce doğrulanacak).
 - Kategori: Oyun › Bulmaca. Hedef kitle: genel (her yaş); çocuklara yönelik "Aile" programına girilmiyor.
 - "Reklam içerir": **Evet** (seviye sonu geçiş reklamı + isteğe bağlı ödüllü reklam + yalnızca Ana menü ve Harita ekranlarında banner, AdMob). "Uygulama içi satın alma": **Evet** (`remove_ads`, tüketilmeyen, tek seferlik).

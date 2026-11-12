@@ -711,7 +711,7 @@
   "@privacyHContact": {
     "description": "privacy.h_contact"
   },
-  "privacyPContact": "Gizlilikle ilgili soruların için bize yaz:",
+  "privacyPContact": "Arrowtile, Demir Games Studio tarafından geliştirilir. Gizlilikle ilgili soruların için bize yaz:",
   "@privacyPContact": {
     "description": "privacy.p_contact"
   },
