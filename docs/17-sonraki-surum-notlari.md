@@ -70,3 +70,15 @@ Kullanıcı 1.2.0 listesinin tamamını onayladı (büyük kaydırılabilir taht
 
 ## 1.2.0 Aşama A — web önizleme (11.11.2026)
 Oynanış/görsel yenileme (bölüm = 20 seviye, 28x45 kaydırmalı tahta, uzun kıvrımlı oklar, şekilli Aşırı zor, ok rengi, çıkış animasyonu, rüzgâr sesi, kutlama, 2,5 sn çarpma uyarısı, harita) web önizlemede `v1.2-web` dalında hazır: ayrıntı, ayar sabitleri, üretim süreleri ve sapmalar `docs/24-surum-1-2-0-asama-a.md`. Sahip onayı bekleyenler: büyüme uzunluğu (`GROW_CHAPTERS = 9`), Kolay seviyelerin büyük tahtada oynanması, varsayılan ok rengi.
+
+## 1.2.1 (versionCode 12) — 12.11.2026, dal `v1.2.1` (sahip onaylı kapsam)
+Ayrıntı: `docs/27-surum-1-2-1.md`.
+- Banner: menü/haritada yer reklam gelmeden ayrılır (56 dp + üstte 16 dp boşluk); no fill'de oturum boyunca korunur → düğmeler kaymaz. Küçük banner
+  (büyük uyarlanabilir boyut kaldırıldı). Ayarlar menünün üst çubuğuna (dişli) taşındı; 360×640'ta hiçbir düğme banner'a 16 dp'den yakın değil (test).
+- Banner ölçümü: Remote Config `banner_menu_enabled`, `banner_map_enabled`, `banner_holdout_pct` (varsayılan true/true/50; Firebase yoksa kod
+  varsayılanları), kurulum başına sabit %50 kontrol grubu (banner yok), `banner_loaded`/`banner_failed` olayları, `banner_group` kullanıcı özelliği.
+  Kapatma kuralı: ≥ 2 hafta sonra gruplar karşılaştırılır; banner grubunda düşüş → o banner kapatılır; anormal yüksek TO → kapatılır.
+- "Reklamları kaldır" metni banner'ları da anar (4 dil).
+- Okunabilirlik: WCAG kontrast aracı `tools/contrast.js`; varsayılan ok hardal/çivit, yıldız/jeton simgesi ve ipucu halkası tonları düzeltildi;
+  boş yıldız ve kayıp can içi boş simge, kademe noktası şekilli, seçili sekme alt çizgili. Satın alınan temalar değiştirilmedi (sahip kararı bekliyor).
+- Geliştirici adı "Demir Games Studio" (gizlilik politikası, lisans sayfası, belgeler). Simge adayı `store/icon-candidates/` (uygulama simgesi aynı).
