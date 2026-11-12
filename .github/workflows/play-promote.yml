@@ -1,0 +1,42 @@
+name: Play - kapalı teste yükselt (yalnızca)
+
+# Derleme/yükleme yapmaz: iç teste zaten yüklenmiş sürümü (pubspec versionCode) kapalı teste (alpha) atar.
+# release.yml'de iç test yüklemesi başarılı olup yükseltme adımı düştüğünde kullanılır.
+on:
+  workflow_dispatch:
+    inputs:
+      status:
+        type: choice
+        options: [completed, draft]
+        default: completed
+      hold_for_review:
+        description: "Otomatik incelemeye GÖNDERME (Play izin vermiyorsa yok sayılır)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Sürüm notlarını hazırla
+        id: notes
+        run: |
+          out="$RUNNER_TEMP/whatsnew"; mkdir -p "$out"
+          for p in tr:tr-TR en:en-US de:de-DE ar:ar; do
+            f="flutter/arrowtile/release-notes/${p%%:*}.txt"
+            [ -s "$f" ] && cp "$f" "$out/whatsnew-${p##*:}"
+          done
+          echo "dir=$out" >> "$GITHUB_OUTPUT"
+      - name: Kapalı teste yükselt
+        env:
+          PLAY_SA_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          STATUS: ${{ inputs.status }}
+          HOLD: ${{ inputs.hold_for_review }}
+          NOTES_DIR: ${{ steps.notes.outputs.dir }}
+        run: |
+          pip install --quiet google-auth requests
+          python3 tools/play_promote.py
