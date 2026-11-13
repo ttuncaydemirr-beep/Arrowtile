@@ -1,6 +1,6 @@
 /* Arrowtile — theme.js
  * Görsel token'lar + drawArrow(ctx, opts). Bağımlılıksız, çevrimdışı.
- * Estetik: "Emaye levha" — porselen zemin, emaye renkli kalın oklar,
+ * Estetik (1.2.0, docs/24 §7): "Kum ve Mürekkep" — sıcak kum zemin, emaye renkli kalın oklar,
  * altta hafif "kalınlık" gölgesi; yön her zaman şekille (ok başı + gövde
  * şevronları) okunur, renk sadece süs.
  */
@@ -11,71 +11,88 @@
     // Fiyatlar: yönetici kararıyla tasarım belgesinden (0/300/500/750/1000).
     version: 1,
 
+    // @tokens:begin colors — tools/gen-tokens.js üretir; elle düzenlemeyin (kaynak: design/colors.json)
     colors: {
       light: {
-        bg:         '#EFEAE2', // porselen gri-mavi zemin
-        board:      '#FBF9F5', // tahta yüzü
-        boardEdge:  '#D8D0C3', // tahta kenarı / alt kalınlık
-        cell:       '#EEE8DE', // hücre çukuru
-        cellDot:    '#CFC6B8', // hücre köşe noktası
-        ink:        '#22252B', // ana metin (lacivert mürekkep)
-        inkSoft:    '#6A6760', // ikincil metin
-        accent:     '#1E7A78', // kobalt — birincil buton
-        accentInk:  '#FFFFFF',
-        star:       '#E3A008', // safran yıldız (zemin/rozet dolgusu)
-        starInk:    '#AD7800', // 1.2.1 (docs/27 §B1): yıldız SİMGESİ (kart/zemin üstünde ≥ 3:1)
-        starEmpty:  '#D8D0C3',
-        coin:       '#D4951A',
-        coinInk:    '#A86F0C', // 1.2.1: jeton simgesi ve ödül yazısı (≥ 3:1)
-        danger:     '#D2453B', // can / hata
-        success:    '#2F8F5B',
-        highlight:  '#FFFFFF', // ipucu halkası iç
+        bg:            '#EFEAE2', // kum zemin / kömür
+        board:         '#FBF9F5', // tahta yüzü ("kâğıt levha"), modal
+        boardEdge:     '#D8D0C3', // tahta kenarı / alt kalınlık
+        cell:          '#EEE8DE', // hücre çukuru, sekme izi
+        cellDot:       '#CFC6B8', // hücre köşe noktası (yalnızca tahta)
+        ink:           '#22252B', // ana metin (mürekkep) + tek renk oklar
+        inkSoft:       '#6A6760', // ikincil metin
+        accent:        '#1E7A78', // derin çam yeşili-turkuaz — birincil buton
+        accentInk:     '#FFFFFF', // accent üstündeki yazı
+        onFill:        '#FFFFFF', // 1.2.2: renkli dolgu (success/accent/danger) üstündeki yazı — koyu temada koyu (≥ 4,5:1)
+        star:          '#E3A008', // altın yıldız (zemin/rozet dolgusu)
+        starInk:       '#AD7800', // 1.2.1 (docs/27 §B1): yıldız SİMGESİ, ipucu halkası, odak halkası (≥ 3:1)
+        starEmpty:     '#D8D0C3', // anahtarın kapalı izi
+        coin:          '#D4951A', // jeton rozeti dolgusu
+        coinInk:       '#A86F0C', // 1.2.1: jeton simgesi ve ödül yazısı (≥ 3:1)
+        danger:        '#D2453B', // yalnızca can / çarpma / hata
+        success:       '#267A4D', // 1.2.2: açıkta #2F8F5B → #267A4D (küçük metin kart üstünde 3,84 → 5,03; beyaz yazıyla 4,04 → 5,29)
+        highlight:     '#FFFFFF', // ipucu halkası iç
         highlightRing: '#AD7800', // 1.2.1: ipucu halkası tahtada ≥ 3:1 (eski #E3A008: 2,15)
-        shadow:     'rgba(34,37,43,0.16)'
+        shadow:        'rgba(34,37,43,0.16)' // yüzen katman gölgesi
       },
       dark: {
-        bg:         '#14171C',
-        board:      '#1E2229',
-        boardEdge:  '#0C0E12',
-        cell:       '#272C35',
-        cellDot:    '#3A414D',
-        ink:        '#F2EEE6',
-        inkSoft:    '#A19D94',
-        accent:     '#4DB6AC',
-        accentInk:  '#14171C',
-        star:       '#F2B632',
-        starInk:    '#F2B632',
-        starEmpty:  '#3A414D',
-        coin:       '#F0B23A',
-        coinInk:    '#F0B23A',
-        danger:     '#F0685E',
-        success:    '#55C08A',
-        highlight:  '#FFFFFF',
+        bg:            '#14171C',
+        board:         '#1E2229',
+        boardEdge:     '#0C0E12',
+        cell:          '#272C35',
+        cellDot:       '#3A414D',
+        ink:           '#F2EEE6',
+        inkSoft:       '#A19D94',
+        accent:        '#4DB6AC',
+        accentInk:     '#14171C',
+        onFill:        '#14171C',
+        star:          '#F2B632',
+        starInk:       '#F2B632',
+        starEmpty:     '#3A414D',
+        coin:          '#F0B23A',
+        coinInk:       '#F0B23A',
+        danger:        '#F0685E',
+        success:       '#55C08A',
+        highlight:     '#FFFFFF',
         highlightRing: '#F2B632',
-        shadow:     'rgba(0,0,0,0.45)'
+        shadow:        'rgba(0,0,0,0.45)'
       }
     },
+    // @tokens:end colors
 
-    // Açılabilir ok temaları. Oklar dizideki renkleri sırayla (index % n) kullanır.
-    // chevron: gövde üstündeki yön işaretlerinin rengi.
-    // names: dil bazlı tema adları (i18n.js'e de kopyalanabilir)
+    // @tokens:begin arrowThemes — tools/gen-tokens.js üretir; elle düzenlemeyin (kaynak: design/colors.json)
+    // Açılabilir ok temaları. Oklar dizideki renkleri sırayla (index % n) kullanır; chevron: gövde üstündeki yön işaretlerinin rengi.
     arrowThemes: [
-      { id: 'emaye',  name: 'Emaye', names: { tr: 'Emaye', en: 'Enamel', de: 'Emaille', ar: 'مينا' },  price: 0,
-        colors: ['#1F8A8A', '#E0703C', '#B8850E', '#5468CC', '#A0508F'], // 1.2.0 (docs/24 §7): araştırmaya dayalı varsayılan ok paleti; kırmızı (çarpma) ve altın (ipucu) anlam renklerinden ayrık. 1.2.1 (docs/27 §B1): hardal #D9A21B → #B8850E (açık tahtada 2,19 → 3,12), çivit #4B5FC1 → #5468CC (koyu tahtada 2,82 → 3,21)
+      // emaye: 1.2.0 (docs/24 §7): varsayılan ok paleti — turkuaz, kiremit, hardal, çivit, erik; kırmızı (çarpma) ve altın (ipucu) anlam renklerinden ayrık. 1.2.1 (docs/27 §B1): hardal #D9A21B → #B8850E, çivit #4B5FC1 → #5468CC (tahtada ≥ 3:1)
+      { id: 'emaye', name: 'Emaye', names: { tr: 'Emaye', en: 'Enamel', de: 'Emaille', ar: 'مينا' }, price: 0,
+        colors: ['#1F8A8A', '#E0703C', '#B8850E', '#5468CC', '#A0508F'],
         chevron: 'rgba(255,255,255,0.78)' },
-      { id: 'lokum',  name: 'Lokum', names: { tr: 'Lokum', en: 'Delight', de: 'Lokum', ar: 'راحة الحلقوم' },  price: 300,
+      { id: 'lokum', name: 'Lokum', names: { tr: 'Lokum', en: 'Delight', de: 'Lokum', ar: 'راحة الحلقوم' }, price: 300,
         colors: ['#E2668E', '#D97511', '#579C84', '#A081D0', '#AE8B19'],
         chevron: 'rgba(255,255,255,0.85)' },
-      { id: 'cini',   name: 'Çini', names: { tr: 'Çini', en: 'Tile', de: 'Fliese', ar: 'قيشاني' },   price: 500,
+      { id: 'cini', name: 'Çini', names: { tr: 'Çini', en: 'Tile', de: 'Fliese', ar: 'قيشاني' }, price: 500,
         colors: ['#246EC2', '#1C8C8C', '#C7382C', '#2F7A3D', '#5B8DE4'],
         chevron: 'rgba(255,255,255,0.80)' },
-      { id: 'bakir',  name: 'Bakır', names: { tr: 'Bakır', en: 'Copper', de: 'Kupfer', ar: 'نحاس' },  price: 750,
+      { id: 'bakir', name: 'Bakır', names: { tr: 'Bakır', en: 'Copper', de: 'Kupfer', ar: 'نحاس' }, price: 750,
         colors: ['#B5652E', '#C76833', '#B7722E', '#A5592F', '#C9773A'],
         chevron: 'rgba(255,240,220,0.80)' },
-      { id: 'gece',   name: 'Gece Lambası', names: { tr: 'Gece Lambası', en: 'Night Light', de: 'Nachtlicht', ar: 'ضوء الليل' }, price: 1000,
+      // gece: koyu şevron
+      { id: 'gece', name: 'Gece Lambası', names: { tr: 'Gece Lambası', en: 'Night Light', de: 'Nachtlicht', ar: 'ضوء الليل' }, price: 1000,
         colors: ['#1B9EAB', '#F155A0', '#649F0D', '#BB8600', '#9B78FF'],
         chevron: 'rgba(15,27,39,0.70)' }
     ],
+    // @tokens:end arrowThemes
+
+    // @tokens:begin fixed — tools/gen-tokens.js üretir; elle düzenlemeyin (kaynak: design/colors.json)
+    // Temadan bağımsız sabitler (style.css :root, tokens.dart ile aynı).
+    fixed: {
+      onGold:       '#22252B', // altın/hardal dolgu (star, coin) üstündeki koyu yazı
+      extreme:      '#B3263A', // "Aşırı zor" kademe noktası ve düğüm halkası
+      extremeDeep:  '#7A1420', // "Aşırı zor" etiket dolgusu ve düğüm alt gölgesi
+      scrim:        '#14171C', // modal perdesi; eski lacivert #0A131C yerine kömür (alfa scrimAlpha)
+      scrimAlpha:   0.55
+    },
+    // @tokens:end fixed
 
     // Tüm oranlar hücre boyuna (cell) göredir.
     // v1.2 (docs/08 §2): ince oklar. Gövde hücrenin ~%28'i, ok başı ~%55'i; şevron ve uç noktası orantılı küçüldü.
@@ -153,7 +170,7 @@
       scaleByLang: { tr: 1, en: 1, de: 1, ar: 1.08 },
       lineHeightByLang: { tr: 1.3, en: 1.3, de: 1.3, ar: 1.55 },
       sizes: { title: 30, h2: 22, body: 17, button: 18, buttonMin: 14, small: 14, levelNum: 20, hud: 18 },
-      weights: { regular: 400, medium: 600, bold: 800 }
+      weights: { regular: 400, medium: 600, bold: 700 } // 1.2.2: Readex Pro VF 160–700; 800 zaten 700 çiziliyordu
     },
 
     rtlLangs: ['ar'],

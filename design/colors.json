@@ -1,0 +1,272 @@
+{
+  "$comment": "Arrowtile renk kaynağı (1.2.2). tools/gen-tokens.js bu dosyadan game/css/style.css, game/js/theme.js ve flutter/arrowtile/lib/ui/tokens.dart içindeki @tokens bölgelerini üretir. Bir rengi yalnızca burada değiştirin, sonra: node tools/gen-tokens.js && node tools/contrast.js",
+  "palette": {
+    "bg": {
+      "light": "#EFEAE2",
+      "dark": "#14171C",
+      "css": "bg",
+      "note": "kum zemin / kömür"
+    },
+    "board": {
+      "light": "#FBF9F5",
+      "dark": "#1E2229",
+      "css": "board",
+      "note": "tahta yüzü (\"kâğıt levha\"), modal"
+    },
+    "boardEdge": {
+      "light": "#D8D0C3",
+      "dark": "#0C0E12",
+      "css": "edge",
+      "note": "tahta kenarı / alt kalınlık"
+    },
+    "cell": {
+      "light": "#EEE8DE",
+      "dark": "#272C35",
+      "css": "cell",
+      "note": "hücre çukuru, sekme izi"
+    },
+    "cellDot": {
+      "light": "#CFC6B8",
+      "dark": "#3A414D",
+      "note": "hücre köşe noktası (yalnızca tahta)"
+    },
+    "ink": {
+      "light": "#22252B",
+      "dark": "#F2EEE6",
+      "css": "ink",
+      "note": "ana metin (mürekkep) + tek renk oklar"
+    },
+    "inkSoft": {
+      "light": "#6A6760",
+      "dark": "#A19D94",
+      "css": "ink-soft",
+      "note": "ikincil metin"
+    },
+    "accent": {
+      "light": "#1E7A78",
+      "dark": "#4DB6AC",
+      "css": "accent",
+      "note": "derin çam yeşili-turkuaz — birincil buton"
+    },
+    "accentInk": {
+      "light": "#FFFFFF",
+      "dark": "#14171C",
+      "css": "accent-ink",
+      "note": "accent üstündeki yazı"
+    },
+    "onFill": {
+      "light": "#FFFFFF",
+      "dark": "#14171C",
+      "css": "on-fill",
+      "note": "1.2.2: renkli dolgu (success/accent/danger) üstündeki yazı — koyu temada koyu (≥ 4,5:1)"
+    },
+    "star": {
+      "light": "#E3A008",
+      "dark": "#F2B632",
+      "css": "star",
+      "note": "altın yıldız (zemin/rozet dolgusu)"
+    },
+    "starInk": {
+      "light": "#AD7800",
+      "dark": "#F2B632",
+      "css": "star-ink",
+      "note": "1.2.1 (docs/27 §B1): yıldız SİMGESİ, ipucu halkası, odak halkası (≥ 3:1)"
+    },
+    "starEmpty": {
+      "light": "#D8D0C3",
+      "dark": "#3A414D",
+      "css": "star-empty",
+      "note": "anahtarın kapalı izi"
+    },
+    "coin": {
+      "light": "#D4951A",
+      "dark": "#F0B23A",
+      "css": "coin",
+      "note": "jeton rozeti dolgusu"
+    },
+    "coinInk": {
+      "light": "#A86F0C",
+      "dark": "#F0B23A",
+      "css": "coin-ink",
+      "note": "1.2.1: jeton simgesi ve ödül yazısı (≥ 3:1)"
+    },
+    "danger": {
+      "light": "#D2453B",
+      "dark": "#F0685E",
+      "css": "danger",
+      "note": "yalnızca can / çarpma / hata"
+    },
+    "success": {
+      "light": "#267A4D",
+      "dark": "#55C08A",
+      "css": "success",
+      "note": "1.2.2: açıkta #2F8F5B → #267A4D (küçük metin kart üstünde 3,84 → 5,03; beyaz yazıyla 4,04 → 5,29)"
+    },
+    "highlight": {
+      "light": "#FFFFFF",
+      "dark": "#FFFFFF",
+      "note": "ipucu halkası iç"
+    },
+    "highlightRing": {
+      "light": "#AD7800",
+      "dark": "#F2B632",
+      "note": "1.2.1: ipucu halkası tahtada ≥ 3:1 (eski #E3A008: 2,15)"
+    },
+    "shadow": {
+      "light": {
+        "rgb": "#22252B",
+        "alpha": 0.16
+      },
+      "dark": {
+        "rgb": "#000000",
+        "alpha": 0.45
+      },
+      "css": "shadow",
+      "note": "yüzen katman gölgesi"
+    }
+  },
+  "cssAliases": {
+    "card": "board"
+  },
+  "fixed": {
+    "onGold": {
+      "value": "#22252B",
+      "css": "on-gold",
+      "dart": "kOnGold",
+      "note": "altın/hardal dolgu (star, coin) üstündeki koyu yazı"
+    },
+    "extreme": {
+      "value": "#B3263A",
+      "css": "extreme",
+      "dart": "kExtreme",
+      "note": "\"Aşırı zor\" kademe noktası ve düğüm halkası"
+    },
+    "extremeDeep": {
+      "value": "#7A1420",
+      "css": "extreme-deep",
+      "dart": "kExtremeDeep",
+      "note": "\"Aşırı zor\" etiket dolgusu ve düğüm alt gölgesi"
+    },
+    "scrim": {
+      "rgb": "#14171C",
+      "alpha": 0.55,
+      "css": "scrim",
+      "dart": "kScrim",
+      "note": "modal perdesi; eski lacivert #0A131C yerine kömür"
+    }
+  },
+  "arrowThemes": [
+    {
+      "id": "emaye",
+      "name": "Emaye",
+      "names": {
+        "tr": "Emaye",
+        "en": "Enamel",
+        "de": "Emaille",
+        "ar": "مينا"
+      },
+      "price": 0,
+      "colors": [
+        "#1F8A8A",
+        "#E0703C",
+        "#B8850E",
+        "#5468CC",
+        "#A0508F"
+      ],
+      "chevron": {
+        "rgb": "#FFFFFF",
+        "alpha": 0.78
+      },
+      "note": "1.2.0 (docs/24 §7): varsayılan ok paleti — turkuaz, kiremit, hardal, çivit, erik; kırmızı (çarpma) ve altın (ipucu) anlam renklerinden ayrık. 1.2.1 (docs/27 §B1): hardal #D9A21B → #B8850E, çivit #4B5FC1 → #5468CC (tahtada ≥ 3:1)"
+    },
+    {
+      "id": "lokum",
+      "name": "Lokum",
+      "names": {
+        "tr": "Lokum",
+        "en": "Delight",
+        "de": "Lokum",
+        "ar": "راحة الحلقوم"
+      },
+      "price": 300,
+      "colors": [
+        "#E2668E",
+        "#D97511",
+        "#579C84",
+        "#A081D0",
+        "#AE8B19"
+      ],
+      "chevron": {
+        "rgb": "#FFFFFF",
+        "alpha": 0.85
+      }
+    },
+    {
+      "id": "cini",
+      "name": "Çini",
+      "names": {
+        "tr": "Çini",
+        "en": "Tile",
+        "de": "Fliese",
+        "ar": "قيشاني"
+      },
+      "price": 500,
+      "colors": [
+        "#246EC2",
+        "#1C8C8C",
+        "#C7382C",
+        "#2F7A3D",
+        "#5B8DE4"
+      ],
+      "chevron": {
+        "rgb": "#FFFFFF",
+        "alpha": 0.8
+      }
+    },
+    {
+      "id": "bakir",
+      "name": "Bakır",
+      "names": {
+        "tr": "Bakır",
+        "en": "Copper",
+        "de": "Kupfer",
+        "ar": "نحاس"
+      },
+      "price": 750,
+      "colors": [
+        "#B5652E",
+        "#C76833",
+        "#B7722E",
+        "#A5592F",
+        "#C9773A"
+      ],
+      "chevron": {
+        "rgb": "#FFF0DC",
+        "alpha": 0.8
+      }
+    },
+    {
+      "id": "gece",
+      "name": "Gece Lambası",
+      "names": {
+        "tr": "Gece Lambası",
+        "en": "Night Light",
+        "de": "Nachtlicht",
+        "ar": "ضوء الليل"
+      },
+      "price": 1000,
+      "colors": [
+        "#1B9EAB",
+        "#F155A0",
+        "#649F0D",
+        "#BB8600",
+        "#9B78FF"
+      ],
+      "chevron": {
+        "rgb": "#0F1B27",
+        "alpha": 0.7
+      },
+      "note": "koyu şevron"
+    }
+  ]
+}

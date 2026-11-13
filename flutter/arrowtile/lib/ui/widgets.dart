@@ -139,11 +139,11 @@ class AppButton extends StatelessWidget {
         shadow = rgba(shadeRgb(pal.accent, -0.4));
       case BtnKind.danger:
         bg = pal.dangerC;
-        fg = Colors.white;
+        fg = pal.onFillC; // 1.2.2: koyu temada koyu yazı
         shadow = rgba(shadeRgb(pal.danger, -0.4));
       case BtnKind.equipped:
         bg = pal.successC;
-        fg = Colors.white;
+        fg = pal.onFillC;
         shadow = rgba(shadeRgb(pal.success, -0.4));
       case BtnKind.ghost:
         bg = Colors.transparent;
@@ -159,7 +159,7 @@ class AppButton extends StatelessWidget {
         shadow = pal.edgeC;
     }
     final double fs = big ? 22 : (tiny ? 14 : fontSize);
-    final TextStyle ts = TextStyle(color: fg, fontSize: fs, fontWeight: FontWeight.w800, height: 1.15);
+    final TextStyle ts = TextStyle(color: fg, fontSize: fs, fontWeight: FontWeight.w700, height: 1.15);
     final Widget textCol = sub == null
         ? FitText(label, style: ts, minFont: tiny ? 12 : 14, align: alignStart ? TextAlign.start : TextAlign.center)
         : Column(
@@ -272,7 +272,7 @@ class Pill extends StatelessWidget {
         child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
           Icon(icon, size: 22, color: iconColor),
           const SizedBox(width: 4),
-          Text(text, style: TextStyle(color: pal.inkC, fontSize: 17, fontWeight: FontWeight.w800)),
+          Text(text, style: TextStyle(color: pal.inkC, fontSize: 17, fontWeight: FontWeight.w700)),
         ]),
       ),
     );
@@ -315,7 +315,7 @@ class ScreenBar extends StatelessWidget {
                 (title == null
                     ? const SizedBox.shrink()
                     : FitText(title!,
-                        style: TextStyle(color: pal.inkC, fontSize: 22, fontWeight: FontWeight.w800),
+                        style: TextStyle(color: pal.inkC, fontSize: 22, fontWeight: FontWeight.w700),
                         minFont: 15,
                         align: TextAlign.start)),
           ),
@@ -365,7 +365,7 @@ Future<T?> showSheet<T>(BuildContext context, {required WidgetBuilder builder, b
   return showDialog<T>(
     context: context,
     barrierDismissible: dismissible,
-    barrierColor: rgba(0x0A131C, 0.55),
+    barrierColor: rgba(kScrim, kScrimAlpha),
     builder: (BuildContext ctx) {
       final Palette pal = Palette.of(ctx);
       return PopScope(
@@ -402,7 +402,7 @@ Widget sheetTitle(BuildContext c, String t) {
   final Palette pal = Palette.of(c);
   return Padding(
     padding: const EdgeInsets.only(bottom: 8),
-    child: Text(t, textAlign: TextAlign.center, style: TextStyle(color: pal.inkC, fontSize: 24, fontWeight: FontWeight.w800)),
+    child: Text(t, textAlign: TextAlign.center, style: TextStyle(color: pal.inkC, fontSize: 24, fontWeight: FontWeight.w700)),
   );
 }
 

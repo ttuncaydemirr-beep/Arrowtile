@@ -73,7 +73,7 @@ class MenuScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(0, 4 + 10, 0, 10),
                     child: Text(loc.appName,
-                        textAlign: TextAlign.center, style: TextStyle(color: pal.inkC, fontSize: 30, fontWeight: FontWeight.w800)),
+                        textAlign: TextAlign.center, style: TextStyle(color: pal.inkC, fontSize: 30, fontWeight: FontWeight.w700)),
                   ),
                   AppButton(anyProgress ? loc.menuContinue(app.save.unlocked) : loc.menuPlay,
                       kind: BtnKind.primary, big: true, onTap: () => unawaited(startLevel(context, app.save.unlocked))),

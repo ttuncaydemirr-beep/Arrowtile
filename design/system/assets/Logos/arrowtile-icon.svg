@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- Arka plan tam taşar (adaptive ikon maskesi kesebilir); önemli öğeler r=169 güvenli dairede -->
+  <rect width="512" height="512" fill="#2456A6"/>
+  <circle cx="256" cy="256" r="300" fill="#2A60B5"/>
+  <!-- tahta: alt kalınlık + yüz -->
+  <rect x="140" y="152" width="232" height="232" rx="44" fill="#173D7A"/>
+  <rect x="140" y="140" width="232" height="232" rx="44" fill="#F6F8FA"/>
+  <!-- 2x2 hücre çukurları -->
+  <g fill="#E1E8EF">
+    <rect x="160" y="160" width="92" height="92" rx="18"/>
+    <rect x="260" y="160" width="92" height="92" rx="18"/>
+    <rect x="160" y="260" width="92" height="92" rx="18"/>
+    <rect x="260" y="260" width="92" height="92" rx="18"/>
+  </g>
+  <!-- yukarı bakan kırmızı ok (sol sütun, 2 hücre) -->
+  <g>
+    <path transform="translate(0,8)" fill="#8A231D" d="M190 340 L190 236 L170 236 Q164 236 168 230 L201 186 Q206 180 211 186 L244 230 Q248 236 242 236 L222 236 L222 340 Q222 346 216 346 L196 346 Q190 346 190 340 Z"/>
+    <path fill="#C9372F" d="M190 340 L190 236 L170 236 Q164 236 168 230 L201 186 Q206 180 211 186 L244 230 Q248 236 242 236 L222 236 L222 340 Q222 346 216 346 L196 346 Q190 346 190 340 Z"/>
+    <circle cx="206" cy="218" r="6" fill="#fff" opacity=".8"/>
+  </g>
+  <g transform="translate(-14,0)">
+  <!-- sağa kaçan safran ok: tahtadan dışarı taşıyor (hareket izi) -->
+  <g opacity=".35" fill="#F2B632">
+    <rect x="262" y="296" width="14" height="24" rx="7"/>
+    <rect x="286" y="296" width="14" height="24" rx="7"/>
+  </g>
+  <g>
+    <path transform="translate(0,8)" fill="#8F5E05" d="M312 290 L362 290 L362 266 Q362 259 368 263 L414 302 Q419 308 414 314 L368 353 Q362 357 362 350 L362 326 L312 326 Q306 326 306 320 L306 296 Q306 290 312 290 Z"/>
+    <path fill="#F2B632" d="M312 290 L362 290 L362 266 Q362 259 368 263 L414 302 Q419 308 414 314 L368 353 Q362 357 362 350 L362 326 L312 326 Q306 326 306 320 L306 296 Q306 290 312 290 Z"/>
+    <circle cx="380" cy="308" r="6" fill="#fff" opacity=".85"/>
+  </g>
+</g>
+</svg>

@@ -37,7 +37,7 @@ class _ShopScreenState extends State<ShopScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(0, 4, 0, 12),
                 child: Text(loc.shopBalance(app.save.coins),
-                    style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w800)),
+                    style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w700)),
               ),
               Container(
                 padding: const EdgeInsets.all(4),
@@ -85,7 +85,7 @@ class _ShopScreenState extends State<ShopScreen> {
             boxShadow: on ? <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 2))] : null,
           ),
           child: withSelectedMark(
-              pal, FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 3), on),
+              pal, FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w700), minFont: 12, maxLines: 3), on),
         ),
       ),
     );
@@ -115,7 +115,7 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   Widget _priceText(Palette pal, String t) =>
-      Text(t, style: TextStyle(color: pal.inkSoftC, fontSize: 14, fontWeight: FontWeight.w800));
+      Text(t, style: TextStyle(color: pal.inkSoftC, fontSize: 14, fontWeight: FontWeight.w700));
 
   Widget _themeAction(BuildContext context, ArrowTheme th, AppController app, AppLocalizations loc) {
     final bool owned = app.save.themesOwned.contains(th.id);
@@ -224,7 +224,7 @@ class _ItemCard extends StatelessWidget {
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: <Widget>[
-            Text(title, style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w800)),
+            Text(title, style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w700)),
             if (desc != null) ...<Widget>[
               const SizedBox(height: 6),
               Text(desc!, style: TextStyle(color: pal.inkSoftC, fontSize: 14)),
@@ -359,7 +359,7 @@ class _AdsCardState extends State<AdsCard> {
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: <Widget>[
-            Text(loc.adsRemoveTitle, style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w800)),
+            Text(loc.adsRemoveTitle, style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w700)),
             if (!adFree) ...<Widget>[
               const SizedBox(height: 6),
               Text(loc.adsRemoveDesc, style: TextStyle(color: pal.inkSoftC, fontSize: 14)),

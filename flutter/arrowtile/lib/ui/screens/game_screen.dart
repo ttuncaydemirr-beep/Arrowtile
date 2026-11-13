@@ -912,7 +912,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(color: pal.starC, borderRadius: BorderRadius.circular(999)),
-              child: Text(loc.dpTrophyWon, style: const TextStyle(color: Color(0xFF22252B), fontSize: 14, fontWeight: FontWeight.w800)),
+              child: Text(loc.dpTrophyWon, style: const TextStyle(color: kOnGold, fontSize: 14, fontWeight: FontWeight.w700)),
             ),
           ),
         DpStats(info),
@@ -1311,7 +1311,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
           const SizedBox(width: 8),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: <Widget>[
-              FitText(title, style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w800), minFont: 13, maxLines: 1, align: TextAlign.start),
+              FitText(title, style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w700), minFont: 13, maxLines: 1, align: TextAlign.start),
               Text(loc.gameArrowsLeft(g.remaining()),
                   maxLines: 1, style: TextStyle(color: pal.inkSoftC, fontSize: 13, fontWeight: FontWeight.w600)),
             ]),
@@ -1340,7 +1340,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
           child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
             Icon(Icons.eco, size: 20, color: pal.successC),
             const SizedBox(width: 4),
-            Text(loc.gameRelaxedBadge, style: TextStyle(color: pal.successC, fontSize: 14, fontWeight: FontWeight.w800)),
+            Text(loc.gameRelaxedBadge, style: TextStyle(color: pal.successC, fontSize: 14, fontWeight: FontWeight.w700)),
           ]),
         ),
       );
@@ -1504,7 +1504,7 @@ class _ToolButtonState extends State<_ToolButton> with SingleTickerProviderState
                 const SizedBox(width: 6),
                 Flexible(
                   child: Column(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: <Widget>[
-                    FitText(widget.label, style: TextStyle(color: pal.inkC, fontSize: 15, fontWeight: FontWeight.w800, height: 1.15), minFont: 11, maxLines: 2),
+                    FitText(widget.label, style: TextStyle(color: pal.inkC, fontSize: 15, fontWeight: FontWeight.w700, height: 1.15), minFont: 11, maxLines: 2),
                     if (widget.sub.trim().isNotEmpty)
                       Text(widget.sub, maxLines: 1, style: TextStyle(color: widget.subColor, fontSize: 12, fontWeight: FontWeight.w700)),
                   ]),
@@ -1621,7 +1621,7 @@ class _EndSheetState extends State<_EndSheet> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(color: pal.starC, borderRadius: BorderRadius.circular(999)),
-            child: Text(t, style: const TextStyle(color: Color(0xFF22252B), fontSize: 14, fontWeight: FontWeight.w800)),
+            child: Text(t, style: const TextStyle(color: kOnGold, fontSize: 14, fontWeight: FontWeight.w700)),
           ),
         );
     final Celebration cel = widget.cel;
@@ -1634,7 +1634,7 @@ class _EndSheetState extends State<_EndSheet> {
         child: Text(cel.msg,
             key: const ValueKey<String>('cel-msg'),
             textAlign: TextAlign.center,
-            style: TextStyle(color: legend ? pal.starC : pal.inkC, fontSize: 24, fontWeight: FontWeight.w800, height: 1.2)),
+            style: TextStyle(color: legend ? pal.starC : pal.inkC, fontSize: 24, fontWeight: FontWeight.w700, height: 1.2)),
       ),
       Padding(
         padding: const EdgeInsets.only(top: 2, bottom: 4),
@@ -1649,7 +1649,7 @@ class _EndSheetState extends State<_EndSheet> {
         child: Row(mainAxisAlignment: MainAxisAlignment.center, mainAxisSize: MainAxisSize.min, children: <Widget>[
           Icon(Icons.monetization_on, size: 28, color: pal.coinInkC),
           const SizedBox(width: 6),
-          Flexible(child: Text(loc.endReward(res.coins), style: TextStyle(color: pal.coinInkC, fontSize: 26, fontWeight: FontWeight.w800))),
+          Flexible(child: Text(loc.endReward(res.coins), style: TextStyle(color: pal.coinInkC, fontSize: 26, fontWeight: FontWeight.w700))),
         ]),
       ),
       Wrap(alignment: WrapAlignment.center, children: <Widget>[
@@ -1663,7 +1663,7 @@ class _EndSheetState extends State<_EndSheet> {
               child: Row(mainAxisSize: MainAxisSize.min, children: <Widget>[
                 Icon(Icons.bolt, size: 16, color: pal.inkC),
                 const SizedBox(width: 4),
-                Flexible(child: Text(cel.fastMsg!, style: TextStyle(color: pal.inkC, fontSize: 14, fontWeight: FontWeight.w800))),
+                Flexible(child: Text(cel.fastMsg!, style: TextStyle(color: pal.inkC, fontSize: 14, fontWeight: FontWeight.w700))),
               ]),
             ),
           ),

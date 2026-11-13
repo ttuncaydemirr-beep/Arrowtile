@@ -52,6 +52,24 @@ for (const mode of ['light', 'dark']) {
     if (typeof w === 'string' && w.startsWith('#') && w.toUpperCase() !== v) errs.push(`renk farkı ${mode}.${k}: web ${w} ≠ Flutter ${v}`);
   }
 }
+// 1.2.2: temadan bağımsız sabitler — web THEME.fixed, Flutter kOnGold/kExtreme/kExtremeDeep/kScrim, style.css :root aynı olmalı
+const F = T.fixed;
+if (!F) errs.push('theme.js: THEME.fixed yok');
+else {
+  const dc = (n) => { const m = new RegExp(`const Color ${n} = Color\\(0xFF([0-9A-Fa-f]{6})\\)`).exec(dart); return m ? '#' + m[1].toUpperCase() : null; };
+  const di = (n) => { const m = new RegExp(`const int ${n} = 0x([0-9A-Fa-f]{6})`).exec(dart); return m ? '#' + m[1].toUpperCase() : null; };
+  const css = fs.readFileSync(path.join(ROOT, 'game', 'css', 'style.css'), 'utf8');
+  const cv = (n) => { const m = new RegExp(`--${n}:\\s*([^;]+);`).exec(css); return m ? m[1].trim().toUpperCase() : null; };
+  const hexRgba = (h, a) => { const n = parseInt(h.slice(1), 16); return `RGBA(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+  const chk = [['onGold', dc('kOnGold'), cv('on-gold')], ['extreme', dc('kExtreme'), cv('extreme')], ['extremeDeep', dc('kExtremeDeep'), cv('extreme-deep')], ['scrim', di('kScrim'), null]];
+  for (const [k, d, c] of chk) {
+    if (F[k].toUpperCase() !== d) errs.push(`sabit farkı ${k}: web ${F[k]} ≠ Flutter ${d}`);
+    if (c !== null && F[k].toUpperCase() !== c) errs.push(`sabit farkı ${k}: theme.js ${F[k]} ≠ style.css ${c}`);
+  }
+  const da = /const double kScrimAlpha = ([0-9.]+);/.exec(dart);
+  if (!da || +da[1] !== F.scrimAlpha) errs.push(`sabit farkı scrimAlpha: web ${F.scrimAlpha} ≠ Flutter ${da && da[1]}`);
+  if (cv('scrim') !== hexRgba(F.scrim, F.scrimAlpha)) errs.push(`sabit farkı scrim: style.css ${cv('scrim')} ≠ ${hexRgba(F.scrim, F.scrimAlpha)}`);
+}
 const DT = dartThemes();
 for (const th of T.arrowThemes) {
   const d = DT[th.id];
@@ -62,7 +80,7 @@ for (const th of T.arrowThemes) {
 // ---- ölçülecek çiftler
 // Oklar tahta yüzüne (board) çizilir (theme.js drawBoard: tepsi = board, hücre noktaları cellDot). Tek renk kipi: ok = ink.
 const rows = [];
-function add(group, what, fg, bg, min, mode) { rows.push({ group, what, fg, bg, min, mode, r: ratio(fg, bg) }); }
+function add(group, what, fg, bg, min, mode, warn) { rows.push({ group, what, fg, bg, min, mode, warn: !!warn, r: ratio(fg, bg) }); }
 for (const mode of ['light', 'dark']) {
   const C = T.colors[mode];
   T.arrowThemes.forEach(th => th.colors.forEach((c, i) => add(th.id === 'emaye' ? 'ok (Renkli, varsayılan)' : `ok (tema ${th.id})`, `${th.id}[${i}] ${c}`, c, C.board, 3, mode)));
@@ -80,18 +98,35 @@ for (const mode of ['light', 'dark']) {
   add('metin', 'ikincil metin / kart', C.inkSoft, C.board, 4.5, mode);
   add('metin', 'ikincil metin / zemin', C.inkSoft, C.bg, 4.5, mode);
   add('metin', 'birincil düğme yazısı / vurgu', C.accentInk, C.accent, 4.5, mode);
+  // 1.2.2: renkli dolgu üstündeki yazı (onFill) — tehlike / kuşanıldı düğmesi (18 px kalın), Kolay / Orta etiketi (11–12 px kalın)
+  add('metin', 'tehlike düğmesi yazısı / danger', C.onFill, C.danger, 4.5, mode);
+  add('metin', 'kuşanıldı düğmesi yazısı / success', C.onFill, C.success, 4.5, mode);
+  add('metin', 'Orta etiketi yazısı / accent', C.onFill, C.accent, 4.5, mode);
+  add('metin', 'Kolay etiketi yazısı / success', C.onFill, C.success, 4.5, mode);
+  // 1.2.2: altın dolgu üstündeki koyu yazı (onGold) — ödül etiketi, bugünkü günlük ödül (star), Zor etiketi (coin); Aşırı zor etiketi
+  add('metin', 'ödül etiketi yazısı (onGold) / star', T.fixed.onGold, C.star, 4.5, mode);
+  add('metin', 'Zor etiketi yazısı (onGold) / coin', T.fixed.onGold, C.coin, 4.5, mode);
+  add('metin', 'Aşırı zor etiketi yazısı / extremeDeep', '#FFFFFF', T.fixed.extremeDeep, 4.5, mode);
+  // 1.2.2: klavye odak halkası (starInk) — kontrol çevresindeki yüzeylerde ≥ 3:1
+  add('simge', 'odak halkası (starInk) / kart', C.starInk, C.board, 3, mode);
+  add('simge', 'odak halkası (starInk) / zemin', C.starInk, C.bg, 3, mode);
+  add('simge', 'odak halkası (starInk) / hücre', C.starInk, C.cell, 3, mode);
+  // 1.2.2: success küçük metin olarak ("Ödülün hazır!", "2 ücretsiz", rahat mod) — hep kart/modal üstünde; açık temada #267A4D ile zorunlu
+  add('metin', 'başarı yazısı (success) / kart', C.success, C.board, 4.5, mode);
 }
 
 // 1.2.1 (docs/27 §B1): satın alınan temalar (lokum, cini, bakir, gece) da ZORUNLU — sahip onayıyla açık/koyu tahtada ok ≥ 3:1.
-const fails = rows.filter(r => r.r < r.min);
+const fails = rows.filter(r => r.r < r.min && !r.warn);
+const warns = rows.filter(r => r.r < r.min && r.warn);
 const fmt = r => r.r.toFixed(2);
 if (process.argv.includes('--markdown')) {
   console.log('| Grup | Öğe | Ön plan | Arka plan | Kip | Oran | Eşik | Sonuç |');
   console.log('|---|---|---|---|---|---|---|---|');
-  for (const r of rows) console.log(`| ${r.group} | ${r.what} | ${r.fg} | ${r.bg} | ${r.mode === 'light' ? 'açık' : 'koyu'} | ${fmt(r)} | ${r.min}:1 | ${r.r >= r.min ? 'GEÇTİ' : 'KALDI'} |`);
+  for (const r of rows) console.log(`| ${r.group} | ${r.what} | ${r.fg} | ${r.bg} | ${r.mode === 'light' ? 'açık' : 'koyu'} | ${fmt(r)} | ${r.min}:1 | ${r.r >= r.min ? 'GEÇTİ' : (r.warn ? 'UYARI' : 'KALDI')} |`);
 } else {
-  for (const r of rows) console.log(`${r.r >= r.min ? 'ok  ' : 'KALDI'} ${r.mode.padEnd(5)} ${r.group.padEnd(26)} ${r.what.padEnd(28)} ${r.fg} / ${r.bg}  ${fmt(r)}:1 (≥ ${r.min})`);
+  for (const r of rows) console.log(`${r.r >= r.min ? 'ok  ' : (r.warn ? 'UYARI' : 'KALDI')} ${r.mode.padEnd(5)} ${r.group.padEnd(26)} ${r.what.padEnd(28)} ${r.fg} / ${r.bg}  ${fmt(r)}:1 (≥ ${r.min})`);
 }
 if (errs.length) { console.error('\nHATA (web ≠ Flutter):\n' + errs.join('\n')); process.exit(1); }
 if (fails.length) { console.error(`\nKALDI: ${fails.length} çift eşik altında: ` + fails.map(r => `${r.mode}:${r.what}=${fmt(r)}`).join(', ')); process.exit(1); }
+if (warns.length) console.warn(`\nUYARI (bilinen açık, CI'ı durdurmaz): ` + warns.map(r => `${r.mode}:${r.what}=${fmt(r)}`).join(', '));
 console.log(`\nGEÇTİ: ${rows.length} çift; web ve Flutter renkleri özdeş; tüm ok temaları (satın alınanlar dahil) ve Kum ve Mürekkep eşikleri sağlıyor.`);

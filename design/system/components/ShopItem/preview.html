@@ -1,0 +1,74 @@
+<!-- @dsCard group="İçerik" height=240 -->
+<!doctype html>
+<html lang="tr">
+<head><meta charset="utf-8"><title>ShopItem</title><style>html,body{margin:0}</style></head>
+<body class="at-root">
+<div class="at-pad">
+<div class="at-col" style="max-width:420px">
+<div class="at-item"><canvas data-theme-id="gece" aria-label="Gece Lambası önizlemesi"></canvas><div class="at-item-main"><span class="at-item-name">Gece Lambası</span><span class="at-item-price"><span class="at-ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="var(--coin-ink)"/><circle cx="12" cy="12" r="6.6" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="1.6"/><path d="M12 8.2v7.6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg></span>1000</span></div><button class="at-btn primary">Satın al</button></div>
+<div class="at-item"><canvas data-theme-id="emaye" aria-label="Emaye önizlemesi"></canvas><div class="at-item-main"><span class="at-item-name">Emaye</span><span class="at-item-price">Ücretsiz</span></div><button class="at-btn equipped"><span class="at-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>Kuşanıldı</button></div></div>
+</div>
+<script>
+/* Arrow + board renderer, ported from game/js/theme.js drawArrow()/drawBoard() (1.2.1). Colors are read from tokens.css. */
+var AT = (function () {
+  var S = { margin: 0.12, bodyWidth: 0.15, headWidth: 0.40, monoBody: 0.085, monoHead: 0.34, monoMinPx: 1.6, headLength: 0.30, headMinPx: 7,
+    chevronMinCell: 22, headRadius: 0.05, tipRadius: 0.04, depth: 0.045, chevronSize: 0.075, chevronLine: 0.045, dotRadius: 0.04, gridDot: 0.045, boardRadius: 0.30, boardPad: 0.30 };
+  var ANGLE = { R: 0, D: Math.PI / 2, L: Math.PI, U: -Math.PI / 2 }, STEP = { R: [1, 0], D: [0, 1], L: [-1, 0], U: [0, -1] };
+  function v(n) { return getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim(); }
+  function isDark() { var b = v('bg').replace('#', ''); if (b.length < 6) return false; var n = parseInt(b.slice(0, 6), 16); return ((n >> 16) + ((n >> 8) & 255) + (n & 255)) < 300; }
+  function shade(hex, amt) { var h = hex.replace('#', ''); var n = parseInt(h, 16), c = [(n >> 16) & 255, (n >> 8) & 255, n & 255], t = amt < 0 ? 0 : 255, p = Math.abs(amt);
+    return 'rgb(' + c.map(function (x) { return Math.round(x + (t - x) * p); }).join(',') + ')'; }
+  function roundedPoly(ctx, pts, radii) { var n = pts.length, l = pts[n - 1], f = pts[0]; ctx.moveTo((l[0] + f[0]) / 2, (l[1] + f[1]) / 2);
+    for (var i = 0; i < n; i++) { var p = pts[i], q = pts[(i + 1) % n]; ctx.arcTo(p[0], p[1], q[0], q[1], radii[i] || 0); } ctx.closePath(); }
+  function arrow(ctx, o) {
+    var cell = o.cell, dir = o.dir, D = STEP[dir], cells = o.cells, ox = o.ox, oy = o.oy, n = cells.length, color = o.color, mono = !!o.mono;
+    var bw = mono ? Math.max(S.monoMinPx, S.monoBody * cell) : Math.max(2, S.bodyWidth * cell), hw = mono ? Math.max(5, S.monoHead * cell) : Math.max(S.headMinPx, S.headWidth * cell);
+    var hl = Math.max(hw * 0.72, S.headLength * cell), mg = S.margin;
+    var back = n > 1 ? [cells[0][0] - cells[1][0], cells[0][1] - cells[1][1]] : [-D[0], -D[1]];
+    function P(i) { if (i < 0) return [cells[0][0] + back[0], cells[0][1] + back[1]]; if (i <= n - 1) return cells[i]; return [cells[n - 1][0] + D[0] * (i - n + 1), cells[n - 1][1] + D[1] * (i - n + 1)]; }
+    function T(sv) { var i = Math.floor(sv); if (i > n - 2 && sv >= n - 1) { var hd = cells[n - 1], q = sv - (n - 1); return [hd[0] + D[0] * q, hd[1] + D[1] * q]; }
+      if (i < -1) i = -1; var a = P(i), b = P(i + 1), t = sv - i; return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; }
+    function px(p) { return [ox + (p[0] + 0.5) * cell, oy + (p[1] + 0.5) * cell]; }
+    var s0 = -(0.5 - mg), s1 = n - 1 + (0.5 - mg), sb = s1 - hl / cell, tip = px(T(s1)), base = px(T(sb)), ang = ANGLE[dir];
+    function body(dy) { ctx.beginPath(); var p0 = px(T(s0)); ctx.moveTo(p0[0], p0[1] + dy);
+      for (var i = Math.ceil(s0 + 1e-6); i < sb; i++) { var pi = px(T(i)); ctx.lineTo(pi[0], pi[1] + dy); }
+      ctx.lineTo(base[0] + Math.cos(ang) * bw * 0.3, base[1] + Math.sin(ang) * bw * 0.3 + dy); }
+    function head(dy) { ctx.save(); ctx.translate(tip[0], tip[1] + dy); ctx.rotate(ang); ctx.beginPath();
+      roundedPoly(ctx, [[-hl, -hw / 2], [0, 0], [-hl, hw / 2]], [S.headRadius * cell, S.tipRadius * cell, S.headRadius * cell]); ctx.restore(); }
+    function whole(dy, w, st) { body(dy); ctx.lineWidth = w; ctx.strokeStyle = st; ctx.stroke(); head(dy); ctx.fillStyle = st; ctx.fill(); if (w > bw) { ctx.lineWidth = w - bw; ctx.stroke(); } }
+    ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    if (o.highlight) { whole(0, bw + cell * 0.20, v('highlight-ring')); whole(0, bw + cell * 0.08, v('highlight')); }
+    if (!mono) whole(S.depth * cell, bw, shade(color, -0.35));
+    whole(0, bw, color);
+    if (!mono) {
+      var chev = o.chevron || 'rgba(255,255,255,0.78)';
+      if (cell >= S.chevronMinCell) { var cs = S.chevronSize * cell; ctx.lineWidth = Math.max(0.9, S.chevronLine * cell); ctx.strokeStyle = chev;
+        for (var c = 0; c < n - 1; c++) { if (c > sb - 0.35) break; var a1 = T(c), a2 = T(c + 1), dx = a2[0] - a1[0], dy = a2[1] - a1[1];
+          if (c > 0) { var pv = T(c - 1); if (a1[0] - pv[0] !== dx || a1[1] - pv[1] !== dy) continue; }
+          var cp = px(a1); ctx.save(); ctx.translate(cp[0], cp[1]); ctx.rotate(Math.atan2(dy, dx)); ctx.beginPath();
+          ctx.moveTo(-cs * 0.6, -cs); ctx.lineTo(cs * 0.4, 0); ctx.lineTo(-cs * 0.6, cs); ctx.stroke(); ctx.restore(); } }
+      ctx.beginPath(); ctx.arc(tip[0] - Math.cos(ang) * hl * 0.7, tip[1] - Math.sin(ang) * hl * 0.7, Math.max(0.9, cell * S.dotRadius), 0, Math.PI * 2); ctx.fillStyle = chev; ctx.fill();
+    }
+    ctx.restore();
+  }
+  function board(ctx, ox, oy, w, h, cell) {
+    var pad = (w >= 21 ? 0.1 : S.boardPad) * cell, r = Math.min(S.boardRadius * cell, 10), bx = ox - pad, by = oy - pad, bwid = w * cell + pad * 2, bh = h * cell + pad * 2;
+    function rr(x, y, ww, hh) { ctx.beginPath(); roundedPoly(ctx, [[x, y], [x + ww, y], [x + ww, y + hh], [x, y + hh]], [r, r, r, r]); }
+    ctx.save(); rr(bx, by + cell * 0.1, bwid, bh); ctx.fillStyle = v('edge'); ctx.fill(); rr(bx, by, bwid, bh); ctx.fillStyle = v('board'); ctx.fill();
+    var dr = Math.max(0.7, S.gridDot * cell); ctx.fillStyle = v('cell-dot'); ctx.globalAlpha = isDark() ? 0.55 : 0.75; ctx.beginPath();
+    for (var j = 0; j <= h; j++) for (var i = 0; i <= w; i++) { var x = ox + i * cell, y = oy + j * cell; ctx.moveTo(x + dr, y); ctx.arc(x, y, dr, 0, Math.PI * 2); }
+    ctx.fill(); ctx.restore();
+  }
+  function canvas(el, cssW, cssH) { var dpr = window.devicePixelRatio || 1; el.width = cssW * dpr; el.height = cssH * dpr; el.style.width = cssW + 'px'; el.style.height = cssH + 'px';
+    var ctx = el.getContext('2d'); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cssW, cssH); return ctx; }
+  function live(draw) { draw(); new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw); }
+  return { arrow: arrow, board: board, canvas: canvas, live: live, v: v };
+})();
+
+AT.live(function(){var T={emaye:['arrow-emaye-',5],gece:['arrow-gece-',5]};document.querySelectorAll('canvas[data-theme-id]').forEach(function(cv){var id=cv.getAttribute('data-theme-id');var ctx=AT.canvas(cv,88,64);var cell=16;
+var chev=AT.v('arrow-'+id+'-chevron');var arr=[[[[0,0],[1,0],[2,0]],'R'],[[[3,2],[3,1],[3,0]],'U'],[[[0,2],[0,1]],'U'],[[[1,2],[2,2]],'R'],[[[4,0],[4,1],[4,2]],'D']];
+arr.forEach(function(a,i){AT.arrow(ctx,{ox:4,oy:8,cell:cell,cells:a[0],dir:a[1],color:AT.v('arrow-'+id+'-'+(i%5+1)),chevron:chev});});});});
+</script>
+</body>
+</html>

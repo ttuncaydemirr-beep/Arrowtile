@@ -16,6 +16,7 @@ Destek: nilkaren.tuncay.demir@gmail.com
 | `flutter/arrowtile/` | **Asıl uygulama** (Flutter). Play Store'a buradan derlenir. Ayrıntı: [README](flutter/arrowtile/README.md) |
 | `game/` | Web önizleme / referans sürüm (HTML5). Kurallar önce burada denenir, sonra Flutter'a taşınır |
 | `tools/` | Seviye üretici, doğrulayıcılar, testler, Flutter dönüştürme betikleri |
+| `design/` | Renk kaynağı `colors.json` (web ve Flutter renkleri buradan üretilir) ve tasarım sistemi `system/` (marka kitabı, token'lar, 21 bileşen). Ayrıntı: [design/README](design/README.md) |
 | `docs/` | Tasarım belgeleri, test raporları, Play Store yükleme rehberi (`docs/10`) |
 | `store/` | Mağaza ikonu, özellik grafikleri ve ekran görüntüleri (4 dil) |
 | `dist/privacy-site/` | GitHub Pages için gizlilik politikası sayfası |
@@ -41,7 +42,11 @@ node tools/validate-levels.js
 node tools/validate-i18n.js
 node tools/test-ads.js
 node tools/test-daily.js
+node tools/gen-tokens.js --check
+node tools/contrast.js
 ```
+
+**Renkler:** bir rengi yalnızca `design/colors.json` içinde değiştirin, sonra `node tools/gen-tokens.js` çalıştırın. Betik `game/css/style.css`, `game/js/theme.js` ve `flutter/arrowtile/lib/ui/tokens.dart` içindeki `@tokens` bölgelerini yeniden yazar; `tools/contrast.js` kontrast eşiklerini denetler. Bu bölgeler elle düzenlenirse CI hata verir.
 
 ## Otomatik derleme (GitHub Actions)
 

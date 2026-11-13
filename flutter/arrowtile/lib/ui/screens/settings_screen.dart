@@ -125,7 +125,7 @@ class SettingsScreen extends StatelessWidget {
                       child: Directionality(
                         textDirection: TextDirection.ltr,
                         child: Text(AppInfo.supportEmail,
-                            style: TextStyle(color: pal.accentC, fontSize: 15, fontWeight: FontWeight.w800, decoration: TextDecoration.underline)),
+                            style: TextStyle(color: pal.accentC, fontSize: 15, fontWeight: FontWeight.w700, decoration: TextDecoration.underline)),
                       ),
                     ),
                   ),
@@ -347,7 +347,7 @@ class _Group extends StatelessWidget {
           if (label != null)
             Padding(
               padding: const EdgeInsets.only(top: 12),
-              child: Text(label!, style: TextStyle(color: pal.inkC, fontSize: 17, fontWeight: FontWeight.w800)),
+              child: Text(label!, style: TextStyle(color: pal.inkC, fontSize: 17, fontWeight: FontWeight.w700)),
             ),
           ...children,
         ]),
@@ -437,11 +437,11 @@ class _SegBtn extends StatelessWidget {
           child: withSelectedMark(
               pal,
               lead == null
-                  ? FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 3)
+                  ? FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w700), minFont: 12, maxLines: 3)
                   : Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
                       lead!,
                       const SizedBox(width: 8),
-                      Flexible(child: FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w800), minFont: 12, maxLines: 2)),
+                      Flexible(child: FitText(label, style: TextStyle(color: pal.inkC, fontSize: 16, fontWeight: FontWeight.w700), minFont: 12, maxLines: 2)),
                     ]),
               on),
         ),
@@ -502,7 +502,7 @@ class _LangBtn extends StatelessWidget {
           child: Directionality(
             textDirection: lang == 'ar' ? TextDirection.rtl : TextDirection.ltr,
             child: Text(langEndonym(loc, lang),
-                style: TextStyle(color: pal.inkC, fontSize: lang == 'ar' ? 18 : 17, fontWeight: FontWeight.w800)),
+                style: TextStyle(color: pal.inkC, fontSize: lang == 'ar' ? 18 : 17, fontWeight: FontWeight.w700)),
           ),
         ),
       ),
