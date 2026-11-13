@@ -365,7 +365,7 @@ Future<T?> showSheet<T>(BuildContext context, {required WidgetBuilder builder, b
   return showDialog<T>(
     context: context,
     barrierDismissible: dismissible,
-    barrierColor: rgba(0x0A131C, 0.55),
+    barrierColor: rgba(kScrim, kScrimAlpha),
     builder: (BuildContext ctx) {
       final Palette pal = Palette.of(ctx);
       return PopScope(

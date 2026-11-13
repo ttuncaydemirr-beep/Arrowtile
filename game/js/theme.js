@@ -1,6 +1,6 @@
 /* Arrowtile — theme.js
  * Görsel token'lar + drawArrow(ctx, opts). Bağımlılıksız, çevrimdışı.
- * Estetik: "Emaye levha" — porselen zemin, emaye renkli kalın oklar,
+ * Estetik (1.2.0, docs/24 §7): "Kum ve Mürekkep" — sıcak kum zemin, emaye renkli kalın oklar,
  * altta hafif "kalınlık" gölgesi; yön her zaman şekille (ok başı + gövde
  * şevronları) okunur, renk sadece süs.
  */
@@ -13,17 +13,17 @@
 
     colors: {
       light: {
-        bg:         '#EFEAE2', // porselen gri-mavi zemin
+        bg:         '#EFEAE2', // kum zemin
         board:      '#FBF9F5', // tahta yüzü
         boardEdge:  '#D8D0C3', // tahta kenarı / alt kalınlık
         cell:       '#EEE8DE', // hücre çukuru
         cellDot:    '#CFC6B8', // hücre köşe noktası
-        ink:        '#22252B', // ana metin (lacivert mürekkep)
+        ink:        '#22252B', // ana metin (mürekkep)
         inkSoft:    '#6A6760', // ikincil metin
-        accent:     '#1E7A78', // kobalt — birincil buton
+        accent:     '#1E7A78', // derin çam yeşili-turkuaz — birincil buton
         accentInk:  '#FFFFFF',
         onFill:     '#FFFFFF', // 1.2.2: renkli dolgu (success/accent/danger) üstündeki yazı — koyu temada koyu yazı (≥ 4,5:1)
-        star:       '#E3A008', // safran yıldız (zemin/rozet dolgusu)
+        star:       '#E3A008', // altın yıldız (zemin/rozet dolgusu)
         starInk:    '#AD7800', // 1.2.1 (docs/27 §B1): yıldız SİMGESİ (kart/zemin üstünde ≥ 3:1)
         starEmpty:  '#D8D0C3',
         coin:       '#D4951A',
@@ -81,6 +81,15 @@
 
     // Tüm oranlar hücre boyuna (cell) göredir.
     // v1.2 (docs/08 §2): ince oklar. Gövde hücrenin ~%28'i, ok başı ~%55'i; şevron ve uç noktası orantılı küçüldü.
+    // 1.2.2: temadan bağımsız sabitler (style.css :root, tokens.dart ile aynı; tools/contrast.js denetler)
+    fixed: {
+      onGold:      '#22252B', // altın/hardal dolgu (star, coin) üstündeki koyu yazı
+      extreme:     '#B3263A', // "Aşırı zor" kademe noktası ve düğüm halkası
+      extremeDeep: '#7A1420', // "Aşırı zor" etiket dolgusu ve düğüm alt gölgesi
+      scrim:       '#14171C', // modal perdesi (alfa scrimAlpha); eski lacivert #0A131C yerine kömür
+      scrimAlpha:  0.55
+    },
+
     shape: {
       margin:      0.12,  // okun hücre kenarından içeride kalma payı (kuyruk ve uç)
       bodyWidth:   0.15,  // gövde kalınlığı (1.2.0, docs/24: %18 → %15 — daha ince oklar)

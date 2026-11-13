@@ -912,7 +912,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(color: pal.starC, borderRadius: BorderRadius.circular(999)),
-              child: Text(loc.dpTrophyWon, style: const TextStyle(color: Color(0xFF22252B), fontSize: 14, fontWeight: FontWeight.w800)),
+              child: Text(loc.dpTrophyWon, style: const TextStyle(color: kOnGold, fontSize: 14, fontWeight: FontWeight.w800)),
             ),
           ),
         DpStats(info),
@@ -1621,7 +1621,7 @@ class _EndSheetState extends State<_EndSheet> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(color: pal.starC, borderRadius: BorderRadius.circular(999)),
-            child: Text(t, style: const TextStyle(color: Color(0xFF22252B), fontSize: 14, fontWeight: FontWeight.w800)),
+            child: Text(t, style: const TextStyle(color: kOnGold, fontSize: 14, fontWeight: FontWeight.w800)),
           ),
         );
     final Celebration cel = widget.cel;

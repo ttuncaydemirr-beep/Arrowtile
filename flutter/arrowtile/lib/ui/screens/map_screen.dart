@@ -27,9 +27,6 @@ const double _pathH = _padB + _padT + (kPerChapter - 1) * _step;
 const double _headH = 76;
 const double _chapterExtent = 12 + _headH + 6 + _pathH + 18;
 
-/// Köşe noktası ve halka renkleri (style.css .node.tier-*).
-const Color _extremeDot = Color(0xFFB3263A);
-const Color _extremeEdge = Color(0xFF7A1420);
 
 Color _dotColor(Palette pal, String tier) {
   switch (tier) {
@@ -40,7 +37,7 @@ Color _dotColor(Palette pal, String tier) {
     case 'hard':
       return pal.coinC;
     default:
-      return _extremeDot;
+      return kExtreme;
   }
 }
 
@@ -56,7 +53,7 @@ Color tierColor(Palette pal, String tier) {
     case 'hard':
       return pal.coinC;
     default:
-      return const Color(0xFF7A1420);
+      return kExtremeDeep;
   }
 }
 
@@ -69,7 +66,7 @@ class TierBadge extends StatelessWidget {
     final AppLocalizations loc = locOf(context);
     // 1.2.2: Kolay/Orta yazısı pal.onFill (koyu temada koyu), Zor #22252B, Aşırı zor beyaz
     final Color fg = tier == 'hard'
-        ? const Color(0xFF22252B)
+        ? kOnGold
         : (tier == 'easy' || tier == 'medium')
             ? pal.onFillC
             : Colors.white;
@@ -334,8 +331,8 @@ class _LevelNode extends StatelessWidget {
                   border: locked ? Border.all(color: pal.edgeC, width: 3) : null,
                   boxShadow: tier == 'extreme'
                       ? <BoxShadow>[
-                          const BoxShadow(color: _extremeDot, spreadRadius: 3), // 0 0 0 3px #B3263A
-                          BoxShadow(color: locked ? pal.edgeC : _extremeEdge, offset: const Offset(0, 4)),
+                          const BoxShadow(color: kExtreme, spreadRadius: 3), // 0 0 0 3px var(--extreme)
+                          BoxShadow(color: locked ? pal.edgeC : kExtremeDeep, offset: const Offset(0, 4)),
                         ]
                       : <BoxShadow>[BoxShadow(color: edge, offset: const Offset(0, 4))],
                 ),

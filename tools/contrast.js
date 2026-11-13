@@ -52,6 +52,24 @@ for (const mode of ['light', 'dark']) {
     if (typeof w === 'string' && w.startsWith('#') && w.toUpperCase() !== v) errs.push(`renk farkı ${mode}.${k}: web ${w} ≠ Flutter ${v}`);
   }
 }
+// 1.2.2: temadan bağımsız sabitler — web THEME.fixed, Flutter kOnGold/kExtreme/kExtremeDeep/kScrim, style.css :root aynı olmalı
+const F = T.fixed;
+if (!F) errs.push('theme.js: THEME.fixed yok');
+else {
+  const dc = (n) => { const m = new RegExp(`const Color ${n} = Color\\(0xFF([0-9A-Fa-f]{6})\\)`).exec(dart); return m ? '#' + m[1].toUpperCase() : null; };
+  const di = (n) => { const m = new RegExp(`const int ${n} = 0x([0-9A-Fa-f]{6})`).exec(dart); return m ? '#' + m[1].toUpperCase() : null; };
+  const css = fs.readFileSync(path.join(ROOT, 'game', 'css', 'style.css'), 'utf8');
+  const cv = (n) => { const m = new RegExp(`--${n}:\\s*([^;]+);`).exec(css); return m ? m[1].trim().toUpperCase() : null; };
+  const hexRgba = (h, a) => { const n = parseInt(h.slice(1), 16); return `RGBA(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
+  const chk = [['onGold', dc('kOnGold'), cv('on-gold')], ['extreme', dc('kExtreme'), cv('extreme')], ['extremeDeep', dc('kExtremeDeep'), cv('extreme-deep')], ['scrim', di('kScrim'), null]];
+  for (const [k, d, c] of chk) {
+    if (F[k].toUpperCase() !== d) errs.push(`sabit farkı ${k}: web ${F[k]} ≠ Flutter ${d}`);
+    if (c !== null && F[k].toUpperCase() !== c) errs.push(`sabit farkı ${k}: theme.js ${F[k]} ≠ style.css ${c}`);
+  }
+  const da = /const double kScrimAlpha = ([0-9.]+);/.exec(dart);
+  if (!da || +da[1] !== F.scrimAlpha) errs.push(`sabit farkı scrimAlpha: web ${F.scrimAlpha} ≠ Flutter ${da && da[1]}`);
+  if (cv('scrim') !== hexRgba(F.scrim, F.scrimAlpha)) errs.push(`sabit farkı scrim: style.css ${cv('scrim')} ≠ ${hexRgba(F.scrim, F.scrimAlpha)}`);
+}
 const DT = dartThemes();
 for (const th of T.arrowThemes) {
   const d = DT[th.id];
@@ -85,6 +103,10 @@ for (const mode of ['light', 'dark']) {
   add('metin', 'kuşanıldı düğmesi yazısı / success', C.onFill, C.success, 4.5, mode);
   add('metin', 'Orta etiketi yazısı / accent', C.onFill, C.accent, 4.5, mode);
   add('metin', 'Kolay etiketi yazısı / success', C.onFill, C.success, 4.5, mode);
+  // 1.2.2: altın dolgu üstündeki koyu yazı (onGold) — ödül etiketi, bugünkü günlük ödül (star), Zor etiketi (coin); Aşırı zor etiketi
+  add('metin', 'ödül etiketi yazısı (onGold) / star', T.fixed.onGold, C.star, 4.5, mode);
+  add('metin', 'Zor etiketi yazısı (onGold) / coin', T.fixed.onGold, C.coin, 4.5, mode);
+  add('metin', 'Aşırı zor etiketi yazısı / extremeDeep', '#FFFFFF', T.fixed.extremeDeep, 4.5, mode);
   // 1.2.2: klavye odak halkası (starInk) — kontrol çevresindeki yüzeylerde ≥ 3:1
   add('simge', 'odak halkası (starInk) / kart', C.starInk, C.board, 3, mode);
   add('simge', 'odak halkası (starInk) / zemin', C.starInk, C.bg, 3, mode);

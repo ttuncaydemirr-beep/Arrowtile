@@ -13,6 +13,13 @@ Color rgba(int rgb, [double alpha = 1]) {
   return Color((a << 24) | (rgb & 0xFFFFFF));
 }
 
+/// 1.2.2: temadan bağımsız sabitler (theme.js THEME.fixed, style.css :root ile aynı; tools/contrast.js denetler).
+const Color kOnGold = Color(0xFF22252B); // altın/hardal dolgu (star, coin) üstündeki koyu yazı
+const Color kExtreme = Color(0xFFB3263A); // "Aşırı zor" kademe noktası ve düğüm halkası
+const Color kExtremeDeep = Color(0xFF7A1420); // "Aşırı zor" etiket dolgusu ve düğüm alt gölgesi
+const int kScrim = 0x14171C; // modal perdesi (eski lacivert 0x0A131C yerine kömür)
+const double kScrimAlpha = 0.55;
+
 class Palette {
   final int bg, board, boardEdge, cell, cellDot, ink, inkSoft, accent, accentInk, onFill, star, starEmpty, coin, danger, success,
       highlight, highlightRing;
