@@ -17,3 +17,18 @@ kiremit ok #E0703C, zemin mürekkep #22252B. Çizim mevcut simgeyle aynı (2x2 t
 Deneme önerisi: Play Console › Büyüme › Mağaza girişi denemeleri › varsayılan grafikler › Simge; %50 / %50, en az 7 gün, ölçüt
 "ilk kez yükleyenler" (dönüşüm). Kazanırsa simge ayrı bir sürümde uygulamaya da (mipmap + adaptive-icon) taşınır; PNG'ler
 `node` + Playwright ile SVG'den yeniden üretilebilir.
+
+## 1.2.2 durumu: mağaza görselleri yenilendi, simge denemeye hazır
+
+- `store/feature-graphic-*.png` (4 dil) ve `store/screenshots/<dil>/` (24 adet) "Kum ve Mürekkep" paletiyle yeniden üretildi:
+  `python3 tools/android/make-store-assets.py`. Özellik grafiği renkleri `design/colors.json`'dan okur, tahta ve oklar bu klasördeki
+  adaydan alınır, yazı tipi Readex Pro'dur (Arapça dahil). Ekran görüntüleri gerçek oyundandır; menüdeki logo, simge kararı
+  verilene dek yayındaki kobalt simgedir.
+- Başlatıcı simgesi ve `store/play-icon-512.png` **değişmedi**. Karar: önce Play mağaza denemesi (sahip onayı, 1.2.2).
+
+### Deneme adımları (Play Console)
+1. Büyüme › Mağaza girişi denemeleri › **Varsayılan grafikler denemesi oluştur**.
+2. Deneme özelliği: **Uygulama simgesi**. Varyant A: mevcut (`store/play-icon-512.png`). Varyant B: `store/icon-candidates/icon-512.png`.
+3. Hedef kitle: %50 / %50. Ölçüt: **İlk kez yükleyenler** (elde tutulanlar değil). En az 7 gün, tercihen 14.
+4. Sonuç: B anlamlı biçimde kazanırsa ayrı bir sürümde simgeyi uygulamaya taşıyın (`tools/android/make-icons.py` adaptive katmanlar +
+   `game/assets/icon.svg`), sonra `make-store-assets.py` ile ekran görüntülerini yeniden üretin. Kaybederse ya da fark yoksa mevcut simge kalır.
