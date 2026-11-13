@@ -336,7 +336,10 @@ class ScreenBar extends StatelessWidget {
   }
 }
 
-/// Ekran iskeleti: arka plan + güvenli alan + (en çok 480 px) ortalanmış içerik.
+/// 1.2.2: geniş pencerelerde içerik sütununun en büyük genişliği (dp).
+const double kContentMaxWidth = 520;
+
+/// Ekran iskeleti: arka plan + güvenli alan + (en çok 520 dp) ortalanmış içerik; 1.2.2: geniş pencerede (tablet, yatay) içerik ortada sütun, kenarlar zemin rengi.
 class ScreenScaffold extends StatelessWidget {
   final Widget child;
   const ScreenScaffold({super.key, required this.child});
@@ -350,8 +353,7 @@ class ScreenScaffold extends StatelessWidget {
     // web'deki setSystemBarsDark karşılığı: durum/gezinme çubuğu simgeleri tema rengine göre
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        systemNavigationBarColor: Colors.transparent,
+        // 1.2.2: çubuk rengi verilmez (kullanımdan kalkan Android API'si); yalnızca simge parlaklığı
         statusBarIconBrightness: icons,
         systemNavigationBarIconBrightness: icons,
       ),
@@ -362,7 +364,7 @@ class ScreenScaffold extends StatelessWidget {
           context: context,
           removeBottom: true,
           child: SafeArea(
-            child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480), child: child)),
+            child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: kContentMaxWidth), child: child)),
           ),
         ),
       ),

@@ -1,4 +1,4 @@
-// Arrowtile — main.dart: giriş noktası. Dikey yön kilidi, kenardan kenara (edge-to-edge) arayüz, kayıt + servisler.
+// Arrowtile — main.dart: giriş noktası. Telefonda dikey yön kilidi, kenardan kenara (edge-to-edge) arayüz, kayıt + servisler.
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +9,7 @@ import 'core/telemetry.dart';
 import 'services/firebase_telemetry.dart';
 import 'services/remote_flags_firebase.dart';
 import 'state/app_controller.dart';
+import 'ui/orientation_policy.dart';
 
 /// 1.2.0: Readex Pro (SIL OFL 1.1) lisansı Flutter lisans kaydına eklenir (Ayarlar → Açık kaynak lisansları).
 void registerFontLicense() {
@@ -21,11 +22,13 @@ void registerFontLicense() {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   registerFontLicense();
-  await SystemChrome.setPreferredOrientations(<DeviceOrientation>[DeviceOrientation.portraitUp]);
+  // 1.2.2 (docs/28): yön kilidi yalnızca telefonda (en kısa kenar < 600 dp); tablet/katlanabilir (açık) tüm yönler. Katlanma değişince
+  // ArrowtileApp.didChangeMetrics yeniden değerlendirir.
+  await applyOrientationPolicy(WidgetsBinding.instance.platformDispatcher.views.first);
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  // 1.2.2: Android 15+ kullanımdan kalkan setStatusBarColor/setNavigationBarColor API'lerini tetiklememek için çubuk RENKLERİ verilmez
+  // (kenardan kenara çubuklar zaten saydam); yalnızca kontrast zorlamasını kapat. Simge parlaklığı ScreenScaffold'da tema ile verilir.
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    systemNavigationBarColor: Colors.transparent,
-    statusBarColor: Colors.transparent,
     systemNavigationBarContrastEnforced: false,
   ));
   // Firebase Analytics + Crashlytics (docs/19): yapılandırma (google-services.json) yoksa ya da başlatma başarısızsa

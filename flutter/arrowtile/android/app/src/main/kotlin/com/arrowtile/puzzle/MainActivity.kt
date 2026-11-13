@@ -2,11 +2,28 @@ package com.arrowtile.puzzle
 
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.enableEdgeToEdge
+import androidx.core.view.WindowCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
+    // 1.2.2 (docs/28): targetSdk 35+ için kenardan kenara geriye uyumluluk (Play: "Edge-to-edge may not display for all users").
+    // enableEdgeToEdge, super.onCreate'ten ÖNCE çağrılır. FlutterActivity ComponentActivity ise androidx.activity yolu; değilse
+    // (eski gömme) WindowCompat ile aynı sonuç. Çubuk renklerini Dart tarafı değil bu çağrı (saydam) belirler.
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val self: Any = this
+        if (self is ComponentActivity) {
+            self.enableEdgeToEdge()
+        } else {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+        }
+        super.onCreate(savedInstanceState)
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         // UMP (Google Kullanıcı Mesajlaşma Platformu), TCF tercihlerini varsayılan SharedPreferences'a yazar (IABTCF_*).

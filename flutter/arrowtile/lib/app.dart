@@ -1,5 +1,6 @@
 // Arrowtile — app.dart: MaterialApp (dil, açık/koyu tema, RTL, toast katmanı, yaşam döngüsü).
 import 'dart:async';
+import 'dart:ui' show FlutterView;
 
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
@@ -11,6 +12,7 @@ import 'l10n/app_localizations.dart';
 import 'state/app_controller.dart';
 import 'state/app_scope.dart';
 import 'ui/flow.dart' show startLevel;
+import 'ui/orientation_policy.dart';
 import 'ui/screens/menu_screen.dart';
 import 'ui/tokens.dart';
 
@@ -41,6 +43,13 @@ class _ArrowtileAppState extends State<ArrowtileApp> with WidgetsBindingObserver
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    // 1.2.2: katlanabilir açılıp kapanınca / pencere yeniden boyutlanınca yön politikasını yeniden değerlendir
+    final List<FlutterView> views = WidgetsBinding.instance.platformDispatcher.views.toList();
+    if (views.isNotEmpty) unawaited(applyOrientationPolicy(views.first));
   }
 
   @override

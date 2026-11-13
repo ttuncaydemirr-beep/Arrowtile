@@ -82,3 +82,8 @@ Ayrıntı: `docs/27-surum-1-2-1.md`.
 - Okunabilirlik: WCAG kontrast aracı `tools/contrast.js`; varsayılan ok hardal/çivit, yıldız/jeton simgesi ve ipucu halkası tonları düzeltildi;
   boş yıldız ve kayıp can içi boş simge, kademe noktası şekilli, seçili sekme alt çizgili. Satın alınan temalar (lokum, çini, bakır, gece) 16 ok rengiyle sahip onayıyla açıldı/koyulaştırıldı: her ok iki tahtada ≥ 3:1, `contrast.js` artık bu temaları da zorunlu denetler (docs/27 §B1).
 - Geliştirici adı "Demir Games Studio" (gizlilik politikası, lisans sayfası, belgeler). Simge adayı `store/icon-candidates/` (uygulama simgesi aynı).
+
+## 1.2.2 (versionCode 13) — 13.11.2026, dal `v1.2.2`
+Ayrıntı: `docs/28-surum-1-2-2.md`. Play Console "Kullanıcı deneyimi" uyarıları (versionCode 12, targetSdk 36) giderildi: kenardan kenara geriye uyumluluk
+(`enableEdgeToEdge`), kullanımdan kalkan çubuk rengi API'leri kaldırıldı, büyük ekranlarda yön/yeniden boyutlandırma kısıtı kaldırıldı (yön kilidi yalnızca
+telefonda); içerik en çok 520 dp'lik ortalanmış sütun. Oyuncuya: renk iyileştirmeleri, "Yüksek kontrast" ayarı, tablet/katlanabilir desteği, küçük düzeltmeler.

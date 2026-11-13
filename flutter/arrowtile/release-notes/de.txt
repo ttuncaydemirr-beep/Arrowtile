@@ -1,5 +1,5 @@
-Version 1.2.1
-- Aufgeräumtes Hauptmenü: Die Einstellungen sind jetzt oben in der Leiste (Zahnrad).
-- Der Werbeplatz in Menü und Karte ist vorab reserviert – Schaltflächen springen nicht mehr, wenn Werbung erscheint.
-- Bessere Lesbarkeit: einige Pfeil-, Stern- und Münzfarben sind deutlicher; nicht verdiente Sterne und verlorene Leben sind als Umriss dargestellt.
-- „Werbung entfernen“ sagt jetzt klar, dass auch Werbebanner entfernt werden.
+Version 1.2.2
+- Bessere Farben: Pfeile, Spielfeld und Oberfläche sind klarer und angenehmer zu lesen.
+- Neue Einstellung „Hoher Kontrast“ (Einstellungen › Darstellung): kräftigere Farben und Umrisse.
+- Unterstützung für Tablets und faltbare Geräte: Das Spiel passt jetzt auch auf große Bildschirme und im Querformat.
+- Kleine Korrekturen und Verbesserungen.

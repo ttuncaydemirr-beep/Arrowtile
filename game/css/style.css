@@ -69,7 +69,7 @@ button { font: inherit; color: inherit; touch-action: manipulation; }
 a { color: var(--accent); }
 [hidden] { display: none !important; }
 
-#app { position: fixed; inset: 0; max-width: 480px; margin: 0 auto; overflow: hidden; }
+#app { position: fixed; inset: 0; max-width: 520px; margin: 0 auto; overflow: hidden; }
 
 .screen {
   position: absolute; inset: 0; display: flex; flex-direction: column;

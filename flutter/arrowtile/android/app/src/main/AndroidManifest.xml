@@ -43,15 +43,12 @@
             android:launchMode="singleTop"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
-            android:screenOrientation="portrait"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize"
-            tools:ignore="DiscouragedApi,LockedOrientationActivity">
-            <!-- Android 16 (API 36) büyük ekranlarda (sw >= 600dp) yön kilidini yok sayar; geçici muafiyet. -->
-            <property
-                android:name="android.window.PROPERTY_COMPAT_ALLOW_RESTRICTED_RESIZABILITY"
-                android:value="true" />
+            tools:ignore="DiscouragedApi">
+            <!-- 1.2.2 (docs/28): yön kilidi ve yeniden boyutlandırma kısıtı YOK (Play: "büyük ekranlar için kısıtlamaları kaldırın").
+                 Telefonda dikey kilit Dart'ta (main.dart / orientation_policy.dart), yalnızca en kısa kenar < 600 dp iken. -->
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />

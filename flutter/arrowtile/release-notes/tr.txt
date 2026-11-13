@@ -1,5 +1,5 @@
-Sürüm 1.2.1
-- Daha sade ana menü: Ayarlar artık üst çubukta (dişli simgesi).
-- Menü ve haritadaki reklam alanı önceden ayrılıyor; reklam gelince düğmeler kaymıyor.
-- Okunabilirlik: bazı ok, yıldız ve jeton renkleri daha belirgin; kazanılmayan yıldızlar ve kayıp canlar içi boş simgeyle gösteriliyor.
-- "Reklamları kaldır" artık açıkça banner reklamları da kaldırdığını söylüyor.
+Sürüm 1.2.2
+- Renk iyileştirmeleri: oklar, tahta ve arayüz renkleri daha net ve rahat okunuyor.
+- Yeni "Yüksek kontrast" ayarı (Ayarlar › Görünüm): daha belirgin renkler ve çerçeveler.
+- Tablet ve katlanabilir ekran desteği: oyun artık geniş ekranlarda ve yatay konumda da düzgün görünüyor.
+- Küçük düzeltmeler ve iyileştirmeler.

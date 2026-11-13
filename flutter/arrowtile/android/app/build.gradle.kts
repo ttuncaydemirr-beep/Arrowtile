@@ -88,6 +88,13 @@ kotlin {
     }
 }
 
+dependencies {
+    // 1.2.2: MainActivity'de enableEdgeToEdge() (kenardan kenara geriye uyumluluk). Sürüm, Flutter gömmesinin kullandığı androidx.activity
+    // ile uyumlu en yeni kararlı 1.x; Gradle çözümlemesi gerekirse yükseltir.
+    implementation("androidx.activity:activity:1.10.1")
+    implementation("androidx.core:core-ktx:1.16.0")
+}
+
 flutter {
     source = "../.."
 }

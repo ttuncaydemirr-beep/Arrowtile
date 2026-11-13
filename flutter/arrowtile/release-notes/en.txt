@@ -1,5 +1,5 @@
-Version 1.2.1
-- Tidier main menu: Settings now sits in the top bar (gear icon).
-- The ad space on the menu and map is reserved in advance, so buttons no longer jump when an ad appears.
-- Readability: some arrow, star and coin colours stand out more; unearned stars and lost lives are shown as outline icons.
-- "Remove ads" now clearly says it removes banner ads too.
+Version 1.2.2
+- Colour improvements: arrows, board and interface colours are clearer and easier on the eyes.
+- New "High contrast" setting (Settings › Appearance): bolder colours and outlines.
+- Tablet and foldable support: the game now looks right on large screens and in landscape too.
+- Small fixes and improvements.
