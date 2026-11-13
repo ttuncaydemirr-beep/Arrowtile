@@ -1,0 +1,3 @@
+Uygulamanın 23 simgesi (`game/js/main.js` `ICONS`), 24 × 24 görünüm kutusu. Bu dosyalar **açık temaya çözülmüş** kopyalardır: `currentColor` → `ink` #22252B, `var(--coin-ink)` → #A86F0C, `var(--star-ink)` → #AD7800, `var(--danger)` → #D2453B, `var(--star)` → #E3A008, `var(--success)` → #2F8F5B, `var(--ink-soft)` → #6A6760. `<img>` ile koyu temada kullanmayın; tema uyumlu kullanım için `Icon` bileşenindeki satır içi SVG'yi alın.
+
+Çizgi simgeler: back, calendar, check, fit, gear, lock, map, noads, pause, restart, rotate, shop, zoomin. Renkli simgeler: bulb, coin, gift, hand, heart, heart-empty, leaf, star, star-empty, trophy.

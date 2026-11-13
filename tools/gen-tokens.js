@@ -186,9 +186,29 @@ for (const f of FILES) {
     if (!check) fs.writeFileSync(p, text);
   }
 }
+// ---- design/system/tokens.json (tasarım sistemi kopyası): renk değerleri colors.json ile aynı olmalı (yalnızca denetlenir)
+const sysPath = path.join(ROOT, 'design', 'system', 'tokens.json');
+const drift = [];
+if (fs.existsSync(sysPath)) {
+  const sys = JSON.parse(fs.readFileSync(sysPath, 'utf8'));
+  const tok = Object.fromEntries(sys.color.tokens.map((t) => [t.name, t.value]));
+  const val = (v, m) => (typeof v === 'string' ? v : (v[m] || v.light)).toUpperCase();
+  const want = [];
+  for (const [k, e] of Object.entries(P)) if (e.css && k !== 'shadow') for (const m of MODES) want.push([e.css, m, e[m]]);
+  for (const e of Object.values(SRC.fixed)) if ('value' in e) for (const m of MODES) want.push([e.css, m, e.value]);
+  for (const t of SRC.arrowThemes) t.colors.forEach((c, i) => want.push([`arrow-${t.id}-${i + 1}`, 'light', c]));
+  for (const [name, m, v] of want) {
+    if (!(name in tok)) drift.push(`${name} yok`);
+    else if (val(tok[name], m) !== v) drift.push(`${name}.${m}: ${val(tok[name], m)} ≠ ${v}`);
+  }
+  if (drift.length) {
+    console.error('design/system/tokens.json colors.json ile farklı:\n  ' + drift.join('\n  '));
+    if (check) process.exit(1);
+  }
+}
 if (check) {
   if (stale.length) { console.error('KAYNAKTAN SAPMA: ' + stale.join(', ') + '\nÇözüm: renkleri design/colors.json içinde değiştirin ve `node tools/gen-tokens.js` çalıştırın.'); process.exit(1); }
-  console.log('GEÇTİ: style.css, theme.js ve tokens.dart design/colors.json ile aynı.');
+  console.log('GEÇTİ: style.css, theme.js, tokens.dart ve design/system/tokens.json renkleri design/colors.json ile aynı.');
 } else {
   console.log(stale.length ? 'Güncellendi: ' + stale.join(', ') : 'Değişiklik yok: üç dosya zaten kaynakla aynı.');
 }
