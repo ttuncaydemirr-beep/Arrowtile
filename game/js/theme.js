@@ -29,7 +29,7 @@
         coin:       '#D4951A',
         coinInk:    '#A86F0C', // 1.2.1: jeton simgesi ve ödül yazısı (≥ 3:1)
         danger:     '#D2453B', // can / hata
-        success:    '#2F8F5B',
+        success:    '#267A4D', // 1.2.2: #2F8F5B → #267A4D (küçük metin kart üstünde 3,84 → 5,03; beyaz yazıyla 4,04 → 5,29)
         highlight:  '#FFFFFF', // ipucu halkası iç
         highlightRing: '#AD7800', // 1.2.1: ipucu halkası tahtada ≥ 3:1 (eski #E3A008: 2,15)
         shadow:     'rgba(34,37,43,0.16)'

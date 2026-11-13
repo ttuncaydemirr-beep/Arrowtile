@@ -4,7 +4,7 @@
 :root {
   --bg: #EFEAE2; --board: #FBF9F5; --edge: #D8D0C3; --cell: #EEE8DE;
   --ink: #22252B; --ink-soft: #6A6760; --accent: #1E7A78; --accent-ink: #FFFFFF; --on-fill: #FFFFFF;
-  --star: #E3A008; --star-ink: #AD7800; --star-empty: #D8D0C3; --coin: #D4951A; --coin-ink: #A86F0C; --danger: #D2453B; --success: #2F8F5B;
+  --star: #E3A008; --star-ink: #AD7800; --star-empty: #D8D0C3; --coin: #D4951A; --coin-ink: #A86F0C; --danger: #D2453B; --success: #267A4D;
   --shadow: rgba(34,37,43,0.16);
   --card: #FBF9F5;
   --font: "Readex Pro", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;

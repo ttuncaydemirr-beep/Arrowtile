@@ -82,15 +82,15 @@ for (const mode of ['light', 'dark']) {
   add('metin', 'birincil düğme yazısı / vurgu', C.accentInk, C.accent, 4.5, mode);
   // 1.2.2: renkli dolgu üstündeki yazı (onFill) — tehlike / kuşanıldı düğmesi (18 px kalın), Kolay / Orta etiketi (11–12 px kalın)
   add('metin', 'tehlike düğmesi yazısı / danger', C.onFill, C.danger, 4.5, mode);
-  add('metin', 'kuşanıldı düğmesi yazısı / success', C.onFill, C.success, 4.5, mode, mode === 'light');
+  add('metin', 'kuşanıldı düğmesi yazısı / success', C.onFill, C.success, 4.5, mode);
   add('metin', 'Orta etiketi yazısı / accent', C.onFill, C.accent, 4.5, mode);
-  add('metin', 'Kolay etiketi yazısı / success', C.onFill, C.success, 4.5, mode, mode === 'light');
+  add('metin', 'Kolay etiketi yazısı / success', C.onFill, C.success, 4.5, mode);
   // 1.2.2: klavye odak halkası (starInk) — kontrol çevresindeki yüzeylerde ≥ 3:1
   add('simge', 'odak halkası (starInk) / kart', C.starInk, C.board, 3, mode);
   add('simge', 'odak halkası (starInk) / zemin', C.starInk, C.bg, 3, mode);
   add('simge', 'odak halkası (starInk) / hücre', C.starInk, C.cell, 3, mode);
-  // bilinen açık (UYARI, CI'ı durdurmaz): success küçük metin olarak ("Ödülün hazır!", "2 ücretsiz") — renk kararı sahipte
-  add('metin', 'başarı yazısı (success) / kart', C.success, C.board, 4.5, mode, mode === 'light');
+  // 1.2.2: success küçük metin olarak ("Ödülün hazır!", "2 ücretsiz", rahat mod) — hep kart/modal üstünde; açık temada #267A4D ile zorunlu
+  add('metin', 'başarı yazısı (success) / kart', C.success, C.board, 4.5, mode);
 }
 
 // 1.2.1 (docs/27 §B1): satın alınan temalar (lokum, cini, bakir, gece) da ZORUNLU — sahip onayıyla açık/koyu tahtada ok ≥ 3:1.

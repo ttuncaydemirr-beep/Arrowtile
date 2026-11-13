@@ -65,7 +65,7 @@ class Palette {
     coin: 0xD4951A,
     coinInk: 0xA86F0C,
     danger: 0xD2453B,
-    success: 0x2F8F5B,
+    success: 0x267A4D, // 1.2.2: #2F8F5B → #267A4D (kontrast, theme.js ile aynı)
     highlight: 0xFFFFFF,
     highlightRing: 0xAD7800, // 1.2.1: tahtada ≥ 3:1 (eski 0xE3A008: 2,15)
     shadow: 0x22252B,
