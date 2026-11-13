@@ -13,12 +13,14 @@ Color rgba(int rgb, [double alpha = 1]) {
   return Color((a << 24) | (rgb & 0xFFFFFF));
 }
 
-/// 1.2.2: temadan bağımsız sabitler (theme.js THEME.fixed, style.css :root ile aynı; tools/contrast.js denetler).
+// @tokens:begin fixed — tools/gen-tokens.js üretir; elle düzenlemeyin (kaynak: design/colors.json)
+/// Temadan bağımsız sabitler (theme.js THEME.fixed, style.css :root ile aynı).
 const Color kOnGold = Color(0xFF22252B); // altın/hardal dolgu (star, coin) üstündeki koyu yazı
 const Color kExtreme = Color(0xFFB3263A); // "Aşırı zor" kademe noktası ve düğüm halkası
 const Color kExtremeDeep = Color(0xFF7A1420); // "Aşırı zor" etiket dolgusu ve düğüm alt gölgesi
-const int kScrim = 0x14171C; // modal perdesi (eski lacivert 0x0A131C yerine kömür)
+const int kScrim = 0x14171C; // modal perdesi; eski lacivert #0A131C yerine kömür
 const double kScrimAlpha = 0.55;
+// @tokens:end fixed
 
 class Palette {
   final int bg, board, boardEdge, cell, cellDot, ink, inkSoft, accent, accentInk, onFill, star, starEmpty, coin, danger, success,
@@ -55,33 +57,34 @@ class Palette {
 
   // 1.2.0 (docs/24 §7): araştırmaya dayalı palet "Kum ve Mürekkep" (sıcak nötr zemin, kahraman oklar; kırmızı yalnızca çarpma/can,
   // altın yalnızca ipucu/yıldız). theme.js colors ile aynı.
+  // @tokens:begin palettes — tools/gen-tokens.js üretir; elle düzenlemeyin (kaynak: design/colors.json)
   static const Palette light = Palette(
-    bg: 0xEFEAE2, // kum zemin
-    board: 0xFBF9F5, // tahta yüzü ("kâğıt levha")
+    bg: 0xEFEAE2, // kum zemin / kömür
+    board: 0xFBF9F5, // tahta yüzü ("kâğıt levha"), modal
     boardEdge: 0xD8D0C3, // tahta kenarı / alt kalınlık
-    cell: 0xEEE8DE,
-    cellDot: 0xCFC6B8,
-    ink: 0x22252B, // mürekkep (metin + tek renk oklar)
-    inkSoft: 0x6A6760,
-    accent: 0x1E7A78, // derin çam yeşili-turkuaz
-    accentInk: 0xFFFFFF,
-    onFill: 0xFFFFFF, // 1.2.2: success/accent/danger dolgusu üstündeki yazı (theme.js onFill)
-    star: 0xE3A008,
-    starInk: 0xAD7800,
-    starEmpty: 0xD8D0C3,
-    coin: 0xD4951A,
-    coinInk: 0xA86F0C,
-    danger: 0xD2453B,
-    success: 0x267A4D, // 1.2.2: #2F8F5B → #267A4D (kontrast, theme.js ile aynı)
-    highlight: 0xFFFFFF,
-    highlightRing: 0xAD7800, // 1.2.1: tahtada ≥ 3:1 (eski 0xE3A008: 2,15)
+    cell: 0xEEE8DE, // hücre çukuru, sekme izi
+    cellDot: 0xCFC6B8, // hücre köşe noktası (yalnızca tahta)
+    ink: 0x22252B, // ana metin (mürekkep) + tek renk oklar
+    inkSoft: 0x6A6760, // ikincil metin
+    accent: 0x1E7A78, // derin çam yeşili-turkuaz — birincil buton
+    accentInk: 0xFFFFFF, // accent üstündeki yazı
+    onFill: 0xFFFFFF, // 1.2.2: renkli dolgu (success/accent/danger) üstündeki yazı — koyu temada koyu (≥ 4,5:1)
+    star: 0xE3A008, // altın yıldız (zemin/rozet dolgusu)
+    starInk: 0xAD7800, // 1.2.1 (docs/27 §B1): yıldız SİMGESİ, ipucu halkası, odak halkası (≥ 3:1)
+    starEmpty: 0xD8D0C3, // anahtarın kapalı izi
+    coin: 0xD4951A, // jeton rozeti dolgusu
+    coinInk: 0xA86F0C, // 1.2.1: jeton simgesi ve ödül yazısı (≥ 3:1)
+    danger: 0xD2453B, // yalnızca can / çarpma / hata
+    success: 0x267A4D, // 1.2.2: açıkta #2F8F5B → #267A4D (küçük metin kart üstünde 3,84 → 5,03; beyaz yazıyla 4,04 → 5,29)
+    highlight: 0xFFFFFF, // ipucu halkası iç
+    highlightRing: 0xAD7800, // 1.2.1: ipucu halkası tahtada ≥ 3:1 (eski #E3A008: 2,15)
     shadow: 0x22252B,
     shadowAlpha: 0.16,
     dark: false,
   );
 
   static const Palette darkP = Palette(
-    bg: 0x14171C, // kömür
+    bg: 0x14171C,
     board: 0x1E2229,
     boardEdge: 0x0C0E12,
     cell: 0x272C35,
@@ -90,7 +93,7 @@ class Palette {
     inkSoft: 0xA19D94,
     accent: 0x4DB6AC,
     accentInk: 0x14171C,
-    onFill: 0x14171C, // koyu temada açık dolgu üstünde koyu yazı (≥ 4,5:1)
+    onFill: 0x14171C,
     star: 0xF2B632,
     starInk: 0xF2B632,
     starEmpty: 0x3A414D,
@@ -104,6 +107,7 @@ class Palette {
     shadowAlpha: 0.45,
     dark: true,
   );
+  // @tokens:end palettes
 
   static Palette of(BuildContext context) {
     // MaterialApp'in ThemeData.brightness değeri uygulama kökündeki Brightness üzerinden okunur.
@@ -162,15 +166,17 @@ class ArrowTheme {
   const ArrowTheme(this.id, this.price, this.colors, this.chevron, this.chevronAlpha);
 }
 
+// @tokens:begin arrowThemes — tools/gen-tokens.js üretir; elle düzenlemeyin (kaynak: design/colors.json)
 const List<ArrowTheme> kArrowThemes = <ArrowTheme>[
-  // 1.2.0 (docs/24 §7): varsayılan ok paleti — turkuaz, kiremit, hardal, çivit, erik (kırmızı/altın anlam renklerinden ayrık)
-  // 1.2.1 (docs/27 §B1): hardal 0xD9A21B → 0xB8850E, çivit 0x4B5FC1 → 0x5468CC (tahtada ≥ 3:1, açık ve koyu)
+  // emaye: 1.2.0 (docs/24 §7): varsayılan ok paleti — turkuaz, kiremit, hardal, çivit, erik; kırmızı (çarpma) ve altın (ipucu) anlam renklerinden ayrık. 1.2.1 (docs/27 §B1): hardal #D9A21B → #B8850E, çivit #4B5FC1 → #5468CC (tahtada ≥ 3:1)
   ArrowTheme('emaye', 0, <int>[0x1F8A8A, 0xE0703C, 0xB8850E, 0x5468CC, 0xA0508F], 0xFFFFFF, 0.78),
   ArrowTheme('lokum', 300, <int>[0xE2668E, 0xD97511, 0x579C84, 0xA081D0, 0xAE8B19], 0xFFFFFF, 0.85),
   ArrowTheme('cini', 500, <int>[0x246EC2, 0x1C8C8C, 0xC7382C, 0x2F7A3D, 0x5B8DE4], 0xFFFFFF, 0.80),
   ArrowTheme('bakir', 750, <int>[0xB5652E, 0xC76833, 0xB7722E, 0xA5592F, 0xC9773A], 0xFFF0DC, 0.80),
+  // gece: koyu şevron
   ArrowTheme('gece', 1000, <int>[0x1B9EAB, 0xF155A0, 0x649F0D, 0xBB8600, 0x9B78FF], 0x0F1B27, 0.70),
 ];
+// @tokens:end arrowThemes
 
 ArrowTheme arrowThemeById(String id) {
   for (final ArrowTheme t in kArrowThemes) {

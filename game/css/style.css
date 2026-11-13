@@ -1,38 +1,38 @@
 /* 1.2.0 (docs/24 §7): Readex Pro değişken yazı tipi (SIL OFL 1.1, assets/fonts/OFL.txt) — pakette, ağ yok */
 @font-face { font-family: "Readex Pro"; src: url("../assets/fonts/ReadexPro-VF.ttf") format("truetype"); font-weight: 160 700; font-style: normal; font-display: swap; }
-/* Arrowtile — style.css. Token'lar theme.js / docs/02 ile aynı. Mantıksal CSS (RTL uyumlu). */
+/* Arrowtile — style.css. Renkler design/colors.json'dan üretilir (tools/gen-tokens.js). Mantıksal CSS (RTL uyumlu). */
+/* @tokens:begin colors — tools/gen-tokens.js üretir; elle düzenlemeyin (kaynak: design/colors.json) */
 :root {
-  --bg: #EFEAE2; --board: #FBF9F5; --edge: #D8D0C3; --cell: #EEE8DE;
-  --ink: #22252B; --ink-soft: #6A6760; --accent: #1E7A78; --accent-ink: #FFFFFF; --on-fill: #FFFFFF;
-  --star: #E3A008; --star-ink: #AD7800; --star-empty: #D8D0C3; --coin: #D4951A; --coin-ink: #A86F0C; --danger: #D2453B; --success: #267A4D;
-  --shadow: rgba(34,37,43,0.16);
-  --card: #FBF9F5;
-  /* 1.2.2: temadan bağımsız sabitler (theme.js THEME.fixed, tokens.dart kOnGold/kExtreme/kExtremeDeep/kScrim) */
+  --bg: #EFEAE2; --board: #FBF9F5; --edge: #D8D0C3; --cell: #EEE8DE; --ink: #22252B; --ink-soft: #6A6760;
+  --accent: #1E7A78; --accent-ink: #FFFFFF; --on-fill: #FFFFFF; --star: #E3A008; --star-ink: #AD7800; --star-empty: #D8D0C3;
+  --coin: #D4951A; --coin-ink: #A86F0C; --danger: #D2453B; --success: #267A4D; --shadow: rgba(34,37,43,0.16); --card: #FBF9F5;
+  /* temadan bağımsız sabitler */
   --on-gold: #22252B; --extreme: #B3263A; --extreme-deep: #7A1420; --scrim: rgba(20,23,28,0.55);
+  color-scheme: light;
+}
+/* G7: Görünüm = Otomatik (sistem) / Açık / Koyu. data-theme main.js applyAppearance() ile ayarlanır */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14171C; --board: #1E2229; --edge: #0C0E12; --cell: #272C35; --ink: #F2EEE6; --ink-soft: #A19D94;
+    --accent: #4DB6AC; --accent-ink: #14171C; --on-fill: #14171C; --star: #F2B632; --star-ink: #F2B632; --star-empty: #3A414D;
+    --coin: #F0B23A; --coin-ink: #F0B23A; --danger: #F0685E; --success: #55C08A; --shadow: rgba(0,0,0,0.45); --card: #1E2229;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14171C; --board: #1E2229; --edge: #0C0E12; --cell: #272C35; --ink: #F2EEE6; --ink-soft: #A19D94;
+  --accent: #4DB6AC; --accent-ink: #14171C; --on-fill: #14171C; --star: #F2B632; --star-ink: #F2B632; --star-empty: #3A414D;
+  --coin: #F0B23A; --coin-ink: #F0B23A; --danger: #F0685E; --success: #55C08A; --shadow: rgba(0,0,0,0.45); --card: #1E2229;
+  color-scheme: dark;
+}
+/* @tokens:end colors */
+:root {
   --font: "Readex Pro", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;
   --font-num: "Readex Pro", ui-rounded, system-ui, -apple-system, Roboto, sans-serif;
   --lh: 1.3; --fs-scale: 1;
   --sat: env(safe-area-inset-top, 0px); --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px); --sar: env(safe-area-inset-right, 0px);
   --ease-btn: cubic-bezier(.2,.8,.2,1);
-  color-scheme: light;
-}
-/* G7: Görünüm = Otomatik (sistem) / Açık / Koyu. data-theme main.js applyAppearance() ile ayarlanır */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #14171C; --board: #1E2229; --edge: #0C0E12; --cell: #272C35;
-    --ink: #F2EEE6; --ink-soft: #A19D94; --accent: #4DB6AC; --accent-ink: #14171C; --on-fill: #14171C;
-    --star: #F2B632; --star-ink: #F2B632; --star-empty: #3A414D; --coin: #F0B23A; --coin-ink: #F0B23A; --danger: #F0685E; --success: #55C08A;
-    --shadow: rgba(0,0,0,0.45); --card: #1E2229;
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --bg: #14171C; --board: #1E2229; --edge: #0C0E12; --cell: #272C35;
-  --ink: #F2EEE6; --ink-soft: #A19D94; --accent: #4DB6AC; --accent-ink: #14171C; --on-fill: #14171C;
-  --star: #F2B632; --star-ink: #F2B632; --star-empty: #3A414D; --coin: #F0B23A; --coin-ink: #F0B23A; --danger: #F0685E; --success: #55C08A;
-  --shadow: rgba(0,0,0,0.45); --card: #1E2229;
-  color-scheme: dark;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
