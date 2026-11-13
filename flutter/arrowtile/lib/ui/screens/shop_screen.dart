@@ -42,7 +42,7 @@ class _ShopScreenState extends State<ShopScreen> {
               Container(
                 padding: const EdgeInsets.all(4),
                 margin: const EdgeInsets.only(bottom: 14),
-                decoration: BoxDecoration(color: pal.cellC, borderRadius: BorderRadius.circular(16)),
+                decoration: BoxDecoration(color: pal.cellC, border: pal.hcBorder, borderRadius: BorderRadius.circular(16)),
                 child: Row(children: <Widget>[
                   Expanded(child: _tabBtn(pal, 'themes', loc.shopThemes, app)),
                   const SizedBox(width: 6),
@@ -216,6 +216,7 @@ class _ItemCard extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: pal.boardC,
+        border: pal.hcBorder,
         borderRadius: BorderRadius.circular(18),
         boxShadow: <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 3))],
       ),
@@ -249,7 +250,7 @@ class ThemePreview extends StatelessWidget {
     return Container(
       width: 88,
       height: 64,
-      decoration: BoxDecoration(color: pal.cellC, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: pal.cellC, border: pal.hcBorder, borderRadius: BorderRadius.circular(12)),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: CustomPaint(painter: _ThemePreviewPainter(theme, pal)),
@@ -385,6 +386,7 @@ class _AdsCardState extends State<AdsCard> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: pal.boardC,
+        border: pal.hcBorder,
         borderRadius: BorderRadius.circular(18),
         boxShadow: <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 3))],
       ),

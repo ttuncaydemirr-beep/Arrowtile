@@ -251,3 +251,18 @@
 /* AdBanner — reklam yuvası (style.css .banner; Flutter AdBannerSlot): sabit 56 px, üstünde 16 px dokunulmaz boşluk */
 .at-banner { box-sizing: border-box; height: 56px; margin: var(--space-16) 0 0; border: 2px dashed var(--edge); border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center; color: var(--ink-soft); font-weight: 700; font-size: 14px; background: color-mix(in srgb, var(--card) 60%, transparent); }
+
+/* ===== 1.2.2 (Madde 9): yüksek kontrast temaları (light-hc, dark-hc) — oyunda :root[data-contrast="more"] ile aynı kurallar ===== */
+:is([data-theme="light-hc"], [data-theme="dark-hc"]) :is(.at-btn.secondary, .at-btn.tiny, .at-icon-btn, .at-tool, .at-pill, .at-set-group, .at-item,
+  .at-chapter, .at-sheet, .at-tabs, .at-seg, .at-lang-btn, .at-day, .at-cal-day:not(.empty), .at-badge, .at-chip, .at-bubble, .at-toast) {
+  outline: 2px solid var(--edge); outline-offset: -2px;
+}
+:is([data-theme="light-hc"], [data-theme="dark-hc"]) .at-lang-btn.on { outline-color: var(--accent); }
+:is([data-theme="light-hc"], [data-theme="dark-hc"]) .at-set-row { border-bottom-color: var(--edge); }
+:is([data-theme="light-hc"], [data-theme="dark-hc"]) :is(.at-btn, .at-tool, .at-icon-btn, .at-node, .at-tab, .at-lang-btn, .at-switch, .at-seg-btn):focus-visible {
+  outline: 4px solid var(--star-ink); outline-offset: 2px;
+}
+:is([data-theme="light-hc"], [data-theme="dark-hc"]) .at-btn[disabled] { opacity: 1; background: var(--cell); color: var(--ink-soft); box-shadow: none; outline: 2px dashed var(--edge); outline-offset: -2px; }
+:is([data-theme="light-hc"], [data-theme="dark-hc"]) :is(.at-day.past, .at-cal-day.future) { opacity: 1; }
+:is([data-theme="light-hc"], [data-theme="dark-hc"]) .at-cal-day.future { color: var(--ink-soft); }
+:is([data-theme="light-hc"], [data-theme="dark-hc"]) :is(.at-tab.on, .at-seg-btn.on) { box-shadow: var(--raise-2), inset 0 -4px 0 var(--accent); }

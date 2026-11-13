@@ -45,8 +45,9 @@ function dartThemes() {
   return o;
 }
 const errs = [];
-const DP = { light: dartPalette('light'), dark: dartPalette('darkP') };
-for (const mode of ['light', 'dark']) {
+const DP = { light: dartPalette('light'), dark: dartPalette('darkP'), lightHc: dartPalette('lightHc'), darkHc: dartPalette('darkHc') };
+for (const mode of Object.keys(DP)) {
+  if (!T.colors[mode]) { errs.push('theme.js: THEME.colors.' + mode + ' yok'); continue; }
   for (const [k, v] of Object.entries(DP[mode])) {
     const w = T.colors[mode][k];
     if (typeof w === 'string' && w.startsWith('#') && w.toUpperCase() !== v) errs.push(`renk farkı ${mode}.${k}: web ${w} ≠ Flutter ${v}`);
@@ -115,6 +116,34 @@ for (const mode of ['light', 'dark']) {
   add('metin', 'başarı yazısı (success) / kart', C.success, C.board, 4.5, mode);
 }
 
+// 1.2.2 (Madde 9): yüksek kontrast paletleri — WCAG AAA: metin ≥ 7:1 (büyük metin ≥ 4,5:1), kenarlık / simge / ok / odak ≥ 3:1
+for (const mode of ['lightHc', 'darkHc']) {
+  const C = T.colors[mode];
+  if (!C) continue;
+  T.arrowThemes.forEach(th => th.colors.forEach((c, i) => add(`YK ok (tema ${th.id})`, `${th.id}[${i}] ${c}`, c, C.board, 3, mode)));
+  add('YK ok (Tek renk)', 'ink', C.ink, C.board, 3, mode);
+  add('YK ok konturu', 'ink / tahta', C.ink, C.board, 3, mode);
+  for (const [bn, bg] of [['zemin', C.bg], ['kart', C.board], ['hücre', C.cell]]) {
+    add('YK metin', `ana metin / ${bn}`, C.ink, bg, 7, mode);
+    add('YK metin', `ikincil metin / ${bn}`, C.inkSoft, bg, 7, mode);
+    add('YK kenarlık', `kenarlık (boardEdge) / ${bn}`, C.boardEdge, bg, 3, mode);
+    add('YK simge', `odak halkası (starInk) / ${bn}`, C.starInk, bg, 3, mode);
+  }
+  add('YK metin', 'birincil düğme yazısı / vurgu', C.accentInk, C.accent, 7, mode);
+  add('YK metin', 'dolgu yazısı (onFill) / success', C.onFill, C.success, 7, mode);
+  add('YK metin', 'dolgu yazısı (onFill) / danger', C.onFill, C.danger, 7, mode);
+  add('YK metin', 'dolgu yazısı (onFill) / accent', C.onFill, C.accent, 7, mode);
+  add('YK metin', 'başarı yazısı (success) / kart', C.success, C.board, 7, mode);
+  add('YK metin (büyük)', 'ödül yazısı (coinInk) / kart', C.coinInk, C.board, 4.5, mode);
+  add('YK metin', 'ödül etiketi yazısı (onGold) / star', T.fixed.onGold, C.star, 7, mode);
+  add('YK metin', 'Zor etiketi yazısı (onGold) / coin', T.fixed.onGold, C.coin, 7, mode);
+  add('YK simge', 'yıldız (starInk) / kart', C.starInk, C.board, 3, mode);
+  add('YK simge', 'can (danger) / kart', C.danger, C.board, 3, mode);
+  add('YK simge', 'ipucu halkası / tahta', C.highlightRing, C.board, 3, mode);
+  add('YK simge', 'ızgara noktası (cellDot) / tahta', C.cellDot, C.board, 3, mode);
+  add('YK simge', 'anahtar topuzu beyaz / kapalı iz (starEmpty)', '#FFFFFF', C.starEmpty, 3, mode);
+}
+
 // 1.2.1 (docs/27 §B1): satın alınan temalar (lokum, cini, bakir, gece) da ZORUNLU — sahip onayıyla açık/koyu tahtada ok ≥ 3:1.
 const fails = rows.filter(r => r.r < r.min && !r.warn);
 const warns = rows.filter(r => r.r < r.min && r.warn);
@@ -122,9 +151,9 @@ const fmt = r => r.r.toFixed(2);
 if (process.argv.includes('--markdown')) {
   console.log('| Grup | Öğe | Ön plan | Arka plan | Kip | Oran | Eşik | Sonuç |');
   console.log('|---|---|---|---|---|---|---|---|');
-  for (const r of rows) console.log(`| ${r.group} | ${r.what} | ${r.fg} | ${r.bg} | ${r.mode === 'light' ? 'açık' : 'koyu'} | ${fmt(r)} | ${r.min}:1 | ${r.r >= r.min ? 'GEÇTİ' : (r.warn ? 'UYARI' : 'KALDI')} |`);
+  for (const r of rows) console.log(`| ${r.group} | ${r.what} | ${r.fg} | ${r.bg} | ${({ light: 'açık', dark: 'koyu', lightHc: 'açık YK', darkHc: 'koyu YK' })[r.mode]} | ${fmt(r)} | ${r.min}:1 | ${r.r >= r.min ? 'GEÇTİ' : (r.warn ? 'UYARI' : 'KALDI')} |`);
 } else {
-  for (const r of rows) console.log(`${r.r >= r.min ? 'ok  ' : (r.warn ? 'UYARI' : 'KALDI')} ${r.mode.padEnd(5)} ${r.group.padEnd(26)} ${r.what.padEnd(28)} ${r.fg} / ${r.bg}  ${fmt(r)}:1 (≥ ${r.min})`);
+  for (const r of rows) console.log(`${r.r >= r.min ? 'ok  ' : (r.warn ? 'UYARI' : 'KALDI')} ${r.mode.padEnd(7)} ${r.group.padEnd(26)} ${r.what.padEnd(28)} ${r.fg} / ${r.bg}  ${fmt(r)}:1 (≥ ${r.min})`);
 }
 if (errs.length) { console.error('\nHATA (web ≠ Flutter):\n' + errs.join('\n')); process.exit(1); }
 if (fails.length) { console.error(`\nKALDI: ${fails.length} çift eşik altında: ` + fails.map(r => `${r.mode}:${r.what}=${fmt(r)}`).join(', ')); process.exit(1); }

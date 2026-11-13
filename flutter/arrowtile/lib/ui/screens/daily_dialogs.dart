@@ -109,7 +109,7 @@ class DpStats extends StatelessWidget {
     final Palette pal = Palette.of(context);
     Widget chip(String t) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(color: pal.cellC, borderRadius: BorderRadius.circular(999)),
+          decoration: BoxDecoration(color: pal.cellC, border: pal.hcBorder, borderRadius: BorderRadius.circular(999)),
           child: Text(t, style: TextStyle(color: pal.inkC, fontSize: 14, fontWeight: FontWeight.w700)),
         );
     return Padding(
@@ -165,6 +165,7 @@ class _CalendarBodyState extends State<_CalendarBody> {
               height: 48,
               decoration: BoxDecoration(
                 color: pal.boardC,
+                border: pal.hcBorder,
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 3))],
               ),

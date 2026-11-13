@@ -56,6 +56,51 @@
         highlight:     '#FFFFFF',
         highlightRing: '#F2B632',
         shadow:        'rgba(0,0,0,0.45)'
+      },
+      // yüksek kontrast (Madde 9): THEME.highContrast açıkken THEME.palette() bunları döndürür
+      lightHc: {
+        bg:            '#F4F0E8',
+        board:         '#FFFFFF',
+        boardEdge:     '#5E5A52',
+        cell:          '#E9E3D7',
+        cellDot:       '#8C877D',
+        ink:           '#111317',
+        inkSoft:       '#3A3833',
+        accent:        '#0D4F4D',
+        accentInk:     '#FFFFFF',
+        onFill:        '#FFFFFF',
+        star:          '#F2B632',
+        starInk:       '#5E4100',
+        starEmpty:     '#8C877D',
+        coin:          '#F0B23A',
+        coinInk:       '#5C3D06',
+        danger:        '#9E2017',
+        success:       '#17573A',
+        highlight:     '#FFFFFF',
+        highlightRing: '#5E4100',
+        shadow:        'rgba(17,19,23,0.25)'
+      },
+      darkHc: {
+        bg:            '#0A0B0D',
+        board:         '#16191E',
+        boardEdge:     '#9A968D',
+        cell:          '#22262D',
+        cellDot:       '#6B6F78',
+        ink:           '#FFFFFF',
+        inkSoft:       '#D9D4CA',
+        accent:        '#86DDD4',
+        accentInk:     '#0A0B0D',
+        onFill:        '#0A0B0D',
+        star:          '#FFCB52',
+        starInk:       '#FFCB52',
+        starEmpty:     '#6B6F78',
+        coin:          '#FFC452',
+        coinInk:       '#FFC452',
+        danger:        '#FF9A90',
+        success:       '#86E0AE',
+        highlight:     '#FFFFFF',
+        highlightRing: '#FFCB52',
+        shadow:        'rgba(0,0,0,0.60)'
       }
     },
     // @tokens:end colors
@@ -205,14 +250,17 @@
   function shadeOf(c) { return shadeCache[c] || (shadeCache[c] = shade(c, -0.35)); }
 
   THEME.forceMode = null; // G7: 'light' | 'dark' | null (otomatik = sistem)
+  THEME.highContrast = false; // 1.2.2 (Madde 9): main.js applyAppearance() ayarlar; açıkken lightHc / darkHc paletleri
   THEME.palette = function (mode) {
     if (!mode) mode = THEME.forceMode;
     if (!mode) {
       try { mode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
       catch (e) { mode = 'light'; }
     }
+    if (THEME.highContrast && (mode === 'light' || mode === 'dark')) return THEME.colors[mode + 'Hc'];
     return THEME.colors[mode] || THEME.colors.light;
   };
+  THEME.isHc = function (pal) { return pal === THEME.colors.lightHc || pal === THEME.colors.darkHc; };
   THEME.arrowColor = function (themeIndex, arrowIndex) {
     var t = THEME.arrowThemes[themeIndex] || THEME.arrowThemes[0];
     return t.colors[arrowIndex % t.colors.length];
@@ -298,6 +346,7 @@
       whole(0, bw + cell * 0.08, pal.highlight, true);
     }
     if (!mono) whole(S.depth * cell, bw, shadeOf(color), true); // alt kalınlık (ekran aşağısı)
+    if (!mono && THEME.highContrast) whole(0, bw + 3, THEME.palette().ink, true); // 1.2.2 YK: 1,5 px mürekkep kontur (tahtada ≥ 3:1)
     whole(0, bw, color, true);                           // yüz
     if (mono) { ctx.restore(); return; }
     // şevronlar: her gövde hücresinde akış yönünde ">" (köşe ve baş hücresi hariç)
@@ -344,7 +393,7 @@
     // Noktalar hücre merkezinde değil köşelerde: boş hücrenin ortası tahta renginde kalır, oklar ince çizgiler gibi okunur.
     var dr = Math.max(0.7, S.gridDot * cell);
     ctx.fillStyle = pal.cellDot;
-    ctx.globalAlpha = mode === 'dark' || (!mode && pal === THEME.colors.dark) ? 0.55 : 0.75;
+    ctx.globalAlpha = THEME.isHc(pal) ? 1 : mode === 'dark' || (!mode && pal === THEME.colors.dark) ? 0.55 : 0.75; // YK: noktalar tam opak (≥ 3:1)
     ctx.beginPath();
     for (var j = 0; j <= h; j++) for (var i = 0; i <= w; i++) {
       var px = ox + i * cell, py = oy + j * cell;

@@ -25,6 +25,27 @@
   --coin: #F0B23A; --coin-ink: #F0B23A; --danger: #F0685E; --success: #55C08A; --shadow: rgba(0,0,0,0.45); --card: #1E2229;
   color-scheme: dark;
 }
+/* Yüksek kontrast (Madde 9): data-contrast="more" main.js applyAppearance() ile; açık ve koyu YK paletleri */
+:root[data-contrast="more"] {
+  --bg: #F4F0E8; --board: #FFFFFF; --edge: #5E5A52; --cell: #E9E3D7; --ink: #111317; --ink-soft: #3A3833;
+  --accent: #0D4F4D; --accent-ink: #FFFFFF; --on-fill: #FFFFFF; --star: #F2B632; --star-ink: #5E4100; --star-empty: #8C877D;
+  --coin: #F0B23A; --coin-ink: #5C3D06; --danger: #9E2017; --success: #17573A; --shadow: rgba(17,19,23,0.25); --card: #FFFFFF;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-contrast="more"]:not([data-theme="light"]) {
+    --bg: #0A0B0D; --board: #16191E; --edge: #9A968D; --cell: #22262D; --ink: #FFFFFF; --ink-soft: #D9D4CA;
+    --accent: #86DDD4; --accent-ink: #0A0B0D; --on-fill: #0A0B0D; --star: #FFCB52; --star-ink: #FFCB52; --star-empty: #6B6F78;
+    --coin: #FFC452; --coin-ink: #FFC452; --danger: #FF9A90; --success: #86E0AE; --shadow: rgba(0,0,0,0.60); --card: #16191E;
+    color-scheme: dark;
+  }
+}
+:root[data-contrast="more"][data-theme="dark"] {
+  --bg: #0A0B0D; --board: #16191E; --edge: #9A968D; --cell: #22262D; --ink: #FFFFFF; --ink-soft: #D9D4CA;
+  --accent: #86DDD4; --accent-ink: #0A0B0D; --on-fill: #0A0B0D; --star: #FFCB52; --star-ink: #FFCB52; --star-empty: #6B6F78;
+  --coin: #FFC452; --coin-ink: #FFC452; --danger: #FF9A90; --success: #86E0AE; --shadow: rgba(0,0,0,0.60); --card: #16191E;
+  color-scheme: dark;
+}
 /* @tokens:end colors */
 :root {
   --font: "Readex Pro", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;
@@ -431,3 +452,22 @@ body.doc-page { user-select: text; -webkit-user-select: text; }
 #scr-game .tool.tool-icon { padding: 6px; }
 #scr-game .tool.tool-icon[hidden] { display: none; }
 #scr-game .tool.tool-icon .ic { width: 26px; height: 26px; }
+
+/* ===== 1.2.2 (Madde 9): yüksek kontrast — renkler @tokens bölgesinde (data-contrast="more"); burada yalnızca biçim =====
+   Yüzeyler gölge tonuyla değil 2 px kenarlıkla ayrılır (≥ 3:1). outline + negatif öteleme: düzen kaymaz, köşeyi izler. */
+:root[data-contrast="more"] :is(.btn.secondary, .btn.tiny, .icon-btn, .tool, .pill, .set-group, .item, .chapter-head, .sheet, .tabs, .seg,
+  .lang-btn, .day, .cal-day:not(.empty), .fit-btn, .relaxed-badge, .chip, .doc-langs a, .bubble, .toast, .code-box) {
+  outline: 2px solid var(--edge); outline-offset: -2px;
+}
+:root[data-contrast="more"] .lang-btn.on { border-color: var(--accent); outline-color: var(--accent); }
+:root[data-contrast="more"] .set-row { border-bottom-color: var(--edge); }
+/* Odak halkası: 4 px, kenarlık kuralını ezer (özgüllük ≥ yukarıdaki) */
+:root[data-contrast="more"] :is(.btn, .tool, .icon-btn, .node, .tab, .lang-btn, .switch, .seg-btn, .fit-btn):focus-visible {
+  outline: 4px solid var(--star-ink); outline-offset: 2px;
+}
+/* Saydamlıkla soluklaştırma yerine açık renk (saydamlık kontrastı düşürür) */
+:root[data-contrast="more"] .btn[disabled] { opacity: 1; background: var(--cell); color: var(--ink-soft); box-shadow: none; outline: 2px dashed var(--edge); outline-offset: -2px; }
+:root[data-contrast="more"] :is(.day.past, .cal-day.future, .cal-nav .icon-btn[disabled]) { opacity: 1; }
+:root[data-contrast="more"] .cal-day.future { color: var(--ink-soft); }
+:root[data-contrast="more"] .tab.on, :root[data-contrast="more"] .seg-btn.on { box-shadow: 0 2px 0 var(--edge), inset 0 -4px 0 var(--accent); }
+:root[data-contrast="more"] .banner { border-color: var(--ink-soft); }

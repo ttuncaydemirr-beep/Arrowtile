@@ -90,8 +90,9 @@ Tüm ok renkleri açık ve koyu tahtada ≥ 3:1 (docs/27 §B1). Tema adları i18
 ## 11. Erişilebilirlik
 - Yön asla yalnızca renkle verilmez: ok başı + şevron + nokta. Kaybedilen can içi boş kalp, boş yıldız çerçeve, zorluk kademesi şekil (daire / yuvarlak kare / baklava / halka), seçili sekme alt çizgi ile de ayrılır (docs/27 §B3).
 - Dokunma hedefleri en az 44 px, butonlar 52 px. Okun dokunma alanı kapladığı hücrelerin tamamıdır.
-- Kontrast `tools/contrast.js` ile CI'da denetlenir (100 çift): metin ≥ 4,5:1, ok, simge ve odak halkası ≥ 3:1, her iki temada; web ve Flutter renklerinin özdeşliği de denetlenir. Örnekler: `ink`/`bg` açıkta 12,8:1, koyuda 15,5:1; beyaz/`accent` 5,1:1; odak halkası `starInk`/`board` 3,66:1.
+- Kontrast `tools/contrast.js` ile CI'da denetlenir (204 çift, yüksek kontrast dahil): metin ≥ 4,5:1, ok, simge ve odak halkası ≥ 3:1, her iki temada; web ve Flutter renklerinin özdeşliği de denetlenir. Örnekler: `ink`/`bg` açıkta 12,8:1, koyuda 15,5:1; beyaz/`accent` 5,1:1; odak halkası `starInk`/`board` 3,66:1.
 - Ses kapalıyken de her olayın görsel karşılığı vardır (sarsıntı, sönme, yıldız).
+- **Yüksek kontrast** (1.2.2): Ayarlar › Görünüm › Yüksek kontrast; seçilmediyse cihaz ayarı izlenir. İki ek palet (`lightHc`, `darkHc`; `design/colors.json` › `paletteHc`): metin ≥ 7:1, kenarlık / simge / ızgara noktası / odak ≥ 3:1. Kabarık yüzeylerde 2 px kenarlık, 4 px odak halkası, devre dışı düğmede saydamlık yerine açık renk; oklarda 1,5 px mürekkep kontur, ızgara noktaları tam opak. Ayrıntı: `design/system/README.md` › Yüksek kontrast.
 
 ## 12. Uygulama ikonu
 `game/assets/icon.svg` (512, kaynak) ve `icon-512.png`: kobalt zemin üzerinde beyaz 2×2 tahta, yukarı bakan kırmızı ok ve tahtadan sağa kaçan safran ok. Bu simge v1 paletindendir ve 1.2.x'te bilerek değiştirilmedi (mağaza kimliği ayrı karar). "Kum ve Mürekkep" uyumlu aday: `store/icon-candidates/` (mürekkep zemin, kum tahta, turkuaz ve kiremit oklar), Play mağaza denemesi bekliyor. Tüm öğeler merkezdeki %66'lık güvenli dairede (r≈169 px); zemin kenarlara taşar.

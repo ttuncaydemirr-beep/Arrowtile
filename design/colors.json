@@ -125,6 +125,95 @@
       "note": "yüzen katman gölgesi"
     }
   },
+  "paletteHcNote": "1.2.2 (Madde 9): yüksek kontrast paletleri — Ayarlar › Görünüm › Yüksek kontrast (cihazda yüksek kontrast açıksa ilk açılışta kendiliğinden). Metin ≥ 7:1, kenarlık / simge / odak ≥ 3:1 (WCAG AAA). Anahtarlar palette ile aynı.",
+  "paletteHc": {
+    "bg": {
+      "light": "#F4F0E8",
+      "dark": "#0A0B0D"
+    },
+    "board": {
+      "light": "#FFFFFF",
+      "dark": "#16191E"
+    },
+    "boardEdge": {
+      "light": "#5E5A52",
+      "dark": "#9A968D"
+    },
+    "cell": {
+      "light": "#E9E3D7",
+      "dark": "#22262D"
+    },
+    "cellDot": {
+      "light": "#8C877D",
+      "dark": "#6B6F78"
+    },
+    "ink": {
+      "light": "#111317",
+      "dark": "#FFFFFF"
+    },
+    "inkSoft": {
+      "light": "#3A3833",
+      "dark": "#D9D4CA"
+    },
+    "accent": {
+      "light": "#0D4F4D",
+      "dark": "#86DDD4"
+    },
+    "accentInk": {
+      "light": "#FFFFFF",
+      "dark": "#0A0B0D"
+    },
+    "onFill": {
+      "light": "#FFFFFF",
+      "dark": "#0A0B0D"
+    },
+    "star": {
+      "light": "#F2B632",
+      "dark": "#FFCB52"
+    },
+    "starInk": {
+      "light": "#5E4100",
+      "dark": "#FFCB52"
+    },
+    "starEmpty": {
+      "light": "#8C877D",
+      "dark": "#6B6F78"
+    },
+    "coin": {
+      "light": "#F0B23A",
+      "dark": "#FFC452"
+    },
+    "coinInk": {
+      "light": "#5C3D06",
+      "dark": "#FFC452"
+    },
+    "danger": {
+      "light": "#9E2017",
+      "dark": "#FF9A90"
+    },
+    "success": {
+      "light": "#17573A",
+      "dark": "#86E0AE"
+    },
+    "highlight": {
+      "light": "#FFFFFF",
+      "dark": "#FFFFFF"
+    },
+    "highlightRing": {
+      "light": "#5E4100",
+      "dark": "#FFCB52"
+    },
+    "shadow": {
+      "light": {
+        "rgb": "#111317",
+        "alpha": 0.25
+      },
+      "dark": {
+        "rgb": "#000000",
+        "alpha": 0.6
+      }
+    }
+  },
   "cssAliases": {
     "card": "board"
   },

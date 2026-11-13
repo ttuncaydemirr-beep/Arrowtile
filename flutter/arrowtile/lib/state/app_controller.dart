@@ -259,6 +259,13 @@ class AppController extends ChangeNotifier {
     telemetry.settingChanged(name: 'arrow_color', value: m);
   }
 
+  /// 1.2.2 (Madde 9): Ayarlar → Görünüm → Yüksek kontrast. Seçildiği anda kalıcı; seçilmediyse cihaz ayarı izlenir.
+  void setHighContrast(bool v) {
+    save.highContrast = v;
+    commit();
+    telemetry.settingChanged(name: 'high_contrast', value: v ? 'on' : 'off');
+  }
+
   void setAppearance(String m) {
     if (!<String>['auto', 'light', 'dark'].contains(m)) return;
     save.appearance = m;

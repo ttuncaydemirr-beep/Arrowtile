@@ -1334,6 +1334,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin, 
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: pal.boardC,
+            border: pal.hcBorder,
             borderRadius: BorderRadius.circular(999),
             boxShadow: <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 2))],
           ),
@@ -1492,6 +1493,7 @@ class _ToolButtonState extends State<_ToolButton> with SingleTickerProviderState
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               decoration: BoxDecoration(
                 color: pal.boardC,
+                border: pal.hcBorder,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: <BoxShadow>[
                   BoxShadow(color: pal.edgeC, offset: const Offset(0, 4)),

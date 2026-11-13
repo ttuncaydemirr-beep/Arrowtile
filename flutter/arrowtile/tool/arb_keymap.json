@@ -152,6 +152,8 @@
  "privacyPContact": "privacy.p_contact",
  "settingsAim": "settings.aim",
  "settingsAimDesc": "settings.aim_desc",
+ "settingsHighContrast": "settings.high_contrast",
+ "settingsHighContrastDesc": "settings.high_contrast_desc",
  "gameTapAgain": "game.tap_again",
  "gameAmbiguous": "game.ambiguous",
  "gameAimSuggest": "game.aim_suggest",
