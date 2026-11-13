@@ -30,6 +30,8 @@ class Palette {
   final int shadow; // 0xRRGGBB
   final double shadowAlpha;
   final bool dark;
+  /// 1.2.2 (Madde 9): yüksek kontrast paleti (lightHc / darkHc) — kenarlıklar, ok konturu ve belirgin ızgara noktaları için.
+  final bool hc;
   const Palette({
     required this.bg,
     required this.board,
@@ -53,6 +55,7 @@ class Palette {
     required this.shadow,
     required this.shadowAlpha,
     required this.dark,
+    this.hc = false,
   });
 
   // 1.2.0 (docs/24 §7): araştırmaya dayalı palet "Kum ve Mürekkep" (sıcak nötr zemin, kahraman oklar; kırmızı yalnızca çarpma/can,
@@ -107,17 +110,71 @@ class Palette {
     shadowAlpha: 0.45,
     dark: true,
   );
+
+  // yüksek kontrast (Madde 9): metin ≥ 7:1, kenarlık / simge ≥ 3:1
+  static const Palette lightHc = Palette(
+    bg: 0xF4F0E8,
+    board: 0xFFFFFF,
+    boardEdge: 0x5E5A52,
+    cell: 0xE9E3D7,
+    cellDot: 0x8C877D,
+    ink: 0x111317,
+    inkSoft: 0x3A3833,
+    accent: 0x0D4F4D,
+    accentInk: 0xFFFFFF,
+    onFill: 0xFFFFFF,
+    star: 0xF2B632,
+    starInk: 0x5E4100,
+    starEmpty: 0x8C877D,
+    coin: 0xF0B23A,
+    coinInk: 0x5C3D06,
+    danger: 0x9E2017,
+    success: 0x17573A,
+    highlight: 0xFFFFFF,
+    highlightRing: 0x5E4100,
+    shadow: 0x111317,
+    shadowAlpha: 0.25,
+    dark: false,
+    hc: true,
+  );
+
+  static const Palette darkHc = Palette(
+    bg: 0x0A0B0D,
+    board: 0x16191E,
+    boardEdge: 0x9A968D,
+    cell: 0x22262D,
+    cellDot: 0x6B6F78,
+    ink: 0xFFFFFF,
+    inkSoft: 0xD9D4CA,
+    accent: 0x86DDD4,
+    accentInk: 0x0A0B0D,
+    onFill: 0x0A0B0D,
+    star: 0xFFCB52,
+    starInk: 0xFFCB52,
+    starEmpty: 0x6B6F78,
+    coin: 0xFFC452,
+    coinInk: 0xFFC452,
+    danger: 0xFF9A90,
+    success: 0x86E0AE,
+    highlight: 0xFFFFFF,
+    highlightRing: 0xFFCB52,
+    shadow: 0x000000,
+    shadowAlpha: 0.60,
+    dark: true,
+    hc: true,
+  );
   // @tokens:end palettes
 
   static Palette of(BuildContext context) {
     // MaterialApp'in ThemeData.brightness değeri uygulama kökündeki Brightness üzerinden okunur.
-    final Brightness b = _brightnessOf(context);
-    return b == Brightness.dark ? darkP : light;
+    final _PaletteScope? s = context.dependOnInheritedWidgetOfExactType<_PaletteScope>();
+    return select(s?.brightness ?? Brightness.light, highContrast: s?.highContrast ?? false);
   }
 
-  static Brightness _brightnessOf(BuildContext context) {
-    final _PaletteScope? s = context.dependOnInheritedWidgetOfExactType<_PaletteScope>();
-    return s?.brightness ?? Brightness.light;
+  /// Parlaklık + yüksek kontrast → palet (1.2.2, Madde 9).
+  static Palette select(Brightness b, {bool highContrast = false}) {
+    if (highContrast) return b == Brightness.dark ? darkHc : lightHc;
+    return b == Brightness.dark ? darkP : light;
   }
 
   Color get bgC => rgba(bg);
@@ -137,23 +194,27 @@ class Palette {
   Color get dangerC => rgba(danger);
   Color get successC => rgba(success);
   Color get shadowC => rgba(shadow, shadowAlpha);
+  /// 1.2.2 (Madde 9): yüksek kontrastta kabarık yüzeylerin 2 px kenarlığı (≥ 3:1); normal temada yok.
+  Border? get hcBorder => hc ? Border.all(color: edgeC, width: 2) : null;
 }
 
 /// Seçili (açık/koyu) parlaklığı alt ağaca taşır; MaterialApp builder içinde konur.
 class PaletteScope extends StatelessWidget {
   final Brightness brightness;
+  final bool highContrast;
   final Widget child;
-  const PaletteScope({super.key, required this.brightness, required this.child});
+  const PaletteScope({super.key, required this.brightness, this.highContrast = false, required this.child});
 
   @override
-  Widget build(BuildContext context) => _PaletteScope(brightness: brightness, child: child);
+  Widget build(BuildContext context) => _PaletteScope(brightness: brightness, highContrast: highContrast, child: child);
 }
 
 class _PaletteScope extends InheritedWidget {
   final Brightness brightness;
-  const _PaletteScope({required this.brightness, required super.child});
+  final bool highContrast;
+  const _PaletteScope({required this.brightness, required this.highContrast, required super.child});
   @override
-  bool updateShouldNotify(_PaletteScope old) => old.brightness != brightness;
+  bool updateShouldNotify(_PaletteScope old) => old.brightness != brightness || old.highContrast != highContrast;
 }
 
 /// Açılabilir ok teması. Oklar renkleri sırayla (index % n) kullanır; chevron: gövde üstündeki yön işaretinin rengi.

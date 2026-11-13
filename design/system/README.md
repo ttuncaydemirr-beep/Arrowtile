@@ -57,6 +57,17 @@ Her renk çifti `tools/contrast.js` ile CI'da denetlenir (100 çift; metin ≥ 4
 | Beyaz / `success` (açık) | 4,04 | 5,29 | `success` #2F8F5B → #267A4D |
 | `success` metin / kart (açık) | 3,84 | 5,03 | aynı renk değişikliği |
 
+### Yüksek kontrast
+
+Ayarlar › Görünüm › **Yüksek kontrast** anahtarı, Otomatik / Açık / Koyu seçimiyle birlikte çalışan iki ek tema açar: **Yüksek kontrast (açık)** ve **Yüksek kontrast (koyu)**. Oyuncu anahtara dokunmadıysa cihazın ayarı izlenir (web `prefers-contrast: more`, Flutter `MediaQuery.highContrast`). Web'de kök öğeye `data-contrast="more"` konur; Flutter'da `Palette.lightHc` / `Palette.darkHc` seçilir (`pal.hc`).
+
+- **Renkler:** aynı token adları, daha güçlü değerler (`design/colors.json` › `paletteHc`). Metin `ink` ve `ink-soft` her yüzeyde ≥ 7:1; dolgu yazıları (`accent-ink`, `on-fill`, `on-gold`) ≥ 7:1; `edge`, `star-ink`, `cell-dot` ≥ 3:1.
+- **Kenarlık:** kabarık yüzeyler (ikincil düğme, simge düğmesi, araç, hap, kart, ayar grubu, modal, sekme ve segment izi, gün kutuları) gölge tonuyla değil 2 px `edge` kenarlıkla ayrılır. Web'de `outline` + negatif öteleme kullanılır, düzen kaymaz.
+- **Odak:** 4 px `star-ink` halka.
+- **Devre dışı:** saydamlık yok; `cell` zemin, `ink-soft` yazı, 2 px kesikli kenarlık.
+- **Tahta:** oklar tema renklerini korur, çevrelerine 1,5 px `ink` kontur çizilir. Izgara noktaları tam opaktır.
+- Ayırıcı çizgiler (`SettingsGroup`) `edge` renginde; seçili sekme alt çizgisi 4 px.
+
 ## Tipografi
 
 - **Tek aile: Readex Pro** (değişken, ağırlık 160–700, SIL OFL 1.1; `fonts/ReadexPro-VF.ttf`, lisans `licenses/ReadexPro-OFL.txt`). Latin ve Arapça aynı çizgi kalınlığı ve x-yüksekliğinde. Ağdan yüklenmez, uygulamayla paketlenir. Flutter'da statik kesitler: Regular, Medium, SemiBold, Bold.
@@ -119,11 +130,11 @@ Bileşenler `components/bundle.css` içindeki `at-` önekli sınıflarla düz HT
 
 - **Eylemler:** Button, IconButton, Tool
 - **Durum:** Pill, Tag, DifficultyTag
-- **Gezinme:** TopBar, LevelNode, ChapterHeader
-- **Formlar:** Tabs, Switch, SettingsGroup
+- **Gezinme:** TopBar, LevelNode, ChapterHeader, MapPath
+- **Formlar:** Tabs, Switch, SettingsGroup, LanguagePicker
 - **Katmanlar:** Sheet, Toast, CoachBubble
-- **İçerik:** ShopItem, DailyReward, Calendar
+- **İçerik:** ShopItem, DailyReward, Calendar, Flame, AdBanner
 - **Oyun:** Arrow, Board
 - **Simgeler:** Icon
 
-**Bu sistemde olmayanlar (kaynakta var, ayrı bileşen yapılmadı):** seviye sonu meşale/alev animasyonu (`.flame`), harita yolu SVG izi, dil seçici düğmeleri (Tabs'e benzer, `lang-btn`), reklam yükleniyor kaplaması, reklam yuvası yer tutucusu, kayıt kodu kutusu (`mono`), yatay ekran uyarısı.
+**Bu sistemde olmayanlar (kaynakta var, ayrı bileşen yapılmadı):** reklam yükleniyor kaplaması (`Sheet` + döner gösterge), kayıt kodu kutusu (`code` stili), yatay ekran uyarısı. Alevin renkleri illüstrasyon sabitidir (`flame-*`, `torch-*`, `spark`) ve `design/colors.json` dışında, doğrudan `style.css`'te durur.

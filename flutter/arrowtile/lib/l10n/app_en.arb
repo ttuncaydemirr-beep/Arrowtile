@@ -153,6 +153,8 @@
   "privacyPContact": "Arrowtile is developed by Demir Games Studio. Questions about privacy? Write to us:",
   "settingsAim": "Select, then launch",
   "settingsAimDesc": "The first tap shows the arrow and its path, the second tap launches it.",
+  "settingsHighContrast": "High contrast",
+  "settingsHighContrastDesc": "Darker text, clear borders and outlined arrows. Turns on by itself if your device uses high contrast.",
   "gameTapAgain": "Tap again to launch",
   "gameAmbiguous": "Between two arrows: tap right on one",
   "gameAimSuggest": "The cells are small. You can pinch to zoom. Also turn on “Select, then launch”?",

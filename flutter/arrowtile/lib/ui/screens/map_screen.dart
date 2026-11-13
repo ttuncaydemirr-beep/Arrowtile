@@ -172,6 +172,7 @@ class _ChapterView extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
             color: pal.boardC,
+            border: pal.hcBorder,
             borderRadius: BorderRadius.circular(14),
             boxShadow: <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 3))],
           ),

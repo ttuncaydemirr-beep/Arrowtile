@@ -57,6 +57,7 @@
       appearance: 'auto',   // G7: auto | light | dark
       relaxed: false,       // G3: rahat mod
       aim: false,           // G1: önce seç, sonra fırlat
+      highContrast: null,   // 1.2.2 (Madde 9): null = cihaz ayarı (prefers-contrast: more); true / false = oyuncunun seçimi
       arrowColor: 'color',  // 1.2.0: ok rengi — color (renkli) | mono (tek renk ince çizgi)
       tips: [],             // tek seferlik ipuçları (aim_suggest, zoom_tip …)
       dp: { done: {}, streak: 0, best: 0, last: null, trophies: 0 } // G5: günlük bulmaca
@@ -125,6 +126,7 @@
     if (['auto', 'light', 'dark'].indexOf(raw.appearance) >= 0) s.appearance = raw.appearance;
     if (typeof raw.relaxed === 'boolean') s.relaxed = raw.relaxed;
     if (typeof raw.aim === 'boolean') s.aim = raw.aim;
+    if (typeof raw.highContrast === 'boolean') s.highContrast = raw.highContrast;
     if (raw.arrowColor === 'color' || raw.arrowColor === 'mono') s.arrowColor = raw.arrowColor;
     if (raw.dp && typeof raw.dp === 'object') {
       var D = /^\d{4}-\d{2}-\d{2}$/;

@@ -158,6 +158,13 @@ class AppButton extends StatelessWidget {
         fg = pal.inkC;
         shadow = pal.edgeC;
     }
+    // 1.2.2 YK (Madde 9): devre dışı düğme saydamlıkla soluklaşmaz (kontrastı düşürür); açık renk + kenarlık
+    final bool hcOff = pal.hc && onTap == null;
+    if (hcOff) {
+      bg = pal.cellC;
+      fg = pal.inkSoftC;
+      shadow = Colors.transparent;
+    }
     final double fs = big ? 22 : (tiny ? 14 : fontSize);
     final TextStyle ts = TextStyle(color: fg, fontSize: fs, fontWeight: FontWeight.w700, height: 1.15);
     final Widget textCol = sub == null
@@ -185,6 +192,7 @@ class AppButton extends StatelessWidget {
       padding: EdgeInsets.symmetric(horizontal: tiny ? 12 : 18, vertical: tiny ? 4 : 8),
       decoration: BoxDecoration(
         color: bg,
+        border: pal.hc && (hcOff || kind == BtnKind.secondary || kind == BtnKind.tiny) ? Border.all(color: pal.edgeC, width: 2) : null,
         borderRadius: BorderRadius.circular(Shape.buttonRadius),
         boxShadow: kind == BtnKind.ghost
             ? null
@@ -198,7 +206,7 @@ class AppButton extends StatelessWidget {
       enabled: onTap != null,
       label: label,
       child: Opacity(
-        opacity: onTap == null ? 0.5 : 1,
+        opacity: onTap == null && !pal.hc ? 0.5 : 1,
         child: Pressable(
           onTap: onTap == null
               ? null
@@ -240,6 +248,7 @@ class IconSquareButton extends StatelessWidget {
           height: 48,
           decoration: BoxDecoration(
             color: pal.boardC,
+            border: pal.hcBorder,
             borderRadius: BorderRadius.circular(14),
             boxShadow: <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 3))],
           ),
@@ -266,6 +275,7 @@ class Pill extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: pal.boardC,
+          border: pal.hcBorder,
           borderRadius: BorderRadius.circular(999),
           boxShadow: <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 2))],
         ),
@@ -381,6 +391,7 @@ Future<T?> showSheet<T>(BuildContext context, {required WidgetBuilder builder, b
                 padding: const EdgeInsets.fromLTRB(18, 22, 18, 18),
                 decoration: BoxDecoration(
                   color: pal.boardC,
+                  border: pal.hcBorder,
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: <BoxShadow>[
                     BoxShadow(color: pal.edgeC, offset: const Offset(0, 8)),

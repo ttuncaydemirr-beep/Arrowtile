@@ -13,6 +13,7 @@ var AT = (function () {
     chevronMinCell: 22, headRadius: 0.05, tipRadius: 0.04, depth: 0.045, chevronSize: 0.075, chevronLine: 0.045, dotRadius: 0.04, gridDot: 0.045, boardRadius: 0.30, boardPad: 0.30 };
   var ANGLE = { R: 0, D: Math.PI / 2, L: Math.PI, U: -Math.PI / 2 }, STEP = { R: [1, 0], D: [0, 1], L: [-1, 0], U: [0, -1] };
   function v(n) { return getComputedStyle(document.documentElement).getPropertyValue('--' + n).trim(); }
+  function isHc() { return /-hc$/.test(document.documentElement.getAttribute('data-theme') || ''); }
   function isDark() { var b = v('bg').replace('#', ''); if (b.length < 6) return false; var n = parseInt(b.slice(0, 6), 16); return ((n >> 16) + ((n >> 8) & 255) + (n & 255)) < 300; }
   function shade(hex, amt) { var h = hex.replace('#', ''); var n = parseInt(h, 16), c = [(n >> 16) & 255, (n >> 8) & 255, n & 255], t = amt < 0 ? 0 : 255, p = Math.abs(amt);
     return 'rgb(' + c.map(function (x) { return Math.round(x + (t - x) * p); }).join(',') + ')'; }
@@ -37,6 +38,7 @@ var AT = (function () {
     ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     if (o.highlight) { whole(0, bw + cell * 0.20, v('highlight-ring')); whole(0, bw + cell * 0.08, v('highlight')); }
     if (!mono) whole(S.depth * cell, bw, shade(color, -0.35));
+    if (!mono && isHc()) whole(0, bw + 3, v('ink')); // YK: 1,5 px mürekkep kontur (oyunla aynı)
     whole(0, bw, color);
     if (!mono) {
       var chev = o.chevron || 'rgba(255,255,255,0.78)';
@@ -53,7 +55,7 @@ var AT = (function () {
     var pad = (w >= 21 ? 0.1 : S.boardPad) * cell, r = Math.min(S.boardRadius * cell, 10), bx = ox - pad, by = oy - pad, bwid = w * cell + pad * 2, bh = h * cell + pad * 2;
     function rr(x, y, ww, hh) { ctx.beginPath(); roundedPoly(ctx, [[x, y], [x + ww, y], [x + ww, y + hh], [x, y + hh]], [r, r, r, r]); }
     ctx.save(); rr(bx, by + cell * 0.1, bwid, bh); ctx.fillStyle = v('edge'); ctx.fill(); rr(bx, by, bwid, bh); ctx.fillStyle = v('board'); ctx.fill();
-    var dr = Math.max(0.7, S.gridDot * cell); ctx.fillStyle = v('cell-dot'); ctx.globalAlpha = isDark() ? 0.55 : 0.75; ctx.beginPath();
+    var dr = Math.max(0.7, S.gridDot * cell); ctx.fillStyle = v('cell-dot'); ctx.globalAlpha = isHc() ? 1 : isDark() ? 0.55 : 0.75; ctx.beginPath();
     for (var j = 0; j <= h; j++) for (var i = 0; i <= w; i++) { var x = ox + i * cell, y = oy + j * cell; ctx.moveTo(x + dr, y); ctx.arc(x, y, dr, 0, Math.PI * 2); }
     ctx.fill(); ctx.restore();
   }

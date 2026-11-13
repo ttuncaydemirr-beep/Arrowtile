@@ -723,6 +723,14 @@
   "@settingsAimDesc": {
     "description": "settings.aim_desc"
   },
+  "settingsHighContrast": "Yüksek kontrast",
+  "@settingsHighContrast": {
+    "description": "settings.high_contrast"
+  },
+  "settingsHighContrastDesc": "Daha koyu yazı, belirgin kenarlıklar ve konturlu oklar. Cihazında yüksek kontrast açıksa kendiliğinden açılır.",
+  "@settingsHighContrastDesc": {
+    "description": "settings.high_contrast_desc"
+  },
   "gameTapAgain": "Fırlatmak için tekrar dokun",
   "@gameTapAgain": {
     "description": "game.tap_again"

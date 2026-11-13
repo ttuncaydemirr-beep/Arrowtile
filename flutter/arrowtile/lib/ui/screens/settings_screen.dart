@@ -46,7 +46,7 @@ class SettingsScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: pal.cellC, borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(color: pal.cellC, border: pal.hcBorder, borderRadius: BorderRadius.circular(14)),
                     child: Row(children: <Widget>[
                       for (final String m in <String>['auto', 'light', 'dark']) ...<Widget>[
                         if (m != 'auto') const SizedBox(width: 6),
@@ -62,6 +62,14 @@ class SettingsScreen extends StatelessWidget {
                     ]),
                   ),
                 ),
+                // 1.2.2 (Madde 9): yüksek kontrast — metin ≥ 7:1, kenarlıklar, ok konturu; seçilmediyse cihaz ayarı
+                _SwitchRow(
+                  key: const ValueKey<String>('sw-contrast'),
+                  label: loc.settingsHighContrast,
+                  desc: loc.settingsHighContrastDesc,
+                  value: app.save.highContrast ?? MediaQuery.of(context).highContrast,
+                  onChanged: app.setHighContrast,
+                ),
                 // 1.2.0 (docs/17 §13): ok rengi — Renkli (varsayılan) / Tek renk (ince çizgi; açık temada koyu, koyu temada açık). Kalıcı.
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -71,7 +79,7 @@ class SettingsScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: pal.cellC, borderRadius: BorderRadius.circular(14)),
+                    decoration: BoxDecoration(color: pal.cellC, border: pal.hcBorder, borderRadius: BorderRadius.circular(14)),
                     child: Row(children: <Widget>[
                       for (final String m in <String>['color', 'mono']) ...<Widget>[
                         if (m != 'color') const SizedBox(width: 6),
@@ -340,6 +348,7 @@ class _Group extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         decoration: BoxDecoration(
           color: pal.boardC,
+          border: pal.hcBorder,
           borderRadius: BorderRadius.circular(18),
           boxShadow: <BoxShadow>[BoxShadow(color: pal.edgeC, offset: const Offset(0, 3))],
         ),
@@ -361,7 +370,7 @@ class _SwitchRow extends StatelessWidget {
   final String? desc;
   final bool value;
   final ValueChanged<bool> onChanged;
-  const _SwitchRow({required this.label, required this.value, required this.onChanged, this.desc});
+  const _SwitchRow({super.key, required this.label, required this.value, required this.onChanged, this.desc});
   @override
   Widget build(BuildContext context) {
     final Palette pal = Palette.of(context);

@@ -188,6 +188,7 @@ void drawArrow(Canvas canvas, ArrowDrawOpts o, Palette pal) {
     whole(0, bw + cell * 0.08, pal.highlight, true);
   }
   if (!mono) whole(Shape.depth * cell, bw, _shadeOf(o.color), true); // alt kalınlık (ekran aşağısı)
+  if (!mono && pal.hc) whole(0, bw + 3, pal.ink, true); // 1.2.2 YK (Madde 9): 1,5 px mürekkep kontur (theme.js drawArrow ile aynı)
   whole(0, bw, o.color, true); // yüz
   if (mono) return; // tek renk: ince çizgi, şevron/nokta yok
 
@@ -258,7 +259,7 @@ void drawBoardBg(Canvas canvas, double ox, double oy, int w, int h, double cell,
   // Noktalar hücre merkezinde değil köşelerde: boş hücrenin ortası tahta renginde kalır
   final double dr = math.max(0.7, Shape.gridDot * cell);
   final Paint dp = Paint()
-    ..color = rgba(pal.cellDot, pal.dark ? 0.55 : 0.75)
+    ..color = rgba(pal.cellDot, pal.hc ? 1 : (pal.dark ? 0.55 : 0.75)) // YK: tam opak (≥ 3:1)
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round
     ..strokeWidth = dr * 2;
@@ -417,7 +418,7 @@ class BoardPainter extends CustomPainter {
     canvas.drawPath(p, edgeP(pal.board));
     if (c * m.vs >= 9) {
       final Paint dp = Paint()
-        ..color = rgba(pal.cellDot, pal.dark ? 0.55 : 0.75)
+        ..color = rgba(pal.cellDot, pal.hc ? 1 : (pal.dark ? 0.55 : 0.75)) // YK: tam opak (≥ 3:1)
         ..style = PaintingStyle.stroke
         ..strokeCap = StrokeCap.round
         ..strokeWidth = Shape.gridDot * 2;

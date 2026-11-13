@@ -153,6 +153,8 @@
   "privacyPContact": "Arrowtile wird von Demir Games Studio entwickelt. Fragen zum Datenschutz? Schreib uns:",
   "settingsAim": "Erst wählen, dann starten",
   "settingsAimDesc": "Der erste Tipp zeigt den Pfeil und seinen Weg, der zweite startet ihn.",
+  "settingsHighContrast": "Hoher Kontrast",
+  "settingsHighContrastDesc": "Dunklere Schrift, deutliche Ränder und umrandete Pfeile. Schaltet sich automatisch ein, wenn dein Gerät hohen Kontrast nutzt.",
   "gameTapAgain": "Zum Starten nochmal tippen",
   "gameAmbiguous": "Zwischen zwei Pfeilen: tippe genau auf einen",
   "gameAimSuggest": "Die Felder sind klein. Du kannst mit zwei Fingern zoomen. Auch „Erst wählen, dann starten“ einschalten?",

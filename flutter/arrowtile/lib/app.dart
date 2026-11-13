@@ -71,6 +71,8 @@ class _ArrowtileAppState extends State<ArrowtileApp> with WidgetsBindingObserver
       controller: widget.controller,
       child: Builder(builder: (BuildContext ctx) {
         final AppController app = AppScope.of(ctx);
+        // 1.2.2 (Madde 9): yüksek kontrast — oyuncu seçmediyse (null) cihazın erişilebilirlik ayarı
+        final bool hcTheme = app.save.highContrast ?? WidgetsBinding.instance.platformDispatcher.accessibilityFeatures.highContrast;
         return MaterialApp(
           navigatorKey: app.navKey,
           debugShowCheckedModeBanner: false,
@@ -86,8 +88,8 @@ class _ArrowtileAppState extends State<ArrowtileApp> with WidgetsBindingObserver
           themeMode: app.save.appearance == 'light'
               ? ThemeMode.light
               : (app.save.appearance == 'dark' ? ThemeMode.dark : ThemeMode.system),
-          theme: _theme(Palette.light),
-          darkTheme: _theme(Palette.darkP),
+          theme: _theme(Palette.select(Brightness.light, highContrast: hcTheme)),
+          darkTheme: _theme(Palette.select(Brightness.dark, highContrast: hcTheme)),
           builder: (BuildContext c, Widget? child) {
             final MediaQueryData mq = MediaQuery.of(c);
             // Arapça glifler aynı boyutta daha küçük görünür: yazı ölçeği 1,08 (theme.js scaleByLang) ve satır yüksekliği 1,55
@@ -96,6 +98,7 @@ class _ArrowtileAppState extends State<ArrowtileApp> with WidgetsBindingObserver
               data: mq.copyWith(textScaler: TextScaler.linear(scale)),
               child: PaletteScope(
                 brightness: Theme.of(c).brightness,
+                highContrast: app.save.highContrast ?? mq.highContrast,
                 child: DefaultTextStyle.merge(
                   style: TextStyle(height: app.lang == 'ar' ? 1.55 : 1.3),
                   child: Stack(children: <Widget>[

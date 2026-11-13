@@ -1,6 +1,6 @@
 // Arrowtile — renk token üreticisi (1.2.2). Tek kaynak: design/colors.json.
 // Üç dosyadaki @tokens bölgelerini yeniden yazar; bölge dışına dokunmaz:
-//   game/css/style.css                       colors        (:root, koyu tema media + [data-theme="dark"])
+//   game/css/style.css                       colors        (:root, koyu tema media + [data-theme="dark"], yüksek kontrast [data-contrast="more"])
 //   game/js/theme.js                         colors, arrowThemes, fixed
 //   flutter/arrowtile/lib/ui/tokens.dart     fixed, palettes, arrowThemes
 // Kullanım: node tools/gen-tokens.js           → dosyaları günceller
@@ -30,13 +30,24 @@ const note = (n) => (n ? ' // ' + n : '');
 
 // ---- kaynağı doğrula
 const P = SRC.palette;
+const PH = SRC.paletteHc; // 1.2.2 (Madde 9): yüksek kontrast paletleri, anahtarlar palette ile aynı
 const MODES = ['light', 'dark'];
-for (const [k, e] of Object.entries(P)) {
-  for (const m of MODES) {
-    if (k === 'shadow') { hex(e[m].rgb, `palette.${k}.${m}.rgb`); alpha(e[m].alpha, `palette.${k}.${m}.alpha`); }
-    else hex(e[m], `palette.${k}.${m}`);
+for (const [name, pal] of [['palette', P], ['paletteHc', PH]]) {
+  for (const [k, e] of Object.entries(pal)) {
+    for (const m of MODES) {
+      if (k === 'shadow') { hex(e[m].rgb, `${name}.${k}.${m}.rgb`); alpha(e[m].alpha, `${name}.${k}.${m}.alpha`); }
+      else hex(e[m], `${name}.${k}.${m}`);
+    }
   }
 }
+if (Object.keys(PH).join() !== Object.keys(P).join()) throw new Error('paletteHc anahtarları palette ile aynı ve aynı sırada olmalı');
+// Dört palet: theme.js colors.<js>, tokens.dart Palette.<dart>
+const VARIANTS = [
+  { js: 'light', dart: 'light', src: P, m: 'light', hc: false },
+  { js: 'dark', dart: 'darkP', src: P, m: 'dark', hc: false },
+  { js: 'lightHc', dart: 'lightHc', src: PH, m: 'light', hc: true },
+  { js: 'darkHc', dart: 'darkHc', src: PH, m: 'dark', hc: true },
+];
 for (const [k, e] of Object.entries(SRC.fixed)) {
   if ('value' in e) hex(e.value, `fixed.${k}.value`); else { hex(e.rgb, `fixed.${k}.rgb`); alpha(e.alpha, `fixed.${k}.alpha`); }
 }
@@ -48,10 +59,10 @@ for (const t of SRC.arrowThemes) {
 }
 
 // ---- CSS
-function cssVars(mode) {
+function cssVars(mode, src = P) {
   const items = [];
-  for (const [k, e] of Object.entries(P)) if (e.css) items.push(`--${e.css}: ${k === 'shadow' ? rgbaStr(e[mode]) : e[mode]};`);
-  for (const [alias, key] of Object.entries(SRC.cssAliases || {})) items.push(`--${alias}: ${P[key][mode]};`);
+  for (const [k, e] of Object.entries(P)) if (e.css) items.push(`--${e.css}: ${k === 'shadow' ? rgbaStr(src[k][mode]) : src[k][mode]};`);
+  for (const [alias, key] of Object.entries(SRC.cssAliases || {})) items.push(`--${alias}: ${src[key][mode]};`);
   const lines = [];
   for (let i = 0; i < items.length; i += 6) lines.push(items.slice(i, i + 6).join(' '));
   return lines;
@@ -60,6 +71,7 @@ function genCss() {
   const fixed = Object.values(SRC.fixed).map((e) => `--${e.css}: ${'value' in e ? e.value : rgbaStr(e)};`).join(' ');
   const ind = (arr, s) => arr.map((l) => s + l).join('\n');
   const dark = cssVars('dark');
+  const hcLight = cssVars('light', PH), hcDark = cssVars('dark', PH);
   return [
     `/* @tokens:begin colors — ${HEAD} */`,
     ':root {',
@@ -79,6 +91,21 @@ function genCss() {
     ind(dark, '  '),
     '  color-scheme: dark;',
     '}',
+    '/* Yüksek kontrast (Madde 9): data-contrast="more" main.js applyAppearance() ile; açık ve koyu YK paletleri */',
+    ':root[data-contrast="more"] {',
+    ind(hcLight, '  '),
+    '  color-scheme: light;',
+    '}',
+    '@media (prefers-color-scheme: dark) {',
+    '  :root[data-contrast="more"]:not([data-theme="light"]) {',
+    ind(hcDark, '    '),
+    '    color-scheme: dark;',
+    '  }',
+    '}',
+    ':root[data-contrast="more"][data-theme="dark"] {',
+    ind(hcDark, '  '),
+    '  color-scheme: dark;',
+    '}',
     '/* @tokens:end colors */',
   ].join('\n');
 }
@@ -86,15 +113,16 @@ function genCss() {
 // ---- theme.js
 function genJsColors() {
   const out = [`    // @tokens:begin colors — ${HEAD}`, '    colors: {'];
-  MODES.forEach((m, mi) => {
-    out.push(`      ${m}: {`);
+  VARIANTS.forEach((V, vi) => {
+    if (V.js === 'lightHc') out.push('      // yüksek kontrast (Madde 9): THEME.highContrast açıkken THEME.palette() bunları döndürür');
+    out.push(`      ${V.js}: {`);
     const keys = Object.keys(P);
     keys.forEach((k, i) => {
-      const e = P[k], v = k === 'shadow' ? rgbaStr(e[m]) : e[m];
+      const e = V.src[k], v = k === 'shadow' ? rgbaStr(e[V.m]) : e[V.m];
       const comma = i < keys.length - 1 ? ',' : '';
-      out.push(`        ${(k + ':').padEnd(14)} ${jsStr(v)}${comma}${m === 'light' ? note(e.note) : ''}`);
+      out.push(`        ${(k + ':').padEnd(14)} ${jsStr(v)}${comma}${V.js === 'light' ? note(P[k].note) : ''}`);
     });
-    out.push(`      }${mi === 0 ? ',' : ''}`);
+    out.push(`      }${vi < VARIANTS.length - 1 ? ',' : ''}`);
   });
   out.push('    },', '    // @tokens:end colors');
   return out.join('\n');
@@ -137,14 +165,18 @@ function genDartFixed() {
 }
 function genDartPalettes() {
   const out = [`  // @tokens:begin palettes — ${HEAD}`];
-  MODES.forEach((m, mi) => {
-    out.push(`  static const Palette ${m === 'light' ? 'light' : 'darkP'} = Palette(`);
-    for (const [k, e] of Object.entries(P)) {
-      if (k === 'shadow') { out.push(`    shadow: ${dartInt(e[m].rgb)},`, `    shadowAlpha: ${dartAlpha(e[m].alpha)},`); }
-      else out.push(`    ${k}: ${dartInt(e[m])},${m === 'light' ? note(e.note) : ''}`);
+  VARIANTS.forEach((V, vi) => {
+    if (V.dart === 'lightHc') out.push('  // yüksek kontrast (Madde 9): metin ≥ 7:1, kenarlık / simge ≥ 3:1');
+    out.push(`  static const Palette ${V.dart} = Palette(`);
+    for (const k of Object.keys(P)) {
+      const e = V.src[k];
+      if (k === 'shadow') { out.push(`    shadow: ${dartInt(e[V.m].rgb)},`, `    shadowAlpha: ${dartAlpha(e[V.m].alpha)},`); }
+      else out.push(`    ${k}: ${dartInt(e[V.m])},${V.dart === 'light' ? note(P[k].note) : ''}`);
     }
-    out.push(`    dark: ${m === 'dark'},`, '  );');
-    if (mi === 0) out.push('');
+    out.push(`    dark: ${V.m === 'dark'},`);
+    if (V.hc) out.push('    hc: true,');
+    out.push('  );');
+    if (vi < VARIANTS.length - 1) out.push('');
   });
   out.push('  // @tokens:end palettes');
   return out.join('\n');
@@ -194,7 +226,7 @@ if (fs.existsSync(sysPath)) {
   const tok = Object.fromEntries(sys.color.tokens.map((t) => [t.name, t.value]));
   const val = (v, m) => (typeof v === 'string' ? v : (v[m] || v.light)).toUpperCase();
   const want = [];
-  for (const [k, e] of Object.entries(P)) if (e.css && k !== 'shadow') for (const m of MODES) want.push([e.css, m, e[m]]);
+  for (const [k, e] of Object.entries(P)) if (e.css && k !== 'shadow') for (const m of MODES) want.push([e.css, m, e[m]], [e.css, m + '-hc', PH[k][m]]);
   for (const e of Object.values(SRC.fixed)) if ('value' in e) for (const m of MODES) want.push([e.css, m, e.value]);
   for (const t of SRC.arrowThemes) t.colors.forEach((c, i) => want.push([`arrow-${t.id}-${i + 1}`, 'light', c]));
   for (const [name, m, v] of want) {

@@ -56,6 +56,7 @@ class SaveData {
   String appearance; // auto | light | dark
   bool relaxed;
   bool aim;
+  bool? highContrast; // 1.2.2 (Madde 9): null = cihaz ayarı (MediaQuery.highContrast); true / false = oyuncunun seçimi
   String arrowColor; // 1.2.0: color (renkli) | mono (tek renk ince çizgi)
   List<String> tips;
   DailyProgress dp;
@@ -78,6 +79,7 @@ class SaveData {
     this.appearance = 'auto',
     this.relaxed = false,
     this.aim = false,
+    this.highContrast,
     this.arrowColor = 'color',
     List<String>? tips,
     DailyProgress? dp,
@@ -114,6 +116,7 @@ class SaveData {
       'appearance': appearance,
       'relaxed': relaxed,
       'aim': aim,
+      'highContrast': highContrast,
       'arrowColor': arrowColor,
       'tips': tips,
       'dp': dp.toJson(),
@@ -251,6 +254,7 @@ SaveData sanitize(dynamic raw, String defaultLang) {
   }
   if (r['relaxed'] is bool) s.relaxed = r['relaxed'] as bool;
   if (r['aim'] is bool) s.aim = r['aim'] as bool;
+  if (r['highContrast'] is bool) s.highContrast = r['highContrast'] as bool;
   if (r['arrowColor'] == 'color' || r['arrowColor'] == 'mono') s.arrowColor = r['arrowColor'] as String;
   final dynamic dpr = r['dp'];
   if (_isMap(dpr)) {

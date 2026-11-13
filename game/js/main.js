@@ -561,6 +561,10 @@
       seg.appendChild(b);
     });
     ga.appendChild(seg);
+    // 1.2.2 (Madde 9): yüksek kontrast — metin ≥ 7:1, kenarlıklar, ok konturu; ilk açılışta cihaz ayarını izler
+    ga.appendChild(switchRow('settings.high_contrast', 'settings.high_contrast_desc', highContrastOn(), function (v) {
+      S.highContrast = v; Store.save(); applyAppearance(); renderers.settings(); fitAll(body);
+    }, 'sw-contrast'));
     // 1.2.0 (docs/17 §13): ok rengi — Renkli / Tek renk (ince çizgi; açık temada koyu, koyu temada açık)
     var acl = el('div', 'set-sub'); acl.id = 'ac-label'; acl.textContent = t('settings.arrow_color'); ga.appendChild(acl);
     var seg2 = el('div', 'seg seg2'); seg2.setAttribute('role', 'radiogroup'); seg2.setAttribute('aria-labelledby', 'ac-label');
@@ -673,18 +677,25 @@
   }
 
   // ---- G7: görünüm (DOM + canvas paleti)
-  var mqDark = null;
+  var mqDark = null, mqContrast = null;
   try { mqDark = window.matchMedia('(prefers-color-scheme: dark)'); } catch (e) {}
+  try { mqContrast = window.matchMedia('(prefers-contrast: more)'); } catch (e) {}
+  // 1.2.2 (Madde 9): yüksek kontrast — oyuncu seçmediyse (null) cihaz ayarını izler
+  function highContrastOn() { return S.highContrast == null ? !!(mqContrast && mqContrast.matches) : !!S.highContrast; }
   function applyAppearance() {
-    var m = S.appearance || 'auto';
+    var m = S.appearance || 'auto', hc = highContrastOn();
     document.documentElement.setAttribute('data-theme', m);
+    if (hc) document.documentElement.setAttribute('data-contrast', 'more'); else document.documentElement.removeAttribute('data-contrast');
     T.forceMode = m === 'auto' ? null : m;
+    T.highContrast = hc;
     var dark = m === 'dark' || (m === 'auto' && mqDark && mqDark.matches);
-    document.querySelectorAll('meta[name="theme-color"]').forEach(function (n) { n.setAttribute('content', dark ? '#14171C' : '#EFEAE2'); });
+    var bar = T.palette(dark ? 'dark' : 'light').bg;
+    document.querySelectorAll('meta[name="theme-color"]').forEach(function (n) { n.setAttribute('content', bar); });
     try { if (window.AndroidBridge && typeof window.AndroidBridge.setSystemBarsDark === 'function') window.AndroidBridge.setSystemBarsDark(!!dark); } catch (e) {}
     if (typeof draw === 'function' && LV) draw();
   }
   if (mqDark && mqDark.addEventListener) mqDark.addEventListener('change', function () { if ((S.appearance || 'auto') === 'auto') applyAppearance(); });
+  if (mqContrast && mqContrast.addEventListener) mqContrast.addEventListener('change', function () { if (S.highContrast == null) applyAppearance(); });
 
   // ---------------------------------------------------------------- Gizlilik politikası
   renderers.privacy = function () { window.renderPrivacy($('privacy-body'), t); };
