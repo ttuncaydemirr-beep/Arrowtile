@@ -119,11 +119,11 @@ Bileşenler `components/bundle.css` içindeki `at-` önekli sınıflarla düz HT
 
 - **Eylemler:** Button, IconButton, Tool
 - **Durum:** Pill, Tag, DifficultyTag
-- **Gezinme:** TopBar, LevelNode, ChapterHeader
-- **Formlar:** Tabs, Switch, SettingsGroup
+- **Gezinme:** TopBar, LevelNode, ChapterHeader, MapPath
+- **Formlar:** Tabs, Switch, SettingsGroup, LanguagePicker
 - **Katmanlar:** Sheet, Toast, CoachBubble
-- **İçerik:** ShopItem, DailyReward, Calendar
+- **İçerik:** ShopItem, DailyReward, Calendar, Flame, AdBanner
 - **Oyun:** Arrow, Board
 - **Simgeler:** Icon
 
-**Bu sistemde olmayanlar (kaynakta var, ayrı bileşen yapılmadı):** seviye sonu meşale/alev animasyonu (`.flame`), harita yolu SVG izi, dil seçici düğmeleri (Tabs'e benzer, `lang-btn`), reklam yükleniyor kaplaması, reklam yuvası yer tutucusu, kayıt kodu kutusu (`mono`), yatay ekran uyarısı.
+**Bu sistemde olmayanlar (kaynakta var, ayrı bileşen yapılmadı):** reklam yükleniyor kaplaması (`Sheet` + döner gösterge), kayıt kodu kutusu (`code` stili), yatay ekran uyarısı. Alevin renkleri illüstrasyon sabitidir (`flame-*`, `torch-*`, `spark`) ve `design/colors.json` dışında, doğrudan `style.css`'te durur.

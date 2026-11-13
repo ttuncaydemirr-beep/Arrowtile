@@ -5,7 +5,7 @@
   margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans); line-height: var(--lh);
   font-size: calc(17px * var(--fs-scale)); -webkit-font-smoothing: antialiased;
 }
-.at-root button { font: inherit; color: inherit; }
+:where(.at-root) :where(button) { font: inherit; color: inherit; } /* sıfır öncelik: bileşen sınıfları (.at-node vb.) rengi ezebilsin */
 .at-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-12); }
 .at-col { display: flex; flex-direction: column; gap: var(--space-12); }
 .at-pad { padding: var(--space-16); }
@@ -201,3 +201,53 @@
 @media (prefers-reduced-motion: reduce) {
   .at-root *, .at-root *::before, .at-root *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
 }
+
+/* ===== 1.2.2 eklemeleri: Flame, MapPath, LanguagePicker, AdBanner ===== */
+
+/* Flame — seviye sonu meşalesi (style.css .flame). Renkler illüstrasyon sabiti: flame-* tokenları. */
+.at-flame { position: relative; margin: 0 auto 2px; width: 84px; height: 84px; }
+.at-flame svg { position: absolute; left: 0; bottom: 0; width: 100%; height: 100%; overflow: visible; }
+.at-flame.f-s { width: 52px; height: 52px; } .at-flame.f-m { width: 78px; height: 78px; } .at-flame.f-l { width: 108px; height: 108px; }
+.at-flame .fl { transform-origin: 50% 70%; animation: at-flick 900ms ease-in-out infinite alternate; }
+.at-flame .fl-out { fill: var(--flame-out); } .at-flame .fl-in { fill: var(--flame-in); } .at-flame .fl-core { fill: var(--flame-core); }
+.at-flame .torch-cup { fill: var(--torch-cup); } .at-flame .torch-h { fill: var(--torch-handle); }
+.at-flame.f-s .fl { transform: scale(.72); animation-name: at-flick-s; }
+.at-flame.gold .fl-out { fill: var(--star); } .at-flame.gold .fl-in { fill: var(--flame-gold-in); } .at-flame.gold .fl-core { fill: var(--flame-gold-core); }
+.at-flame.gold svg { filter: drop-shadow(0 0 10px rgba(242,182,50,.75)); }
+.at-flame.gold .torch-cup { fill: var(--torch-gold-cup); } .at-flame.gold .torch-h { fill: var(--torch-cup); }
+@keyframes at-flick { 0% { transform: scale(1, .96) skewX(-2deg); } 50% { transform: scale(.97, 1.04) skewX(2deg); } 100% { transform: scale(1.02, .98) skewX(-1deg); } }
+@keyframes at-flick-s { 0% { transform: scale(.72, .69) skewX(-2deg); } 100% { transform: scale(.70, .75) skewX(2deg); } }
+.at-flame .spark { position: absolute; left: 50%; top: 34%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--spark); opacity: 0;
+  animation: at-spark 1500ms ease-out var(--d, 0s) infinite; }
+.at-flame.gold .spark { background: var(--flame-gold-spark); box-shadow: 0 0 6px var(--flame-gold-in); }
+@keyframes at-spark { 0% { opacity: 0; transform: translate(0, 0) scale(.6); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx, 20px), -64px) scale(.2); } }
+.at-flame .fw { position: absolute; width: 0; height: 0; }
+.at-flame .fw0 { left: -46px; top: 6px; } .at-flame .fw1 { right: -46px; top: -4px; } .at-flame .fw2 { left: 50%; top: -22px; }
+.at-flame .fw i { position: absolute; left: -2.5px; top: -2.5px; width: 5px; height: 5px; border-radius: 50%; background: var(--star); opacity: 0; animation: at-fw 1700ms ease-out infinite; }
+.at-flame .fw1 i { background: var(--danger); animation-delay: .45s; } .at-flame .fw2 i { background: var(--accent); animation-delay: .9s; }
+@keyframes at-fw { 0% { opacity: 0; transform: rotate(var(--a)) translateY(0) scale(.4); } 12% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; transform: rotate(var(--a)) translateY(-38px) scale(.9); } }
+@media (prefers-reduced-motion: reduce) {
+  .at-flame .fl { animation: none !important; }
+  .at-flame .spark, .at-flame .fw i { opacity: .9 !important; animation: none !important; }
+  .at-flame .fw i { transform: rotate(var(--a)) translateY(-30px); } .at-flame .spark { transform: translate(var(--dx), -40px); }
+}
+
+/* MapPath — bölüm içindeki kıvrımlı yol (main.js renderChapter): kalın edge şerit + board renginde kesik çizgi */
+.at-path { position: relative; }
+.at-path svg.trail { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.at-path .at-node { position: absolute; margin: -32px 0 0 -32px; }
+.at-path .at-node-stars { position: absolute; left: 50%; top: 100%; transform: translate(-50%, 4px); }
+.at-tier-label { position: absolute; transform: translate(-50%, -50%); padding: 2px 9px; border-radius: var(--radius-pill); font: 700 11px/1.5 var(--font-sans); white-space: nowrap; z-index: 1; pointer-events: none; }
+.at-tier-label.easy { background: var(--success); color: var(--on-fill); } .at-tier-label.medium { background: var(--accent); color: var(--on-fill); }
+.at-tier-label.hard { background: var(--coin); color: var(--on-gold); } .at-tier-label.extreme { background: var(--extreme-deep); color: #fff; }
+
+/* LanguagePicker — Ayarlar › Dil (style.css .langs / .lang-btn) */
+.at-langs { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); }
+.at-lang-btn { min-height: var(--btn-height); border: 2px solid transparent; border-radius: var(--radius-btn); background: var(--cell); color: var(--ink); font-weight: 700; cursor: pointer; font-size: 17px; }
+.at-lang-btn.on { border-color: var(--accent); background: var(--board); }
+.at-lang-btn[lang="ar"] { font-family: var(--font-arabic); }
+.at-lang-btn:focus-visible { outline: 3px solid var(--star-ink); outline-offset: 2px; }
+
+/* AdBanner — reklam yuvası (style.css .banner; Flutter AdBannerSlot): sabit 56 px, üstünde 16 px dokunulmaz boşluk */
+.at-banner { box-sizing: border-box; height: 56px; margin: var(--space-16) 0 0; border: 2px dashed var(--edge); border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center; color: var(--ink-soft); font-weight: 700; font-size: 14px; background: color-mix(in srgb, var(--card) 60%, transparent); }
