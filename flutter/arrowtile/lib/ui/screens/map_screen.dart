@@ -74,7 +74,7 @@ class TierBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
       decoration: BoxDecoration(color: tierColor(pal, tier), borderRadius: BorderRadius.circular(999)),
       child: Text(diffName(loc, tier),
-          style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w800)),
+          style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w700)),
     );
   }
 }
@@ -178,7 +178,7 @@ class _ChapterView extends StatelessWidget {
           child: Row(children: <Widget>[
             Expanded(
               child: FitText(chapterName(loc, chapter),
-                  style: TextStyle(color: pal.inkC, fontSize: 20, fontWeight: FontWeight.w800), minFont: 14, align: TextAlign.start),
+                  style: TextStyle(color: pal.inkC, fontSize: 20, fontWeight: FontWeight.w700), minFont: 14, align: TextAlign.start),
             ),
             const SizedBox(width: 8),
             Flexible(
@@ -344,7 +344,7 @@ class _LevelNode extends StatelessWidget {
                     ? Icon(Icons.lock, size: 22, color: fg)
                     : Directionality(
                         textDirection: TextDirection.ltr,
-                        child: Text('$id', style: TextStyle(color: fg, fontSize: 22, fontWeight: FontWeight.w800)),
+                        child: Text('$id', style: TextStyle(color: fg, fontSize: 22, fontWeight: FontWeight.w700)),
                       ),
               ),
             ),

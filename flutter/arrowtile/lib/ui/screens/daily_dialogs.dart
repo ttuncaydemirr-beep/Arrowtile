@@ -110,7 +110,7 @@ class DpStats extends StatelessWidget {
     Widget chip(String t) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(color: pal.cellC, borderRadius: BorderRadius.circular(999)),
-          child: Text(t, style: TextStyle(color: pal.inkC, fontSize: 14, fontWeight: FontWeight.w800)),
+          child: Text(t, style: TextStyle(color: pal.inkC, fontSize: 14, fontWeight: FontWeight.w700)),
         );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -177,7 +177,7 @@ class _CalendarBodyState extends State<_CalendarBody> {
 
     final List<Widget> cells = <Widget>[
       for (final String w in loc.calWeekdays.split(','))
-        Center(child: Text(w, maxLines: 1, style: TextStyle(color: pal.inkSoftC, fontSize: 11, fontWeight: FontWeight.w800))),
+        Center(child: Text(w, maxLines: 1, style: TextStyle(color: pal.inkSoftC, fontSize: 11, fontWeight: FontWeight.w700))),
       for (int k = 0; k < lead; k++) const SizedBox.shrink(),
       for (int d = 1; d <= days; d++) _dayCell(pal, '$month-${two(d)}', d, app, today),
     ];
@@ -190,7 +190,7 @@ class _CalendarBodyState extends State<_CalendarBody> {
           navBtn(Icons.arrow_back, false, false, () => setState(() => _month = pm), loc.commonBack),
           Expanded(
             child: Text('${months[m - 1]} $y',
-                textAlign: TextAlign.center, style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w800)),
+                textAlign: TextAlign.center, style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w700)),
           ),
           // sonraki ay: simge aynalanır (sol ok yerine sağ ok)
           navBtn(Icons.arrow_forward, true, nextDisabled, () => setState(() => _month = nm), loc.endNext),

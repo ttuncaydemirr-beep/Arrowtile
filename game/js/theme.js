@@ -164,7 +164,7 @@
       scaleByLang: { tr: 1, en: 1, de: 1, ar: 1.08 },
       lineHeightByLang: { tr: 1.3, en: 1.3, de: 1.3, ar: 1.55 },
       sizes: { title: 30, h2: 22, body: 17, button: 18, buttonMin: 14, small: 14, levelNum: 20, hud: 18 },
-      weights: { regular: 400, medium: 600, bold: 800 }
+      weights: { regular: 400, medium: 600, bold: 700 } // 1.2.2: Readex Pro VF 160–700; 800 zaten 700 çiziliyordu
     },
 
     rtlLangs: ['ar'],

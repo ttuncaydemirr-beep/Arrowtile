@@ -100,7 +100,7 @@ class PrivacyScreen extends StatelessWidget {
               for (final List<String> s in sections) ...<Widget>[
                 Padding(
                   padding: const EdgeInsets.only(top: 18, bottom: 6),
-                  child: Text(s[0], style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w800)),
+                  child: Text(s[0], style: TextStyle(color: pal.inkC, fontSize: 18, fontWeight: FontWeight.w700)),
                 ),
                 LinkedParagraph(s[1], style: TextStyle(color: pal.inkC, fontSize: 17, height: 1.45), linkColor: pal.accentC),
               ],
@@ -113,7 +113,7 @@ class PrivacyScreen extends StatelessWidget {
                     child: Directionality(
                       textDirection: TextDirection.ltr,
                       child: Text(AppInfo.supportEmail,
-                          style: TextStyle(color: pal.accentC, fontSize: 15, fontWeight: FontWeight.w800, decoration: TextDecoration.underline)),
+                          style: TextStyle(color: pal.accentC, fontSize: 15, fontWeight: FontWeight.w700, decoration: TextDecoration.underline)),
                     ),
                   ),
                 ),
