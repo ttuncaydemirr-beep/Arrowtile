@@ -22,6 +22,7 @@
         inkSoft:    '#6A6760', // ikincil metin
         accent:     '#1E7A78', // kobalt — birincil buton
         accentInk:  '#FFFFFF',
+        onFill:     '#FFFFFF', // 1.2.2: renkli dolgu (success/accent/danger) üstündeki yazı — koyu temada koyu yazı (≥ 4,5:1)
         star:       '#E3A008', // safran yıldız (zemin/rozet dolgusu)
         starInk:    '#AD7800', // 1.2.1 (docs/27 §B1): yıldız SİMGESİ (kart/zemin üstünde ≥ 3:1)
         starEmpty:  '#D8D0C3',
@@ -43,6 +44,7 @@
         inkSoft:    '#A19D94',
         accent:     '#4DB6AC',
         accentInk:  '#14171C',
+        onFill:     '#14171C',
         star:       '#F2B632',
         starInk:    '#F2B632',
         starEmpty:  '#3A414D',

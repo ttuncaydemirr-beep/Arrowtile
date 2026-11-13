@@ -67,12 +67,17 @@ class TierBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final Palette pal = Palette.of(context);
     final AppLocalizations loc = locOf(context);
-    final bool dark = tier == 'hard';
+    // 1.2.2: Kolay/Orta yazısı pal.onFill (koyu temada koyu), Zor #22252B, Aşırı zor beyaz
+    final Color fg = tier == 'hard'
+        ? const Color(0xFF22252B)
+        : (tier == 'easy' || tier == 'medium')
+            ? pal.onFillC
+            : Colors.white;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
       decoration: BoxDecoration(color: tierColor(pal, tier), borderRadius: BorderRadius.circular(999)),
       child: Text(diffName(loc, tier),
-          style: TextStyle(color: dark ? const Color(0xFF22252B) : Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
+          style: TextStyle(color: fg, fontSize: 12, fontWeight: FontWeight.w800)),
     );
   }
 }

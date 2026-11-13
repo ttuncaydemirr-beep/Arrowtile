@@ -3,7 +3,7 @@
 /* Arrowtile — style.css. Token'lar theme.js / docs/02 ile aynı. Mantıksal CSS (RTL uyumlu). */
 :root {
   --bg: #EFEAE2; --board: #FBF9F5; --edge: #D8D0C3; --cell: #EEE8DE;
-  --ink: #22252B; --ink-soft: #6A6760; --accent: #1E7A78; --accent-ink: #FFFFFF;
+  --ink: #22252B; --ink-soft: #6A6760; --accent: #1E7A78; --accent-ink: #FFFFFF; --on-fill: #FFFFFF;
   --star: #E3A008; --star-ink: #AD7800; --star-empty: #D8D0C3; --coin: #D4951A; --coin-ink: #A86F0C; --danger: #D2453B; --success: #2F8F5B;
   --shadow: rgba(34,37,43,0.16);
   --card: #FBF9F5;
@@ -19,7 +19,7 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #14171C; --board: #1E2229; --edge: #0C0E12; --cell: #272C35;
-    --ink: #F2EEE6; --ink-soft: #A19D94; --accent: #4DB6AC; --accent-ink: #14171C;
+    --ink: #F2EEE6; --ink-soft: #A19D94; --accent: #4DB6AC; --accent-ink: #14171C; --on-fill: #14171C;
     --star: #F2B632; --star-ink: #F2B632; --star-empty: #3A414D; --coin: #F0B23A; --coin-ink: #F0B23A; --danger: #F0685E; --success: #55C08A;
     --shadow: rgba(0,0,0,0.45); --card: #1E2229;
     color-scheme: dark;
@@ -27,7 +27,7 @@
 }
 :root[data-theme="dark"] {
   --bg: #14171C; --board: #1E2229; --edge: #0C0E12; --cell: #272C35;
-  --ink: #F2EEE6; --ink-soft: #A19D94; --accent: #4DB6AC; --accent-ink: #14171C;
+  --ink: #F2EEE6; --ink-soft: #A19D94; --accent: #4DB6AC; --accent-ink: #14171C; --on-fill: #14171C;
   --star: #F2B632; --star-ink: #F2B632; --star-empty: #3A414D; --coin: #F0B23A; --coin-ink: #F0B23A; --danger: #F0685E; --success: #55C08A;
   --shadow: rgba(0,0,0,0.45); --card: #1E2229;
   color-scheme: dark;
@@ -90,11 +90,11 @@ a { color: var(--accent); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 4px 0 color-mix(in srgb, var(--accent) 60%, #000); }
 .btn.secondary { background: var(--card); color: var(--ink); }
 .btn.ghost { background: transparent; box-shadow: none; color: var(--ink-soft); }
-.btn.danger { background: var(--danger); color: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--danger) 60%, #000); }
+.btn.danger { background: var(--danger); color: var(--on-fill); box-shadow: 0 4px 0 color-mix(in srgb, var(--danger) 60%, #000); }
 .btn.big { min-height: 64px; font-size: calc(22px * var(--fs-scale)); }
 .btn.tiny { min-height: 36px; padding: 4px 12px; font-size: 14px; box-shadow: 0 2px 0 var(--edge); background: var(--card); }
 .btn:focus { outline: none; }
-.btn:focus-visible, .tool:focus-visible, .icon-btn:focus-visible, .node:focus-visible, .tab:focus-visible, .lang-btn:focus-visible, .switch:focus-visible { outline: 3px solid var(--star); outline-offset: 2px; }
+.btn:focus-visible, .tool:focus-visible, .icon-btn:focus-visible, .node:focus-visible, .tab:focus-visible, .lang-btn:focus-visible, .switch:focus-visible { outline: 3px solid var(--star-ink); outline-offset: 2px; } /* 1.2.2: odak halkası ≥ 3:1 (star açıkta 2,15) */
 .btn[disabled] { opacity: .5; cursor: default; }
 .btn.block { width: 100%; }
 
@@ -231,7 +231,7 @@ a { color: var(--accent); }
 .item-price { display: inline-flex; align-items: center; gap: 4px; font-weight: 800; color: var(--ink-soft); font-size: 14px; }
 .item .btn { grid-column: 2; justify-self: stretch; min-height: 48px; padding-inline: 12px; font-size: calc(16px * var(--fs-scale)); }
 .item .item-main + .btn { margin-top: -2px; }
-.btn.equipped { background: var(--success); color: #fff; box-shadow: 0 4px 0 color-mix(in srgb, var(--success) 60%, #000); }
+.btn.equipped { background: var(--success); color: var(--on-fill); box-shadow: 0 4px 0 color-mix(in srgb, var(--success) 60%, #000); }
 .note { color: var(--ink-soft); font-size: calc(14px * var(--fs-scale)); text-align: center; }
 
 /* Ayarlar */
@@ -332,7 +332,7 @@ body.doc-page { user-select: text; -webkit-user-select: text; }
 .diff-tag { position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -4px); padding: 1px 7px; border-radius: 999px;
   font: 800 11px/1.5 var(--font); white-space: nowrap; color: #fff; direction: ltr; }
 [dir="rtl"] .diff-tag { direction: rtl; }
-.d-easy { background: var(--success); } .d-medium { background: var(--accent); } .d-hard { background: var(--coin); color: #22252B; } .d-extreme { background: #7A1420; color: #fff; }
+.d-easy { background: var(--success); color: var(--on-fill); } .d-medium { background: var(--accent); color: var(--on-fill); } /* 1.2.2: koyu temada koyu yazı */ .d-hard { background: var(--coin); color: #22252B; } .d-extreme { background: #7A1420; color: #fff; }
 /* v1.3 (docs/09): kademe rozeti bölüm başlığında; aşırı zor bölüm koyu kırmızı rozet + kenar şeridiyle ayrışır */
 .preparing { text-align: center; font-weight: 700; }
 /* v1.3: kıvrımlı ok baloncuğu tahtayı kapatabilir (büyük tahta, eski oyuncu) → dokunuşlar tahtaya geçer, yalnızca "Atla" tıklanır */
@@ -424,7 +424,7 @@ body.doc-page { user-select: text; -webkit-user-select: text; }
 .tag.fast { background: color-mix(in srgb, var(--star) 30%, var(--cell)); }
 @media (prefers-reduced-motion: reduce) { .flame .spark, .flame .fw i { opacity: .9 !important; animation: none !important; } .flame .fw i { transform: rotate(var(--a)) translateY(-30px); } .flame .spark { transform: translate(var(--dx), -40px); } }
 /* Harita: kademe bölüm etiketi (her 5 seviyede bir) */
-.tier-label { position: absolute; transform: translate(-50%, -50%); padding: 2px 9px; border-radius: 999px; font: 800 11px/1.5 var(--font); white-space: nowrap; color: #fff; z-index: 1; pointer-events: none; }
+.tier-label { position: absolute; transform: translate(-50%, -50%); padding: 2px 9px; border-radius: 999px; font: 800 11px/1.5 var(--font); white-space: nowrap; z-index: 1; pointer-events: none; } /* yazı rengi .d-* kademesinden */
 #scr-game.has-fit .toolbar { grid-template-columns: 1fr 1fr 56px; }
 #scr-game .tool.tool-icon { padding: 6px; }
 #scr-game .tool.tool-icon[hidden] { display: none; }

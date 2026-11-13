@@ -139,11 +139,11 @@ class AppButton extends StatelessWidget {
         shadow = rgba(shadeRgb(pal.accent, -0.4));
       case BtnKind.danger:
         bg = pal.dangerC;
-        fg = Colors.white;
+        fg = pal.onFillC; // 1.2.2: koyu temada koyu yazı
         shadow = rgba(shadeRgb(pal.danger, -0.4));
       case BtnKind.equipped:
         bg = pal.successC;
-        fg = Colors.white;
+        fg = pal.onFillC;
         shadow = rgba(shadeRgb(pal.success, -0.4));
       case BtnKind.ghost:
         bg = Colors.transparent;

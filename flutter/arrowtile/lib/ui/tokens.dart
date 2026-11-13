@@ -14,7 +14,7 @@ Color rgba(int rgb, [double alpha = 1]) {
 }
 
 class Palette {
-  final int bg, board, boardEdge, cell, cellDot, ink, inkSoft, accent, accentInk, star, starEmpty, coin, danger, success,
+  final int bg, board, boardEdge, cell, cellDot, ink, inkSoft, accent, accentInk, onFill, star, starEmpty, coin, danger, success,
       highlight, highlightRing;
   /// 1.2.1 (docs/27 §B1): yıldız / jeton SİMGESİ renkleri (kart ve zemin üstünde ≥ 3:1). [star]/[coin] rozet dolgusu olarak kalır.
   final int starInk, coinInk;
@@ -31,6 +31,7 @@ class Palette {
     required this.inkSoft,
     required this.accent,
     required this.accentInk,
+    required this.onFill,
     required this.star,
     required this.starInk,
     required this.starEmpty,
@@ -57,6 +58,7 @@ class Palette {
     inkSoft: 0x6A6760,
     accent: 0x1E7A78, // derin çam yeşili-turkuaz
     accentInk: 0xFFFFFF,
+    onFill: 0xFFFFFF, // 1.2.2: success/accent/danger dolgusu üstündeki yazı (theme.js onFill)
     star: 0xE3A008,
     starInk: 0xAD7800,
     starEmpty: 0xD8D0C3,
@@ -81,6 +83,7 @@ class Palette {
     inkSoft: 0xA19D94,
     accent: 0x4DB6AC,
     accentInk: 0x14171C,
+    onFill: 0x14171C, // koyu temada açık dolgu üstünde koyu yazı (≥ 4,5:1)
     star: 0xF2B632,
     starInk: 0xF2B632,
     starEmpty: 0x3A414D,
@@ -114,6 +117,7 @@ class Palette {
   Color get inkSoftC => rgba(inkSoft);
   Color get accentC => rgba(accent);
   Color get accentInkC => rgba(accentInk);
+  Color get onFillC => rgba(onFill);
   Color get starC => rgba(star);
   Color get starEmptyC => rgba(starEmpty);
   Color get starInkC => rgba(starInk);

@@ -62,7 +62,7 @@ for (const th of T.arrowThemes) {
 // ---- ölçülecek çiftler
 // Oklar tahta yüzüne (board) çizilir (theme.js drawBoard: tepsi = board, hücre noktaları cellDot). Tek renk kipi: ok = ink.
 const rows = [];
-function add(group, what, fg, bg, min, mode) { rows.push({ group, what, fg, bg, min, mode, r: ratio(fg, bg) }); }
+function add(group, what, fg, bg, min, mode, warn) { rows.push({ group, what, fg, bg, min, mode, warn: !!warn, r: ratio(fg, bg) }); }
 for (const mode of ['light', 'dark']) {
   const C = T.colors[mode];
   T.arrowThemes.forEach(th => th.colors.forEach((c, i) => add(th.id === 'emaye' ? 'ok (Renkli, varsayılan)' : `ok (tema ${th.id})`, `${th.id}[${i}] ${c}`, c, C.board, 3, mode)));
@@ -80,18 +80,31 @@ for (const mode of ['light', 'dark']) {
   add('metin', 'ikincil metin / kart', C.inkSoft, C.board, 4.5, mode);
   add('metin', 'ikincil metin / zemin', C.inkSoft, C.bg, 4.5, mode);
   add('metin', 'birincil düğme yazısı / vurgu', C.accentInk, C.accent, 4.5, mode);
+  // 1.2.2: renkli dolgu üstündeki yazı (onFill) — tehlike / kuşanıldı düğmesi (18 px kalın), Kolay / Orta etiketi (11–12 px kalın)
+  add('metin', 'tehlike düğmesi yazısı / danger', C.onFill, C.danger, 4.5, mode);
+  add('metin', 'kuşanıldı düğmesi yazısı / success', C.onFill, C.success, 4.5, mode, mode === 'light');
+  add('metin', 'Orta etiketi yazısı / accent', C.onFill, C.accent, 4.5, mode);
+  add('metin', 'Kolay etiketi yazısı / success', C.onFill, C.success, 4.5, mode, mode === 'light');
+  // 1.2.2: klavye odak halkası (starInk) — kontrol çevresindeki yüzeylerde ≥ 3:1
+  add('simge', 'odak halkası (starInk) / kart', C.starInk, C.board, 3, mode);
+  add('simge', 'odak halkası (starInk) / zemin', C.starInk, C.bg, 3, mode);
+  add('simge', 'odak halkası (starInk) / hücre', C.starInk, C.cell, 3, mode);
+  // bilinen açık (UYARI, CI'ı durdurmaz): success küçük metin olarak ("Ödülün hazır!", "2 ücretsiz") — renk kararı sahipte
+  add('metin', 'başarı yazısı (success) / kart', C.success, C.board, 4.5, mode, mode === 'light');
 }
 
 // 1.2.1 (docs/27 §B1): satın alınan temalar (lokum, cini, bakir, gece) da ZORUNLU — sahip onayıyla açık/koyu tahtada ok ≥ 3:1.
-const fails = rows.filter(r => r.r < r.min);
+const fails = rows.filter(r => r.r < r.min && !r.warn);
+const warns = rows.filter(r => r.r < r.min && r.warn);
 const fmt = r => r.r.toFixed(2);
 if (process.argv.includes('--markdown')) {
   console.log('| Grup | Öğe | Ön plan | Arka plan | Kip | Oran | Eşik | Sonuç |');
   console.log('|---|---|---|---|---|---|---|---|');
-  for (const r of rows) console.log(`| ${r.group} | ${r.what} | ${r.fg} | ${r.bg} | ${r.mode === 'light' ? 'açık' : 'koyu'} | ${fmt(r)} | ${r.min}:1 | ${r.r >= r.min ? 'GEÇTİ' : 'KALDI'} |`);
+  for (const r of rows) console.log(`| ${r.group} | ${r.what} | ${r.fg} | ${r.bg} | ${r.mode === 'light' ? 'açık' : 'koyu'} | ${fmt(r)} | ${r.min}:1 | ${r.r >= r.min ? 'GEÇTİ' : (r.warn ? 'UYARI' : 'KALDI')} |`);
 } else {
-  for (const r of rows) console.log(`${r.r >= r.min ? 'ok  ' : 'KALDI'} ${r.mode.padEnd(5)} ${r.group.padEnd(26)} ${r.what.padEnd(28)} ${r.fg} / ${r.bg}  ${fmt(r)}:1 (≥ ${r.min})`);
+  for (const r of rows) console.log(`${r.r >= r.min ? 'ok  ' : (r.warn ? 'UYARI' : 'KALDI')} ${r.mode.padEnd(5)} ${r.group.padEnd(26)} ${r.what.padEnd(28)} ${r.fg} / ${r.bg}  ${fmt(r)}:1 (≥ ${r.min})`);
 }
 if (errs.length) { console.error('\nHATA (web ≠ Flutter):\n' + errs.join('\n')); process.exit(1); }
 if (fails.length) { console.error(`\nKALDI: ${fails.length} çift eşik altında: ` + fails.map(r => `${r.mode}:${r.what}=${fmt(r)}`).join(', ')); process.exit(1); }
+if (warns.length) console.warn(`\nUYARI (bilinen açık, CI'ı durdurmaz): ` + warns.map(r => `${r.mode}:${r.what}=${fmt(r)}`).join(', '));
 console.log(`\nGEÇTİ: ${rows.length} çift; web ve Flutter renkleri özdeş; tüm ok temaları (satın alınanlar dahil) ve Kum ve Mürekkep eşikleri sağlıyor.`);
