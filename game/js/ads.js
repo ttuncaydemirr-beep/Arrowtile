@@ -337,7 +337,7 @@
       if (!bridge()) { out({ ok: true, adFree: !!ads().adFree, test: true }); return; }
       var ok = request('restorePurchases', [], function (m) {
         if (m.event === 'restored') {
-          var a = ads(); if (m.adFree) { a.adFree = true; a.test = false; } persist();
+          var a = ads(); if (m.adFree) { a.adFree = true; a.test = false; } else if (a.adFree && !a.test) { a.adFree = false; } /* 1.2.3: iade — sorgu başarıyla bitti, ürün yok */ persist();
           out({ ok: true, adFree: !!m.adFree });
         } else out({ ok: false, reason: 'failed' });
         return true;

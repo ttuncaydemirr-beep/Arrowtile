@@ -69,11 +69,9 @@ class AppController extends ChangeNotifier {
     mon.addScreenListener((bool onScreen) => sfx.setHeld(onScreen)); // 1.1.3: ses yalnızca reklam EKRANDAYKEN susar
     sfx.onDeadRecovered = (String reason) => telemetry.audioDeadRecovered(reason: reason); // 1.1.4 (docs/21)
     billing.onOwnedChanged = (bool owned) {
-      if (owned) {
-        save.ads.adFree = true;
-        save.ads.test = false;
-        persist();
-      }
+      // 1.2.3 (docs/29 §3): true → hak ver; false (Play sorgusu başarıyla bitti, ürün yok = iade) → hakkı kaldır.
+      // Başarısız sorgu bu geri çağrıyı hiç tetiklemez (BillingService.restore null döner), kayıtlı değer korunur.
+      mon.applyOwnership(owned);
       notifyListeners();
     };
     _endless = store.loadEndless();

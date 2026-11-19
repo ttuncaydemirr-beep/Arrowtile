@@ -70,11 +70,11 @@ class AdsConfig {
 
 class AppInfo {
   AppInfo._();
-  static const String version = '1.2.2'; // pubspec.yaml version: 1.2.2+13 ile aynı
+  static const String version = '1.2.3'; // pubspec.yaml version: 1.2.3+14 ile aynı
   static const String supportEmail = 'nilkaren.tuncay.demir@gmail.com';
-  static const String privacyUpdated = '2026-11-12'; // game/js/privacy.js UPDATED ile aynı
+  static const String privacyUpdated = '2026-11-19'; // game/js/privacy.js UPDATED ile aynı
   /// 1.2.1: geliştirici / stüdyo adı (Play Console geliştirici adı, gizlilik politikası, lisans sayfası). "Demir Games" Play'de alınmış.
   static const String developerName = 'Demir Games Studio';
-  // Herkese açık gizlilik politikası adresi (Play Console'a girilen adresle aynı). GitHub Pages: .github/workflows/pages.yml
-  static const String privacyPolicyUrl = 'https://ttuncaydemirr-beep.github.io/Arrowtile/privacy.html';
+  // Herkese açık gizlilik politikası adresi (Play Console'a girilen adresle aynı). Demir Games Studio sitesi (docs/29)
+  static const String privacyPolicyUrl = 'https://ttuncaydemirr-beep.github.io/privacy/arrowtile/';
 }

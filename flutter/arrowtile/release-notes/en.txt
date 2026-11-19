@@ -1,5 +1,5 @@
-Version 1.2.2
-- Colour improvements: arrows, board and interface colours are clearer and easier on the eyes.
-- New "High contrast" setting (Settings › Appearance): bolder colours and outlines.
-- Tablet and foldable support: the game now looks right on large screens and in landscape too.
-- Small fixes and improvements.
+Version 1.2.3
+- Security and stability improvements.
+- Purchase fix: the "Remove ads" entitlement is now updated correctly when a purchase is refunded in Google Play.
+- Privacy text updated: Firebase settings, Google backup and data use are explained more clearly.
+- Small fixes.

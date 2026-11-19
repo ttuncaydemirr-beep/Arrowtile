@@ -20,8 +20,9 @@ permissions:
 jobs:
   promote:
     runs-on: ubuntu-latest
+    environment: production # 1.2.3: yalnızca main + gerekli onaylayıcı (docs/29)
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - name: Sürüm notlarını hazırla
         id: notes
         run: |

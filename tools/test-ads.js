@@ -115,6 +115,23 @@ const CL = (h, id, cb) => h.M.continueAfterLevel(id, cb, h.M.openLevelEnd(id));
   h2.M.restorePurchases(x => { r2 = x; }); h2.flush();
   check('geri yükleme: sahiplik yoksa durum değişmez', r2 && r2.ok && !r2.adFree && !(h2.state.ads && h2.state.ads.adFree));
 }
+// 8b) 1.2.3: iade — Play sorgusu başarıyla bitti ama ürün yok → reklamsızlık kayıttan kalkar; başarısız sorguda korunur
+{
+  const h = harness({ owned: false }); h.state.ads = { since: 0, lastAt: 0, adFree: true, test: false };
+  let r = null; h.M.restorePurchases(x => { r = x; }); h.flush();
+  check('iade: sorgu başarılı + sahiplik yok → adFree=false ve kaydedilir', r && r.ok && !r.adFree && h.state.ads.adFree === false && h.saves() > 0);
+  const h2 = harness({ owned: true }); h2.state.ads = { since: 0, lastAt: 0, adFree: false, test: false };
+  let r2 = null; h2.M.restorePurchases(x => { r2 = x; }); h2.flush();
+  check('iade: sahiplik varsa adFree=true verilir', r2 && r2.ok && r2.adFree && h2.state.ads.adFree === true);
+  const h3 = harness({ owned: false }); h3.state.ads = { since: 0, lastAt: 0, adFree: true, test: false };
+  h3.bridge.restorePurchases = id => false; // köprü isteği reddeder (sorgu başarısız)
+  let r3 = null; h3.M.restorePurchases(x => { r3 = x; }); h3.flush();
+  check('iade: sorgu başarısızsa (köprü reddetti) adFree korunur', r3 && !r3.ok && h3.state.ads.adFree === true);
+  const h4 = harness({ owned: false }); h4.state.ads = { since: 0, lastAt: 0, adFree: true, test: false };
+  h4.bridge.restorePurchases = id => true; // yanıt hiç gelmez (zaman aşımı)
+  let r4 = null; h4.M.restorePurchases(x => { r4 = x; }); h4.advance(RULES.nativeTimeoutMs + 1);
+  check('iade: zaman aşımında adFree korunur', r4 && !r4.ok && r4.reason === 'timeout' && h4.state.ads.adFree === true);
+}
 // 9) Test modu (köprü yok): satın alma taklit edilir
 {
   const h = harness({ noBridge: true }); let r = null;

@@ -87,3 +87,10 @@ Ayrıntı: `docs/27-surum-1-2-1.md`.
 Ayrıntı: `docs/28-surum-1-2-2.md`. Play Console "Kullanıcı deneyimi" uyarıları (versionCode 12, targetSdk 36) giderildi: kenardan kenara geriye uyumluluk
 (`enableEdgeToEdge`), kullanımdan kalkan çubuk rengi API'leri kaldırıldı, büyük ekranlarda yön/yeniden boyutlandırma kısıtı kaldırıldı (yön kilidi yalnızca
 telefonda); içerik en çok 520 dp'lik ortalanmış sütun. Oyuncuya: renk iyileştirmeleri, "Yüksek kontrast" ayarı, tablet/katlanabilir desteği, küçük düzeltmeler.
+
+## 1.2.3 (versionCode 14) — 19.11.2026, dal `v1.2.3`
+Ayrıntı: `docs/29-surum-1-2-3.md`. Yalnızca güvenlik/hata düzeltmesi (özellik yok), güvenlik denetimi bulgularına göre: CI eklentileri tam commit SHA'sına sabitlendi,
+release secrets yalnızca ihtiyaç duyan adımlara verildi, `production` ortamı (release + play-promote), ci.yml salt okunur varsayılan, Dependabot; iade sonrası
+"Reklamları kaldır" hakkı geri alınır (Play sorgusu başarıyla bitip ürün yoksa; başarısız sorguda korunur); gizlilik adresi stüdyo sitesine (`/privacy/arrowtile/`)
+taşındı, `pages.yml` kaldırıldı; uygulama içi gizlilik metni (Remote Config, Google yedeği, "takma adlı", onay öncesi/sonrası hizmetler); `in_app_purchase_android` `^0.4.0`.
+Oyuncuya: güvenlik ve kararlılık iyileştirmeleri, satın alma düzeltmesi, gizlilik metni güncellemesi.

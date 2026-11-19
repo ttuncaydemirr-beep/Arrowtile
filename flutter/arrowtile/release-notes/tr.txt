@@ -1,5 +1,5 @@
-Sürüm 1.2.2
-- Renk iyileştirmeleri: oklar, tahta ve arayüz renkleri daha net ve rahat okunuyor.
-- Yeni "Yüksek kontrast" ayarı (Ayarlar › Görünüm): daha belirgin renkler ve çerçeveler.
-- Tablet ve katlanabilir ekran desteği: oyun artık geniş ekranlarda ve yatay konumda da düzgün görünüyor.
-- Küçük düzeltmeler ve iyileştirmeler.
+Sürüm 1.2.3
+- Güvenlik ve kararlılık iyileştirmeleri.
+- Satın alma düzeltmesi: "Reklamları kaldır" hakkı, Google Play'de iade edilen satın almalarda artık doğru şekilde güncelleniyor.
+- Gizlilik metni güncellendi: Firebase ayarları, Google yedeği ve veri kullanımı daha açık anlatılıyor.
+- Küçük düzeltmeler.

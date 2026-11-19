@@ -1,5 +1,5 @@
-Version 1.2.2
-- Bessere Farben: Pfeile, Spielfeld und Oberfläche sind klarer und angenehmer zu lesen.
-- Neue Einstellung „Hoher Kontrast“ (Einstellungen › Darstellung): kräftigere Farben und Umrisse.
-- Unterstützung für Tablets und faltbare Geräte: Das Spiel passt jetzt auch auf große Bildschirme und im Querformat.
-- Kleine Korrekturen und Verbesserungen.
+Version 1.2.3
+- Verbesserungen bei Sicherheit und Stabilität.
+- Kauf-Korrektur: Das Recht „Werbung entfernen“ wird jetzt korrekt aktualisiert, wenn ein Kauf in Google Play erstattet wird.
+- Datenschutztext aktualisiert: Firebase-Einstellungen, Google-Sicherung und Datennutzung werden klarer erklärt.
+- Kleine Korrekturen.

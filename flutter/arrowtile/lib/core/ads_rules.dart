@@ -235,6 +235,22 @@ class Monetization {
 
   bool get isTestMode => !_bridge;
 
+  /// 1.2.3 (docs/29 §3): Play'in BAŞARIYLA tamamlanan sahiplik sorgusunun sonucunu kayda işler.
+  /// owned=true → hak verilir. owned=false → iade/geri ödeme: kayıttaki reklamsızlık kaldırılır ve kaydedilir.
+  /// Sorgu başarısızsa (null/çevrimdışı/zaman aşımı) bu yöntem ÇAĞRILMAZ; kayıttaki değer korunur.
+  /// Test modu reklamsızlığı (a.test) iade kuralına girmez: o, gerçek platform varken zaten geçersizdir.
+  void applyOwnership(bool owned) {
+    final AdsState a = getAds();
+    if (owned) {
+      a.adFree = true;
+      a.test = false;
+      persist();
+    } else if (a.adFree && !a.test) {
+      a.adFree = false;
+      persist();
+    }
+  }
+
   // ---- banner (docs/15 §3) ----
   /// 1.2.1 (docs/27): yerleştirme başına uzaktan aç/kapa + kontrol grubu. Varsayılan kısıtsız ([BannerPolicy.allOn]);
   /// uygulama açılışta Remote Config + kurulum kovasından kurar (AppController). Oturum içinde değişmez.
@@ -702,10 +718,7 @@ class Monetization {
       return RestoreResult(ok: false, reason: _online ? 'failed' : 'offline');
     }
     if (owned == null) return RestoreResult(ok: false, reason: _online ? 'failed' : 'offline');
-    if (owned) {
-      a.adFree = true;
-      a.test = false;
-    }
+    applyOwnership(owned); // 1.2.3: sahiplik yoksa (iade) reklamsızlık kayıttan da kalkar
     persist();
     return RestoreResult(ok: true, adFree: owned);
   }

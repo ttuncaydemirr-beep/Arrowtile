@@ -1,0 +1,15 @@
+# 1.2.3 (docs/29): bağımlılık güncellemeleri haftalık PR olarak gelir; main'e otomatik birleşmez.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"
+  - package-ecosystem: pub
+    directory: /flutter/arrowtile
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "deps"

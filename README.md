@@ -19,7 +19,7 @@ Destek: nilkaren.tuncay.demir@gmail.com
 | `design/` | Renk kaynağı `colors.json` (web ve Flutter renkleri buradan üretilir) ve tasarım sistemi `system/` (marka kitabı, token'lar, 25 bileşen). Ayrıntı: [design/README](design/README.md) |
 | `docs/` | Tasarım belgeleri, test raporları, Play Store yükleme rehberi (`docs/10`) |
 | `store/` | Mağaza ikonu, özellik grafikleri ve ekran görüntüleri (4 dil) |
-| `dist/privacy-site/` | GitHub Pages için gizlilik politikası sayfası |
+| `dist/privacy-site/` | ESKİ gizlilik sayfası kopyası (1.2.3'ten beri yayınlanmaz; tek kaynak stüdyo sitesi, docs/29) |
 | `legacy/android-native/` | Eski WebView tabanlı Android projesi (arşiv, güncellenmez) |
 
 ## Hızlı başlangıç (Flutter)
@@ -54,7 +54,6 @@ node tools/contrast.js
 |---|---|---|
 | `ci.yml` (**CI**) | `main`'e her gönderimde ve her PR'da | Web doğrulamaları → `flutter analyze` + `flutter test` → yayın modunda deneme APK → APK'yı Android emülatöründe açıp çökme denetimi |
 | `release.yml` (**Release AAB (imzalı)**) | Yalnızca elle: Actions → Run workflow | Play Store'a yüklenecek imzalı `app-release.aab`. Anahtar, AdMob kimlikleri ve Firebase `google-services.json` GitHub secrets'tan okunur; eksikse veya test kimliği girilmişse açıklayıcı hatayla durur. İsteğe bağlı 10. secret `PLAY_SERVICE_ACCOUNT_JSON` varsa ve `track` ≠ none ise AAB'yi doğrudan Play'e (iç/kapalı test) yükler. Kurulum: [docs/14](docs/14-ci-imzali-derleme.md), Play yükleme: [docs/25](docs/25-play-otomatik-yukleme.md) |
-| `pages.yml` (**Gizlilik sayfası**) | `dist/privacy-site/` değişince ve elle | Gizlilik politikasını GitHub Pages'e yayınlar |
 
 ### Deneme APK (telefonda denemek için)
 
@@ -69,12 +68,11 @@ Her başarılı `main` derlemesinden sonra **Releases → Deneme APK** altında 
 
 ### Gizlilik politikası adresi
 
-`https://ttuncaydemirr-beep.github.io/Arrowtile/privacy.html` (uygulamadaki `AppInfo.privacyPolicyUrl` ile aynı; Play Console'a da bu girilir).
-İlk kez yayınlamak için bir kez: **Settings → Pages → Build and deployment → Source: "GitHub Actions"**, ardından **Actions → Gizlilik sayfası → Run workflow**.
+`https://ttuncaydemirr-beep.github.io/privacy/arrowtile/` (Demir Games Studio sitesi; uygulamadaki `AppInfo.privacyPolicyUrl` ile aynı; Play Console'a da bu girilir).
+Bu depodaki `pages.yml` 1.2.3'te kaldırıldı: gizlilik sayfasının tek kaynağı stüdyo sitesidir (docs/29). Eski `/Arrowtile/privacy.html` yayını varsa Settings → Pages'ten kapatın.
 
 ## Yayına kalan adımlar
 
-- [ ] Settings → Pages kaynağını "GitHub Actions" yap ve gizlilik sayfası workflow'unu çalıştır
 - [ ] AdMob'da uygulama + 2 reklam birimi (geçiş, ödüllü) oluştur
 - [ ] Yükleme anahtarını oluştur, yedekle ve 9 secret'ı gir ([docs/14](docs/14-ci-imzali-derleme.md); Firebase konsol adımları ve Veri güvenliği formu: [docs/19](docs/19-firebase.md))
 - [ ] İmzalı AAB'yi derle, Play Console'da uygulamayı oluştur, `remove_ads` ürününü tanımla
