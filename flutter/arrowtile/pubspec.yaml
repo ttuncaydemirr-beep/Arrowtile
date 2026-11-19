@@ -3,7 +3,7 @@ description: "Arrowtile — süre yok, internetsiz ok bulmacası. (Flutter sür�
 publish_to: "none"
 
 # versionName 1.2.3, versionCode 14 (build numarası). Play'e her yüklemede "+N" kısmını 1 artırın.
-version: 1.2.3+14
+version: 1.2.3+15
 
 environment:
   sdk: ">=3.10.0 <4.0.0" # google_mobile_ads 9.x: Dart >=3.10 / Flutter >=3.38.1; önerilen: Flutter stable >= 3.41
@@ -19,7 +19,7 @@ dependencies:
   shared_preferences: ^2.5.0
   google_mobile_ads: ^9.1.0
   in_app_purchase: ^3.2.0
-  in_app_purchase_android: ^0.4.0 # GooglePlayPurchaseDetails.billingClientPurchase (bekleyen satın alma ayrımı)
+  in_app_purchase_android: ^0.5.5 # GooglePlayPurchaseDetails.billingClientPurchase (bekleyen satın alma ayrımı)
   audioplayers: ^6.5.0
   vibration: ^3.1.0
   url_launcher: ^6.3.0

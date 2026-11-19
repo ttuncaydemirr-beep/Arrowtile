@@ -94,3 +94,6 @@ release secrets yalnızca ihtiyaç duyan adımlara verildi, `production` ortamı
 "Reklamları kaldır" hakkı geri alınır (Play sorgusu başarıyla bitip ürün yoksa; başarısız sorguda korunur); gizlilik adresi stüdyo sitesine (`/privacy/arrowtile/`)
 taşındı, `pages.yml` kaldırıldı; uygulama içi gizlilik metni (Remote Config, Google yedeği, "takma adlı", onay öncesi/sonrası hizmetler); `in_app_purchase_android` `^0.4.0`.
 Oyuncuya: güvenlik ve kararlılık iyileştirmeleri, satın alma düzeltmesi, gizlilik metni güncellemesi.
+
+## 1.2.3 (versionCode 15) — 19.11.2026, dal `v1.2.3b`
+versionCode 14, Play Billing Library 7.1.1 nedeniyle reddedildi. `in_app_purchase_android` 0.5.5 (Billing 9.1.0) ve `in_app_purchase` 3.3.1'e yükseltildi; billing kodu değişmedi. Ayrıntı: `docs/29-surum-1-2-3.md` "Billing 8 yükseltmesi". Oyuncu notları aynı.
