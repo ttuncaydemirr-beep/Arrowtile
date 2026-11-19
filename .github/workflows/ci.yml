@@ -54,10 +54,6 @@ jobs:
       # Deneme APK: yayın modunda derlenir (R8 dahil), imza anahtarı yoksa debug anahtarıyla imzalanır.
       # Play Store'a YÜKLENEMEZ; yalnızca telefonda denemek içindir.
       - run: flutter build apk --release
-      - name: GEÇİCİ billing kanıtı
-        run: |
-          grep -rn "billingclient" "$HOME/.pub-cache/hosted/pub.dev/"in_app_purchase_android-*/android/build.gradle* || true
-          cd android && ./gradlew --no-daemon :app:dependencies --configuration releaseRuntimeClasspath 2>&1 | grep -i "billing" | sort -u || true
       - run: cp build/app/outputs/flutter-apk/app-release.apk Arrowtile-deneme.apk
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)

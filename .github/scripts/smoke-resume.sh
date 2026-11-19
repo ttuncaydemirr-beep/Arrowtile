@@ -30,8 +30,6 @@ fail() {
   $UI texts "$OUT/fail.xml" | head -60 || true
   adb logcat -d -v brief > "$OUT/logcat-full.txt" 2>/dev/null || true
   echo "--- odak penceresi:"; adb shell dumpsys window 2>/dev/null | grep -E "mCurrentFocus|mFocusedApp" | head -3 || true
-  echo "--- GEÇİCİ TANI: süreç ölümü / billing / çökme satırları:"
-  grep -inE "com\.arrowtile|billing|am_proc_died|am_kill|am_crash|has died|Force finishing|Fatal signal|SIGSEGV|SIGABRT|tombstone|lowmemorykiller|ANR in|java\.lang\.|Exception" "$OUT/logcat-full.txt" | grep -v "PhenotypeBackground\|MobStore\|BugleRcs" | head -80 | cut -c1-300 || true
   echo "--- logcat (flutter/Ads/UMP/AndroidRuntime), son 60:"
   grep -E " (flutter|Ads|AndroidRuntime)|UMP|onsent" "$OUT/logcat-full.txt" | tail -60 | cut -c1-260 || true
   exit 1
