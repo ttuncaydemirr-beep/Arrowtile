@@ -55,7 +55,7 @@ jobs:
       # Play Store'a YÜKLENEMEZ; yalnızca telefonda denemek içindir.
       - run: flutter build apk --release
       - run: cp build/app/outputs/flutter-apk/app-release.apk Arrowtile-deneme.apk
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         with:
           name: arrowtile-deneme-apk
@@ -97,7 +97,7 @@ jobs:
       - run: flutter gen-l10n
       - run: flutter build apk --debug --dart-define=UMP_DEBUG_EEA=true
       - run: cp build/app/outputs/flutter-apk/app-debug.apk Arrowtile-debug-eea.apk
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         with:
           name: arrowtile-debug-eea-apk
@@ -142,7 +142,7 @@ jobs:
             if grep -q "FATAL EXCEPTION" logcat.txt && grep -q "Process: com.arrowtile.puzzle" logcat.txt; then echo "UYGULAMA ÇÖKTÜ"; exit 1; fi
             test -s pid.txt
             bash .github/scripts/smoke-resume.sh release 0
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         if: always()
         with:
@@ -178,7 +178,7 @@ jobs:
           script: |
             adb install -r Arrowtile-debug-eea.apk
             bash .github/scripts/smoke-resume.sh eea 1
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         if: always()
         with:
@@ -220,7 +220,7 @@ jobs:
       - run: flutter gen-l10n
       - run: flutter build apk --debug ${{ matrix.defines }}
       - run: cp build/app/outputs/flutter-apk/app-debug.apk Arrowtile-debug-ads-${{ matrix.variant }}.apk
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         with:
           name: arrowtile-debug-ads-${{ matrix.variant }}-apk
@@ -255,7 +255,7 @@ jobs:
           script: |
             adb install -r Arrowtile-debug-ads-${{ matrix.variant }}.apk
             bash .github/scripts/smoke-ads.sh ads-${{ matrix.variant }} ${{ matrix.variant }}
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         if: always()
         with:
@@ -303,7 +303,7 @@ jobs:
       - run: flutter gen-l10n
       - run: flutter build apk --release
       - run: cp build/app/outputs/flutter-apk/app-release.apk Arrowtile-firebase-ci.apk
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         with:
           name: arrowtile-firebase-ci-apk
@@ -334,7 +334,7 @@ jobs:
           script: |
             adb install -r Arrowtile-firebase-ci.apk
             bash .github/scripts/smoke-firebase.sh
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         if: always()
         with:
