@@ -47,19 +47,7 @@ jobs:
           channel: stable
           cache: true
       - run: flutter --version
-      - run: flutter pub get
-      # GEÇİCİ (1.2.3, docs/29 §4): çözümlenen pubspec.lock'u almak için günlüğe yazılır ve artifact olarak yüklenir; kilit dosyası commit'lenince kaldırılır.
-      - name: pubspec.lock dökümü (geçici)
-        run: |
-          echo "=== PUBSPEC.LOCK BEGIN ==="
-          cat pubspec.lock
-          echo "=== PUBSPEC.LOCK END ==="
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
-        continue-on-error: true
-        with:
-          name: pubspec-lock
-          path: flutter/arrowtile/pubspec.lock
-          retention-days: 1
+      - run: flutter pub get --enforce-lockfile
       - run: flutter gen-l10n
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter test
@@ -105,7 +93,7 @@ jobs:
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: flutter gen-l10n
       - run: flutter build apk --debug --dart-define=UMP_DEBUG_EEA=true
       - run: cp build/app/outputs/flutter-apk/app-debug.apk Arrowtile-debug-eea.apk
@@ -228,7 +216,7 @@ jobs:
         with:
           channel: stable
           cache: true
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: flutter gen-l10n
       - run: flutter build apk --debug ${{ matrix.defines }}
       - run: cp build/app/outputs/flutter-apk/app-debug.apk Arrowtile-debug-ads-${{ matrix.variant }}.apk
@@ -311,7 +299,7 @@ jobs:
           }
           JSON
           python3 -c "import json; json.load(open('android/app/google-services.json'))"
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: flutter gen-l10n
       - run: flutter build apk --release
       - run: cp build/app/outputs/flutter-apk/app-release.apk Arrowtile-firebase-ci.apk

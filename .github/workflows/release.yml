@@ -269,7 +269,7 @@ jobs:
           printf '%s' "$GOOGLE_SERVICES_JSON" > flutter/arrowtile/android/app/google-services.json
           test -s flutter/arrowtile/android/app/google-services.json || { echo "::error::GOOGLE_SERVICES_JSON yazılamadı veya boş."; exit 1; }
 
-      - run: flutter pub get
+      - run: flutter pub get --enforce-lockfile
       - run: flutter gen-l10n
       - run: flutter build appbundle --release
 
