@@ -341,5 +341,5 @@ jobs:
           HOLD: ${{ inputs.hold_for_review }}
           NOTES_DIR: ${{ steps.notes_dir.outputs.dir }}
         run: |
-          pip install --quiet google-auth requests
+          pip install --quiet --require-hashes --only-binary=:all: -r tools/requirements-play.txt
           python3 tools/play_promote.py

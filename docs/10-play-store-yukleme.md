@@ -268,6 +268,24 @@ Bu adres oyunun Ayarlar > Destek bölümünde ve gizlilik politikasında zaten v
   - Özellik grafiği: `feature-graphic-<dil>.png` (1024×500). Her dilin girişine kendi dilindeki grafiği yükleyin.
   - Telefon ekran görüntüleri: `screenshots/<dil>/01…06.png` (1080×1920, 9:16), her dilde 6 adet.
     Sıra: ana menü, kolay seviye, aşırı zor seviye, harita, günlük bulmaca takvimi, günlük tahta.
+- **Mağaza görselleri (22.11.2026, 1.2.3 ile uyumlu yenilendi):** `tools/android/make-store-assets.py` ile üretilir (`feature` / `shots`).
+  - Özellik grafiği (1024×500, tr/en/de/ar, Arapça RTL): **güncel** başlatıcı simgesi (`game/assets/icon.svg` = `store/play-icon-512.png`, kobalt mavi), güncel palet
+    (`design/colors.json`), oyunun kendi ok çizicisiyle (`window.drawArrow`) çizilmiş gerçek bir tahta (bölüm 1, seviye 20) ve oyun yazı tipi Readex Pro
+    (`flutter/arrowtile/assets/fonts`). Cihaz çerçevesi, "#1"/"en iyi" iddiası, fiyat yok; metin kenarlardan ~%10 içeride. Eski grafikte kullanılan
+    `store/icon-candidates/` (simge adayı) artık KULLANILMAZ.
+  - Ekran görüntüleri (1080×1920): gerçek web önizleme (`game/index.html`, `?debug` yok); orta oyun kaydı (63. seviye, 62 bölüm bitmiş, 155 yıldız, günlük seri 12).
+    Kolay (5), Aşırı zor (60) ve günlük tahta **yarım çözülmüş** (okların ~%30'u gerçek dokunuşla alınmış; hangi okların alınacağı ayrı bir `?debug=1` bağlamında planlanır).
+  - **Reklam yer tutucusu görünmez:** örnek kayıtta `ads.adFree = true` (oyun kodu değişmez); betik her çekimde `.banner` öğelerinin gizli olduğunu denetler.
+  - Arapça: oyunun kendi yazı tipi Readex Pro (Arapça glifli) kullanılır; ayrı bir yazı tipi gerekmedi.
+- **Görsellerin Play'e otomatik yüklenmesi:** `.github/workflows/play-listing.yml` (elle çalışır, `environment: production`). Girdi `dry_run` (varsayılan **true**): `store/`
+  dosyalarını doğrular (dil başına 6 ekran görüntüsü 1080×1920 + 1 özellik grafiği 1024×500, ≤ 8 MB, alfa yok) ve listeler; API'yi çağırmaz, secret kullanmaz.
+  `dry_run=false`: `tools/play_listing.py` her dil (tr-TR, en-US, de-DE, ar) için `phoneScreenshots` ve `featureGraphic`'i siler (deleteall) ve yeniden yükler, sonra
+  edit'i commit eder (otomatik inceleme durumunda `changesNotSentForReview` hatası `play_promote.py` gibi işlenir). **Yalnızca görseller**; başlık/açıklama metinlerine dokunmaz.
+  - **İzin:** servis hesabına Play Console › Kullanıcılar ve izinler › (hesap) bu uygulama için **"Mağaza girişini yönet" (Manage store presence)** izni verilmelidir;
+    yalnızca sürüm izni (release) yeterli değildir, aksi halde yükleme 403 verir. Dillerin mağaza girişi (listing) Play Console'da önceden eklenmiş olmalı.
+  - **Bağımlılıklar (audit Y4):** `tools/requirements-play.txt` — sürüm + tüm wheel sha256 değerleriyle (`pip install --require-hashes --only-binary=:all:`);
+    `play-listing.yml`, `play-promote.yml` ve `release.yml` terfi adımı aynı dosyayı kullanır. Hash'ler GitHub çalıştırıcısında PyPI JSON API'sinden (`/pypi/<paket>/<sürüm>/json`) üretildi.
+    Güncelleme: çalıştırıcıda `pip install --dry-run --report` ile sürümleri çözüp aynı yolla hash'leri yeniden üretin.
 - **Kategori:** Oyunlar › **Bulmaca**.
 - **Etiketler** (Play en fazla 5 etiket seçtirir): *Bulmaca*, *Mantık*, *Beyin oyunları*, *Çevrimdışı*, *Tek oyunculu*
   (listede bunların karşılığını seçin; bulunamayanların yerine *Gündelik* ya da *Minimalist* seçilebilir).
@@ -299,10 +317,10 @@ Bu adres oyunun Ayarlar > Destek bölümünde ve gizlilik politikasında zaten v
 ## Bilinen notlar
 - Tabletlerde (en kısa kenarı 600 dp ve üstü) Android 16 yön kilidini yok sayabilir. Manifestte geçici muafiyet var.
   Oyunun CSS'i yatay ekrana da uyum sağlıyor.
-- 360 px genişlikte harita ekranının başlığı ("Seviye Haritası" / Arapça karşılığı) yıldız sayacı büyüyünce iki-üç satıra
-  bölünüyor (ekran görüntüsü 04'te görülüyor). Oyun kodunda küçük bir düzeltme önerisi: harita başlığında yıldız hapı daralınca başlığı kısaltmak.
-- Arapça ekran görüntüleri bu ortamdaki tek Arapça yazı tipi (DejaVu Sans) ile alındı. Cihazda Noto Naskh/Sans Arabic ile daha güzel görünür.
-  İsterseniz Arapça görüntüleri emülatörden yeniden alabilirsiniz.
+- 360 px genişlikte harita ekranının başlığı ("Seviye Haritası" / Arapça karşılığı) iki satıra bölünüyor (yıldız sayısından bağımsız: hap hep "n/15000" biçimi;
+  22.11.2026'da 360–400 px'te tr ve ar için denendi, 1.2.3'te hâlâ var). Kesilme yok, yalnızca satır kırılması; oyun kodu değiştirilmedi.
+  Öneri: harita başlığında yıldız hapı daralınca başlığı kısaltmak ya da hapı "n" yapmak.
+- Arapça ekran görüntüleri oyunun kendi Arapça glifli yazı tipi Readex Pro ile alınır (oyun CSS'i de aynısını kullanır); DejaVu notu eskidir.
 - Satın alma doğrulaması cihazda yapılıyor, sunucu yok. Bu ölçekteki bir oyun için yaygın bir yöntem.
 - Sahiplik iade edilirse (refund) yerel taraf bunu bir sonraki açılışta görür. Oyunun kendi kaydındaki reklamsızlık bayrağı ise kalır.
 
@@ -329,7 +347,7 @@ Bu adres oyunun Ayarlar > Destek bölümünde ve gizlilik politikasında zaten v
 - [x] 6. Play Billing 9.1.0: remove_ads, acknowledge, açılış/onResume/geri yükle sorgusu, SharedPreferences, bekleyen (pending) satın alma.
 - [x] 7. İmzalama: keystore.properties'ten okuyan signingConfig + keystore.properties.example; R8 açık + JS arayüzü keep kuralları (README ayrıntıları 10. maddeyle).
 - [x] 8. İkonlar: adaptive (foreground/background/monochrome) 5 yoğunlukta + eski tip ic_launcher/ic_launcher_round (API 24-25) + store/play-icon-512.png (512x512 RGBA, 16 KB). Üretici: tools/android/make-icons.py.
-- [x] 9. Mağaza görselleri: store/feature-graphic-{tr,en,de,ar}.png (1024x500, Arapça RTL) + store/screenshots/<dil>/ 6'şar adet 1080x1920 (ana menü, kolay seviye 5, aşırı zor seviye 100, harita, günlük bulmaca takvimi, günlük tahta). Gerçek oyun, ?debug olmadan (kanca yok, denetlendi). Üretici: tools/android/make-store-assets.py. Not: bu ortamda Arapça yazı tipi yalnızca DejaVu Sans.
+- [x] 9. Mağaza görselleri: store/feature-graphic-{tr,en,de,ar}.png (1024x500, Arapça RTL) + store/screenshots/<dil>/ 6'şar adet 1080x1920 (ana menü, kolay seviye 5, aşırı zor seviye 100, harita, günlük bulmaca takvimi, günlük tahta). Gerçek oyun, ?debug olmadan (kanca yok, denetlendi). Üretici: tools/android/make-store-assets.py (22.11.2026'da 1.2.3'e göre yenilendi, bkz. §10).
 - [x] 10. Bu belge (adım adım yükleme, form yanıtları, gizlilik URL, fiyat önerisi, kontrol listesi) + android/README.md + dist/privacy-site/ (yüklemeye hazır gizlilik sayfası).
 - [x] 11. dist/Arrowtile-android-v1.0.0.zip (android/, build ve .gradle hariç, assets/www dolu; 358 KB) + dist/Arrowtile-store-assets.zip (35 dosya, 5,2 MB).
 - [x] Doğrulama: e2e 315/315, qa 157/157, test-ads 32/32, validate-i18n geçti, Java köprü → ads.js 9/9 (tools/android/verify-bridge/run.sh). Gradle/AAB derlemesi YAPILAMADI (SDK ve Google Maven yok).

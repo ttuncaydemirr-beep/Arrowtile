@@ -1,0 +1,41 @@
+name: Play - mağaza görsellerini yükle
+
+# YALNIZCA görseller (6 telefon ekran görüntüsü + özellik grafiği; tr-TR, en-US, de-DE, ar). Metin alanlarına dokunmaz.
+# dry_run=true (varsayılan): store/ dosyalarını doğrular ve listeler; Play API'si çağrılmaz, servis hesabı kullanılmaz.
+# Gerçek yükleme için servis hesabının Play Console'da bu uygulama için "Mağaza girişini yönet" izni olmalı (docs/10).
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Yalnızca doğrula ve listele (Play API'sini ÇAĞIRMA)"
+        type: boolean
+        default: true
+      hold_for_review:
+        description: "Otomatik incelemeye GÖNDERME (Play izin vermiyorsa yok sayılır)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  listing:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+      - name: Görselleri doğrula (dry-run)
+        env:
+          DRY_RUN: "true"
+        run: python3 tools/play_listing.py
+      - name: Bağımlılıkları kur (sabit sürüm + hash)
+        if: ${{ !inputs.dry_run }}
+        run: |
+          pip install --quiet --require-hashes --only-binary=:all: -r tools/requirements-play.txt
+      - name: Play'e yükle
+        if: ${{ !inputs.dry_run }}
+        env:
+          PLAY_SA_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          DRY_RUN: "false"
+          HOLD: ${{ inputs.hold_for_review }}
+        run: python3 tools/play_listing.py

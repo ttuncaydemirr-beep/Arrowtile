@@ -97,3 +97,10 @@ Oyuncuya: güvenlik ve kararlılık iyileştirmeleri, satın alma düzeltmesi, g
 
 ## 1.2.3 (versionCode 15) — 19.11.2026, dal `v1.2.3b`
 versionCode 14, Play Billing Library 7.1.1 nedeniyle reddedildi. `in_app_purchase_android` 0.5.5 (Billing 9.1.0) ve `in_app_purchase` 3.3.1'e yükseltildi; billing kodu değişmedi. Ayrıntı: `docs/29-surum-1-2-3.md` "Billing 8 yükseltmesi". Oyuncu notları aynı.
+
+## Mağaza görselleri yenilendi (22.11.2026, dal `store-visuals`, oyun kodu değişmedi)
+Ayrıntı: `docs/10-play-store-yukleme.md` §10. Özellik grafikleri (4 dil) güncel kobalt simge + güncel palet + oyunun gerçek ok çizimiyle yeniden üretildi (eski sürüm simge adayını kullanıyordu);
+ekran görüntüleri (4 dil × 6) güncel oyundan, orta oyun kaydı ve yarım çözülmüş tahtalarla, reklam yer tutucusu olmadan (`adFree` kaydı) yeniden alındı. Yeni: `.github/workflows/play-listing.yml` +
+`tools/play_listing.py` (yalnızca görsel yükleme, `dry_run` varsayılan açık; servis hesabına "Mağaza girişini yönet" izni gerekir) ve `tools/requirements-play.txt` (sürüm + hash; `play-promote.yml`
+ve `release.yml` terfi adımı da bunu kullanır — denetim maddesi Y4). Harita başlığı iki satıra bölünmesi hâlâ var (kod değiştirilmedi, öneri docs/10 "Bilinen notlar").
+
