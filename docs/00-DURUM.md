@@ -82,3 +82,7 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 - Harita başlığı tr/ar'da dar ekranda iki satıra bölünüyor (kesilmiyor).
 - Güvenlik raporları: ilk denetim (19 Kas) bulguları 1.2.3'te kapandı; ikinci denetim (22 Kas) kalanları yukarıdaki 1.2.4 listesinde. "Secret'ları ortama taşı" ve "servis hesabını yalnız test kanalına sınırla" önerileri bilinçli olarak uygulanmadı (onay kapısı korumayı sağlıyor).
 - Sürüm geçmişi ayrıntıları: docs/17 (changelog) ve docs/27–29.
+
+## 7. Değişiklik günlüğü
+
+- **28 Kasım 2026:** Kök dizine `CLAUDE.md` eklendi (sahibin yazdığı Claude çalışma kuralları: her oturumda önce CLAUDE.md ve bu dosya okunur, her iş ayrı dalda yapılır, onaysız ana dala birleştirme yok, raporlarda "test edildi / derlendi, test edilemedi / telefonda denenmeli" işaretleri). Yalnızca belge; oyun kodu değişmedi.
