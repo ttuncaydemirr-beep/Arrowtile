@@ -4,7 +4,7 @@
 # (LocalTransport) yedek alınır ve şunlar denetlenir:
 #   1) yedekte oyun kaydı (sp/FlutterSharedPreferences.xml) VAR,
 #   2) yedekte başka hiçbir dosya YOK (yalnızca _manifest ve kayıt dosyası),
-#   3) uygulama verisi silinip yedekten geri yüklenince kayıt (arrowtile.save.v1) geri geliyor,
+#   3) uygulama verisi silinip yedekten geri yüklenince kayıt dosyası AYNI içerikle geri geliyor,
 #   4) geri yüklemeden sonra uygulama çökmeden açılıyor.
 # Emülatör görüntüsü google_apis (adb root destekli) olmalı.
 set -u
@@ -28,7 +28,8 @@ sleep 2
 
 log "yedek öncesi shared_prefs:"
 adb shell ls "/data/data/$PKG/shared_prefs" | tee "$OUT/prefs-before.txt" || fail "shared_prefs okunamadı (adb root?)"
-adb shell grep -q "arrowtile.save.v1" "$PREFS" || fail "yedek öncesi kayıt yok ($PREFS)"
+adb shell cat "$PREFS" | tr -d '\r' > "$OUT/prefs-before.xml"
+grep -q "flutter.arrowtile." "$OUT/prefs-before.xml" || fail "yedek öncesi kayıt dosyasında oyun anahtarı yok ($PREFS)"
 OTHERS=$(grep -v -x "FlutterSharedPreferences.xml" "$OUT/prefs-before.txt" | tr -d '\r' | grep -c . || true)
 log "kayıt dışı tercih dosyası sayısı: $OTHERS (bunlar yedeğe GİRMEMELİ)"
 
@@ -52,7 +53,10 @@ adb shell pm clear "$PKG" >/dev/null
 adb shell "test -f $PREFS" && fail "pm clear sonrası kayıt hâlâ duruyor (test geçersiz)"
 adb shell bmgr restore "$PKG" | tee "$OUT/restore.txt"
 sleep 3
-adb shell grep -q "arrowtile.save.v1" "$PREFS" || fail "geri yüklemeden sonra kayıt GELMEDİ"
+adb shell cat "$PREFS" 2>/dev/null | tr -d '\r' > "$OUT/prefs-after.xml"
+[ -s "$OUT/prefs-after.xml" ] || fail "geri yüklemeden sonra kayıt GELMEDİ"
+cmp -s "$OUT/prefs-before.xml" "$OUT/prefs-after.xml" || { diff "$OUT/prefs-before.xml" "$OUT/prefs-after.xml"; fail "geri yüklenen kayıt yedek öncesiyle aynı değil"; }
+log "kayıt dosyası aynen geri geldi"
 log "geri yükleme sonrası shared_prefs:"
 adb shell ls "/data/data/$PKG/shared_prefs" | tee "$OUT/prefs-after.txt"
 
