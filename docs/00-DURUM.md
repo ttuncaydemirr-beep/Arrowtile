@@ -79,7 +79,7 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 - [ ] **Banner deneyi kararı** (~8 Aralık).
 - [ ] **1.3.0** (orta, Sonnet; Aralık başı): es/pt/id/ru oyun içi metinler + **Kiril font** (Readex Pro'da Kiril yok) + taşma testleri + bu dillerde mağaza sayfaları/ekran görüntüleri + gizlilik sayfası çevirileri (stüdyo sitesi sohbeti) + AdMob EEA mesajına es/pt. Not: Rusya'da Google reklam/IAP yok; Rusça CIS için.
 - [ ] **Simge denemesi** (Play mağaza girişi deneyi, `store/icon-candidates/`), 1.3.0 ile.
-- [ ] **Faz B** (Ocak): liderlik tablosu, WhatsApp davet.
+- [ ] **Faz B** (Ocak): liderlik tablosu, WhatsApp davet. **Aynı sürümde zorunlu (Sohbet):** stüdyo sitesindeki Arrowtile gizlilik politikasında 3.6 (liderlik) ve 3.7 (davet) bölümlerini "yaklaşan sürüm" ifadesinden çıkarıp gerçek davranışa göre güncelle (4 dil, yeni tarih) + Play veri güvenliği formuna "Kişisel bilgiler: Ad/Kullanıcı kimlikleri" (Play Games oyuncu adı/kimliği) ekle (sahip yapar). 28 Kasım 2026 kontrolü: politika 1.2.4 ile birebir uyumlu.
 - [ ] İleride: Play API anahtarlarını tek anahtarda toplama (yükleme anahtarı yenilemesiyle birlikte, sırayla).
 
 ## 6. Bilinen notlar
