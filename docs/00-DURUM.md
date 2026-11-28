@@ -62,15 +62,15 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 ## 5. Sıradaki işler (sırayla)
 
 - [ ] **İlk hafta takibi** (24 Kas – 1 Ara): yükleme, çökme/ANR, reklam geliri, yorumlar. Sahip "rapor" der.
-- [ ] **1.2.4** (küçük-orta) — Claude Code'da, dal `claude/upbeat-turing-najevq`. **Kod tarafı bitti (28 Kasım 2026), ana dala birleştirme sahip onayını bekliyor.** CI 13/13 yeşil.
+- [ ] **1.2.4** (küçük-orta) — Claude Code'da, dal `claude/upbeat-turing-najevq`. **Kod + metinler bitti (28 Kasım 2026), ana dala birleştirme sahip onayını bekliyor.** CI 13/13 yeşil (son: d0cd928).
   - [x] CI: Flutter **3.50.1**'e sabit (ci + release, `FLUTTER_VERSION`), release'te önbellek kapalı; Dependabot `cooldown` 7 gün.
   - [x] Satın alma: iptalde 90 sn kilit kalktı (eklentinin ürün adı boş `canceled`/`error` öğesi işleniyor); iade: reklamsızlık art arda ≥2 "yok" yanıtı + ilk yanıttan 24 saat sonra kalkar (`ads.refundMiss/refundMissAt`, yalnızca sayaç varken kayda yazılır; 1.2.3 kaydı geçiş testi var). Testler: `billing_cancel_test`, `refund_revoke_test`. **Telefonda denenmeli** (lisans testçisiyle vazgeç / satın al / iade + 24 sa; adımlar Code oturumunda verildi).
   - [x] Yedekleme yalnızca `FlutterSharedPreferences.xml` (eskiden admob/UMP/Firebase dahil 8 dosya). Emülatörde yedek→sil→geri yükle testi CI'da (`.github/scripts/smoke-backup.sh`).
-  - [ ] **Uygulama içi onay cümlesi → Sohbet'te.** `privacy.p_analytics`: "Analytics ve reklamlar … yalnızca onay verirsen başlar" yanlış (reklamlar formda seçim yapılınca başlar; "Rıza verme"de sınırlı/kişiselleştirilmemiş reklam). Sohbet 4 dilde metni yazacak + stüdyo sitesi; Code oyuna koyacak.
+  - [x] Onay cümlesi: Sohbet'in 4 dil metni oyuna kondu (`game/js/i18n.js` `privacy.p_analytics` son kısmı → ARB; sahip talimatıyla Code yaptı). Gizlilik tarihi 2026-11-28 (`privacy.js` UPDATED = `AppInfo.privacyUpdated`). Taşma testi `privacy_layout_test` (de/ar/tr/en, 320x568 ve 360x640, yazı 1.3×). Stüdyo sitesindeki politika güncellemesi Sohbet'te (tarih 2026-11-28 ile aynı olmalı).
   - [x] Native debug sembolleri: AAB'de libflutter/libapp/libdartjni/libdatastore için `.sym` zaten var (Flutter 3.50 kendiliğinden). Ayar değişmedi; CI + release'e denetim eklendi (`tools/check-aab-symbols.py`). Play uyarısının tam metni sahipten bekleniyor; 1.2.4'te uyarı sürerse yeniden bakılacak.
   - [x] Dependabot #4–#8 (setup-java 6.3.0, setup-node 7.1.0, download-artifact 8.0.2, checkout 7.0.1, upload-artifact 7.0.2) uygulandı: SHA'lar etiketlerle doğrulandı, girdiler uyumlu, CI yeşil. `release.yml` bunlarla ilk kez gerçek yayında çalışacak. Sonraki sürüme ertelenen güncelleme yok.
   - [x] Sürüm 1.2.4+16.
-  - [ ] **Sürüm notları (tr/en/de/ar) → Sohbet'te**; Code `release-notes/*.txt`'ye koyacak.
+  - [x] Sürüm notları (Sohbet metni) `release-notes/*.txt`'de (330–430 karakter).
   - [ ] Web önizleme (`game/js/ads.js`, `tools/test-ads.js` 8b) iade kuralı eşitlemesi → Sohbet (acil değil).
   - Sonra: sahip onayı → main → `release.yml` (internal+alpha) → %20 kademeli üretim → v1.2.4 etiketi (kural 14).
 - [ ] Code: yayındaki 1.2.3 (versionCode 15) için geriye dönük v1.2.3 etiketi atılacak (1.2.4 bittikten sonra).
@@ -85,6 +85,7 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 ## 6. Bilinen notlar
 
 - Play Console uyarıları: Flutter motoru/eklentilerden gelen eski edge-to-edge API çağrıları (bizim kodda yok) — kütüphane güncellemeleriyle kalkar.
+  28 Kasım 2026 kontrolü (sahibin ekran görüntüsü, 1.2.3): (1) "Uçtan uca ekran tüm kullanıcılara gösterilmeyebilir" — `enableEdgeToEdge()` 1.2.2'den beri MainActivity'de var, iş yok. (2) "Desteği sonlandırılmış API" = `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`, kaynak `k1.t` (küçültülmüş androidx.activity sınıfı; `enableEdgeToEdge()` bunu yalnızca Android 9–10'da ayarlar). Bizim kodda yok; bilinen kütüphane uyarısı, iş yok. Sembol uyarısı bu sayfada görünmedi → 1.2.4 yüklenince yeniden bakılacak.
 - Harita başlığı tr/ar'da dar ekranda iki satıra bölünüyor (kesilmiyor).
 - Güvenlik raporları: ilk denetim (19 Kas) bulguları 1.2.3'te kapandı; ikinci denetim (22 Kas) kalanları yukarıdaki 1.2.4 listesinde. "Secret'ları ortama taşı" ve "servis hesabını yalnız test kanalına sınırla" önerileri bilinçli olarak uygulanmadı (onay kapısı korumayı sağlıyor).
 - Sürüm geçmişi ayrıntıları: docs/17 (changelog) ve docs/27–29.
@@ -95,3 +96,4 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 - **28 Kasım 2026:** 1.2.4 işi Claude Code tarafına verildi (sahip kararı). Sohbet tarafı 1.2.4'e dokunmaz.
 - **28 Kasım 2026:** `CLAUDE.md`'ye iki ekleme (sahip onaylı): 7. maddeye "yalnızca 00-DURUM.md güncellemeleri onaysız ana dala gidebilir" istisnası; yeni "İş bölümü: Sohbet ve Code" bölümü (Code: kod/derleme/test/sürüm; Sohbet: karar, araştırma, mağaza, gizlilik, web önizleme, Code'u kontrol). Code'un 1.2.4 dalı bunları ana dalı aldığında görür.
 - **28 Kasım 2026:** 1.2.4 kod tarafı bitti (Code, dal `claude/upbeat-turing-najevq`, CI 13/13): Flutter 3.50.1 sabit, satın alma iptal/iade düzeltmeleri, yedek yalnızca kayıt dosyası, AAB sembol denetimi, 5 GitHub Actions güncellemesi, sürüm 1.2.4+16. Bekleyen: Sohbet'ten onay cümlesi + sürüm notları, sahip onayıyla birleştirme ve yayın.
+- **28 Kasım 2026:** 1.2.4 metinleri (Sohbet) oyuna kondu: onay cümlesi 4 dil + gizlilik tarihi 2026-11-28 + sürüm notları; taşma testi eklendi; CI 13/13. Bekleyen: sahip onayıyla main'e birleştirme ve yayın.
