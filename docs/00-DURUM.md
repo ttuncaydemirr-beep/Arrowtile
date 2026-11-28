@@ -62,7 +62,7 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 ## 5. Sıradaki işler (sırayla)
 
 - [ ] **İlk hafta takibi** (24 Kas – 1 Ara): yükleme, çökme/ANR, reklam geliri, yorumlar. Sahip "rapor" der.
-- [ ] **1.2.4** (küçük-orta, Sonnet) — onay bekliyor:
+- [ ] **1.2.4** (küçük-orta) — **1.2.4 Claude Code'da yapılıyor** (sahip kararı, 28 Kasım 2026; sohbet tarafı bu işe başlamaz):
   - CI: `release.yml`'de flutter-action önbelleği kapat (`cache: false`), Flutter sürümünü sabitle; Dependabot'a 7 gün bekleme (`cooldown`).
   - Satın alma: iptalde 90 sn kilidi kaldır (ürün adı boş "canceled" olayını işle); iade sonrası reklamsızlığı **art arda iki boş sorgu + 24 saat** sonra kaldır.
   - Yedekleme yalnızca oyun kaydı dosyasıyla sınırlı (`dataExtractionRules`/`fullBackupContent`); uygulama içi onay cümlesi düzeltmesi.
@@ -86,3 +86,4 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 ## 7. Değişiklik günlüğü
 
 - **28 Kasım 2026:** Kök dizine `CLAUDE.md` eklendi (sahibin yazdığı Claude çalışma kuralları: her oturumda önce CLAUDE.md ve bu dosya okunur, her iş ayrı dalda yapılır, onaysız ana dala birleştirme yok, raporlarda "test edildi / derlendi, test edilemedi / telefonda denenmeli" işaretleri). Yalnızca belge; oyun kodu değişmedi.
+- **28 Kasım 2026:** 1.2.4 işi Claude Code tarafına verildi (sahip kararı). Sohbet tarafı 1.2.4'e dokunmaz.
