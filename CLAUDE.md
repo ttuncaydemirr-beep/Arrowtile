@@ -42,6 +42,7 @@ gizlilik politikası, web önizlemesi, Code'un yaptığı işi kontrol edip rapo
 12. Paket adına, imza anahtarına/keystore'a dokunma; versionCode her yayında artar, asla düşmez.
 13. AdMob, satın alma (reklamları kaldır), Firebase/Crashlytics veya toplanan veri değişirse
     önceden bildir; gerekirse Play veri güvenliği formu ve gizlilik politikası güncellenmeli.
+14. Her yayından sonra o sürüm GitHub'da etiketlenir (ör. v1.2.4); etiketlemeyi Code yapar. Acil geri dönüş gerekirse eski sürümün kodu daha yüksek bir versionCode ile yeniden yayınlanır; Play'de sürüm numarası asla düşürülmez. Kademeli yayında sorun görülürse önce Play Console'dan yayın durdurulur.
 
 ## Oyunun kalıcı kararları
 - Seviye ortasında asla reklam yok; reklam en erken her 3 seviyede bir.

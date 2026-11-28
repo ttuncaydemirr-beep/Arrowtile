@@ -69,6 +69,7 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
   - Native debug sembolleri (Play'deki uyarı) yüklensin.
   - Dependabot PR #4–#8'i değerlendir (major sürümler — testle).
   - Sürüm 1.2.4+16, %20 kademeli üretim.
+- [ ] Code: yayındaki 1.2.3 (versionCode 15) için geriye dönük v1.2.3 etiketi atılacak (1.2.4 bittikten sonra).
 - [ ] **Yükleme anahtarı sıfırlama** (1.2.4 yayınlandıktan sonra): yeni keystore üret → sahibe zip (iki yere yedek) → Play Console "Sıfırlama talep edin" + PEM → GitHub secret'larını güncelle. ~2 gün güncelleme yüklenemez.
 - [ ] **Banner deneyi kararı** (~8 Aralık).
 - [ ] **1.3.0** (orta, Sonnet; Aralık başı): es/pt/id/ru oyun içi metinler + **Kiril font** (Readex Pro'da Kiril yok) + taşma testleri + bu dillerde mağaza sayfaları/ekran görüntüleri + gizlilik sayfası çevirileri (stüdyo sitesi sohbeti) + AdMob EEA mesajına es/pt. Not: Rusya'da Google reklam/IAP yok; Rusça CIS için.
