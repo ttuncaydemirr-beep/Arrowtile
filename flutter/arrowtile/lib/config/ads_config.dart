@@ -72,7 +72,7 @@ class AppInfo {
   AppInfo._();
   static const String version = '1.2.4'; // pubspec.yaml version: 1.2.4 (+16) ile aynı
   static const String supportEmail = 'nilkaren.tuncay.demir@gmail.com';
-  static const String privacyUpdated = '2026-11-19'; // game/js/privacy.js UPDATED ile aynı
+  static const String privacyUpdated = '2026-11-28'; // game/js/privacy.js UPDATED ile aynı
   /// 1.2.1: geliştirici / stüdyo adı (Play Console geliştirici adı, gizlilik politikası, lisans sayfası). "Demir Games" Play'de alınmış.
   static const String developerName = 'Demir Games Studio';
   // Herkese açık gizlilik politikası adresi (Play Console'a girilen adresle aynı). Demir Games Studio sitesi (docs/29)

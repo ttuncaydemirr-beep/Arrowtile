@@ -1,5 +1,6 @@
-Version 1.2.3
-- Security and stability improvements.
-- Purchase fix: the "Remove ads" entitlement is now updated correctly when a purchase is refunded in Google Play.
-- Privacy text updated: Firebase settings, Google backup and data use are explained more clearly.
-- Small fixes.
+Version 1.2.4
+- Purchases: if you cancel on the "Remove ads" screen, you can now try again right away.
+- The "Remove ads" entitlement is checked more reliably and is no longer lost during short connection problems.
+- Only your game progress is now included in your Google backup.
+- The privacy text now explains consent and ads more clearly.
+- Stability improvements.

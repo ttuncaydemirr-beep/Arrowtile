@@ -1,5 +1,6 @@
-Version 1.2.3
-- Verbesserungen bei Sicherheit und Stabilität.
-- Kauf-Korrektur: Das Recht „Werbung entfernen“ wird jetzt korrekt aktualisiert, wenn ein Kauf in Google Play erstattet wird.
-- Datenschutztext aktualisiert: Firebase-Einstellungen, Google-Sicherung und Datennutzung werden klarer erklärt.
-- Kleine Korrekturen.
+Version 1.2.4
+- Käufe: Wenn du auf dem Bildschirm „Werbung entfernen“ abbrichst, kannst du es jetzt sofort erneut versuchen.
+- Das Recht „Werbung entfernen“ wird zuverlässiger geprüft und geht bei kurzen Verbindungsproblemen nicht mehr verloren.
+- In deine Google-Sicherung wird jetzt nur noch dein Spielfortschritt aufgenommen.
+- Der Datenschutztext erklärt Einwilligung und Werbung jetzt klarer.
+- Verbesserungen der Stabilität.

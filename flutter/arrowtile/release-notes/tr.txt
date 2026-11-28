@@ -1,5 +1,6 @@
-Sürüm 1.2.3
-- Güvenlik ve kararlılık iyileştirmeleri.
-- Satın alma düzeltmesi: "Reklamları kaldır" hakkı, Google Play'de iade edilen satın almalarda artık doğru şekilde güncelleniyor.
-- Gizlilik metni güncellendi: Firebase ayarları, Google yedeği ve veri kullanımı daha açık anlatılıyor.
-- Küçük düzeltmeler.
+Sürüm 1.2.4
+- Satın alma: "Reklamları kaldır" ekranında vazgeçersen artık beklemeden yeniden deneyebilirsin.
+- "Reklamları kaldır" hakkı daha güvenilir kontrol ediliyor; kısa bağlantı sorunlarında kaybolmaz.
+- Google yedeğine artık yalnızca oyun ilerlemen dahil ediliyor.
+- Gizlilik metninde onay ve reklam açıklaması netleştirildi.
+- Kararlılık iyileştirmeleri.
