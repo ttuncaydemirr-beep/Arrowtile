@@ -23,8 +23,9 @@ fail() {
 adb root >/dev/null 2>&1 || true
 sleep 3
 adb wait-for-device
-adb shell am force-stop "$PKG" || true
-sleep 2
+# force-stop KULLANILMAZ: Android "durdurulmuş" uygulamanın yedeğini almaz ("Backup is not allowed"). Ana ekrana gidilir.
+adb shell input keyevent KEYCODE_HOME || true
+sleep 3
 
 log "yedek öncesi shared_prefs:"
 adb shell ls "/data/data/$PKG/shared_prefs" | tee "$OUT/prefs-before.txt" || fail "shared_prefs okunamadı (adb root?)"
