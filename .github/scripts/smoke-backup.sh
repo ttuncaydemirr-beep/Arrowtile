@@ -59,7 +59,12 @@ log "yedek içeriği doğru: yalnızca _manifest + sp/FlutterSharedPreferences.x
 
 adb shell pm clear "$PKG" >/dev/null
 adb shell "test -f $PREFS" && fail "pm clear sonrası kayıt hâlâ duruyor (test geçersiz)"
-adb shell bmgr restore "$PKG" | tee "$OUT/restore.txt"
+# Android 14: "bmgr restore <token> <paket>"; LocalTransport yedek seti belirteci "bmgr list sets" çıktısındadır (ör. "  1 : ...").
+adb shell bmgr list sets | tr -d '\r' | tee "$OUT/sets.txt"
+TOKEN=$(grep -oE '^[[:space:]]*[0-9a-fA-F]+[[:space:]]*:' "$OUT/sets.txt" | tr -d ' :\t' | head -1)
+[ -n "$TOKEN" ] || TOKEN=1
+log "geri yükleme seti: $TOKEN"
+adb shell bmgr restore "$TOKEN" "$PKG" | tee "$OUT/restore.txt"
 sleep 3
 adb shell cat "$PREFS" 2>/dev/null | tr -d '\r' > "$OUT/prefs-after.xml"
 [ -s "$OUT/prefs-after.xml" ] || fail "geri yüklemeden sonra kayıt GELMEDİ"
