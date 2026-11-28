@@ -313,6 +313,10 @@ jobs:
       - run: flutter gen-l10n
       - run: flutter build apk --release
       - run: cp build/app/outputs/flutter-apk/app-release.apk Arrowtile-firebase-ci.apk
+      # 1.2.4: Play "native debug symbols" uyarısı — yayın AAB'sindeki yerel kütüphanelerin sembolleri denetlenir (debug anahtarlı, dağıtılmaz)
+      - run: flutter build appbundle --release
+      - name: AAB native debug sembolleri
+        run: python3 ../../tools/check-aab-symbols.py build/app/outputs/bundle/release/app-release.aab
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         with:

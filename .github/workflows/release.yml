@@ -288,6 +288,10 @@ jobs:
           if echo "$OUT" | grep -qi "Android Debug"; then echo "::error::AAB debug anahtarıyla imzalanmış."; exit 1; fi
           echo "$OUT" | grep -q "Owner:" || { echo "::error::AAB imzası okunamadı."; exit 1; }
 
+      # 1.2.4: Play "native debug symbols" — semboller AAB'nin BUNDLE-METADATA klasöründe Play'e gider; özet iş sayfasına yazılır
+      - name: AAB native debug sembolleri
+        run: python3 ../../tools/check-aab-symbols.py build/app/outputs/bundle/release/app-release.aab
+
       - name: Anahtar dosyalarını sil
         if: always()
         working-directory: ${{ github.workspace }}
