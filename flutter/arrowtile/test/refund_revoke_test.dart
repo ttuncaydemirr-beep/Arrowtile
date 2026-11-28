@@ -216,6 +216,36 @@ void main() {
     });
   });
 
+  group('1.2.4: eski (1.2.3) kayıt biçimi geçişi', () {
+    test('iade sayacı alanları olmayan 1.2.3 kaydı sorunsuz okunur; satın alma ve ilerleme korunur', () {
+      // 1.2.3'ün yazdığı biçim: ads içinde refundMiss / refundMissAt YOK
+      final Map<String, dynamic> old = <String, dynamic>{
+        'lang': 'tr',
+        'coins': 340,
+        'unlocked': 27,
+        'stars': <String, int>{'1': 3, '2': 2},
+        'ads': <String, dynamic>{
+          'since': 2,
+          'lastAt': 1700000000000,
+          'adFree': true,
+          'test': false,
+          'coinDate': '2026-11-20',
+          'coinCount': 1,
+        },
+      };
+      final SaveData s = sanitize(jsonDecode(jsonEncode(old)), 'tr');
+      expect(s.ads.adFree, isTrue, reason: 'satın alma korunur');
+      expect(s.ads.refundMiss, 0);
+      expect(s.ads.refundMissAt, 0);
+      expect(s.coins, 340);
+      expect(s.unlocked, 27);
+      expect(s.stars[1], 3);
+      expect(s.ads.coinCount, 1);
+      // geri yazılınca biçim 1.2.3 ile aynı kalır (sayaç yokken yeni alan eklenmez)
+      expect((s.toJson()['ads'] as Map<String, dynamic>).keys, isNot(contains('refundMiss')));
+    });
+  });
+
   group('AppController: BillingService.onOwnedChanged', () {
     testWidgets('owned=true verir, owned=false (iade) kaldırır ve cihaza yazar', (WidgetTester t) async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
