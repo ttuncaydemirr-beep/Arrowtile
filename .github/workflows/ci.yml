@@ -4,6 +4,10 @@ name: CI
 permissions:
   contents: read
 
+# 1.2.4: Flutter sürümü sabit (stable'ın en yenisi değil). Yükseltirken CI + release ikisinde birden değiştirin.
+env:
+  FLUTTER_VERSION: "3.50.1"
+
 on:
   push:
     branches: [main]
@@ -45,6 +49,7 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter --version
       - run: flutter pub get --enforce-lockfile
@@ -92,6 +97,7 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get --enforce-lockfile
       - run: flutter gen-l10n
@@ -215,6 +221,7 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get --enforce-lockfile
       - run: flutter gen-l10n
@@ -283,6 +290,7 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - name: Sahte google-services.json yaz (gerçek değil; depoya girmez)
         run: |

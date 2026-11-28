@@ -5,11 +5,17 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # 1.2.4: yeni çıkan sürümler 7 gün bekletilir (bozuk/kötü niyetli sürüm riskine karşı).
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "ci"
   - package-ecosystem: pub
     directory: /flutter/arrowtile
     schedule:
       interval: weekly
+    # 1.2.4: yeni çıkan sürümler 7 gün bekletilir (bozuk/kötü niyetli sürüm riskine karşı).
+    cooldown:
+      default-days: 7
     commit-message:
       prefix: "deps"

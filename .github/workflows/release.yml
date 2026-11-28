@@ -58,6 +58,10 @@ on:
 permissions:
   contents: read
 
+# 1.2.4: Flutter sürümü sabit (stable'ın en yenisi değil). Yükseltirken CI + release ikisinde birden değiştirin.
+env:
+  FLUTTER_VERSION: "3.50.1"
+
 jobs:
   aab:
     name: İmzalı AAB derle
@@ -175,7 +179,9 @@ jobs:
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
           channel: stable
-          cache: true
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          # 1.2.4: yayın derlemesi önbellekten değil, her seferinde temiz Flutter kurulumuyla yapılır.
+          cache: false
       - run: flutter --version
 
       - name: Play sürüm notlarını hazırla (whatsnew)
