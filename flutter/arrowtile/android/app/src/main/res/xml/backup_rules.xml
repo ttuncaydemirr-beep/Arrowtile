@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 11 ve altı için otomatik yedekleme: oyun ilerlemesi shared_preferences (FlutterSharedPreferences.xml) içindedir. -->
+<!-- Android 11 ve altı için otomatik yedekleme.
+     1.2.4: yalnızca oyun kaydı dosyası (shared_preferences eklentisinin FlutterSharedPreferences.xml dosyası: ilerleme,
+     ayarlar, satın alma bayrağı) yedeklenir. Reklam/onay (UMP), Firebase ve diğer kütüphanelerin dosyaları yedeğe girmez;
+     yeni cihazda bunlar sıfırdan oluşur (ör. onay formu yeniden sorulur). -->
 <full-backup-content>
-    <include domain="sharedpref" path="." />
+    <include domain="sharedpref" path="FlutterSharedPreferences.xml" />
 </full-backup-content>

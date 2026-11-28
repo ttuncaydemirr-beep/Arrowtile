@@ -148,6 +148,7 @@ jobs:
             if grep -q "FATAL EXCEPTION" logcat.txt && grep -q "Process: com.arrowtile.puzzle" logcat.txt; then echo "UYGULAMA ÇÖKTÜ"; exit 1; fi
             test -s pid.txt
             bash .github/scripts/smoke-resume.sh release 0
+            bash .github/scripts/smoke-backup.sh
       - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         continue-on-error: true # 1.2.1: artifact depolama kotası dolunca yalnızca yükleme düşmesin (docs/27 §D)
         if: always()
@@ -158,6 +159,7 @@ jobs:
             ads-logcat.txt
             screen.png
             smoke-release/
+            smoke-backup/
 
   # EEA (Avrupa) yolu: UMP onay formu gösterilir; ardından aynı arka plana gidip dönme testi.
   smoke-eea:

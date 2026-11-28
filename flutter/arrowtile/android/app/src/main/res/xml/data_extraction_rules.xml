@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12+: oyun ilerlemesi (shared_preferences) bulut yedeğine ve cihaz aktarımına dahil.
-     Böylece yeniden kurulumda/yeni telefonda ilerleme geri gelir. -->
+<!-- Android 12+: oyun ilerlemesi bulut yedeğine ve cihaz aktarımına dahil; yeniden kurulumda/yeni telefonda geri gelir.
+     1.2.4: yalnızca oyun kaydı dosyası (FlutterSharedPreferences.xml). Reklam/onay (UMP), Firebase ve diğer kütüphanelerin
+     dosyaları yedeğe ve aktarıma girmez. -->
 <data-extraction-rules>
     <cloud-backup>
-        <include domain="sharedpref" path="." />
+        <include domain="sharedpref" path="FlutterSharedPreferences.xml" />
     </cloud-backup>
     <device-transfer>
-        <include domain="sharedpref" path="." />
+        <include domain="sharedpref" path="FlutterSharedPreferences.xml" />
     </device-transfer>
 </data-extraction-rules>
