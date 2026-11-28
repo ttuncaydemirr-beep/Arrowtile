@@ -16,6 +16,22 @@ Tüm açıklamalar sade Türkçe olmalıdır.
 7. Tuncay onay vermeden ana dala birleştirme.
    Yalnızca docs/00-DURUM.md güncellemeleri onay beklemeden ana dala gidebilir. Oyun kodu, CLAUDE.md ve diğer tüm dosyalar için onay şart.
 
+## İş bölümü: Sohbet ve Code
+
+**Code'un işleri:** oyun kodu, derleme, test, paket güncellemeleri, sürüm numarası,
+depodaki teknik dosyalar.
+**Sohbetin işleri:** kararlar ve planlama, araştırma, mağaza metinleri ve görseller,
+gizlilik politikası, web önizlemesi, Code'un yaptığı işi kontrol edip raporlamak.
+
+- Kendi alanına girmeyen bir iş istenirse yapma. "Bu iş [Code / Sohbet] tarafının işi"
+  de ve Tuncay'ın oraya aynen yapıştırabileceği hazır bir mesaj yaz.
+- Bir iş başka bir işe bağlıysa (ör. karar → kod) önce kendi kısmını bitir,
+  sonra diğer taraf için hazır mesajı ver.
+- İki taraf da işe başlamadan önce docs/00-DURUM.md'ye bakar; orada diğer tarafa
+  verilmiş bir iş varsa ona dokunmaz.
+- Acil durum: Tuncay açıkça "bunu sen yap" derse kural esner. Yine de
+  DURUM.md'ye not düşülür.
+
 ## Raporlama
 8. Değişiklikleri sade Türkçeyle açıkla.
 9. Her maddeyi şöyle işaretle: "test edildi" / "derlendi, test edilemedi" / "telefonda denenmeli".
