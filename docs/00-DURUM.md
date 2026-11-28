@@ -1,7 +1,7 @@
 # Arrowtile — Durum ve devir notu
 
 > **Yeni sohbet için:** Bu dosyayı baştan sona oku, sonra "Sıradaki işler" listesindeki ilk açık maddeden devam et.
-> Her büyük adımdan sonra bu dosyayı güncelle (tarih + ne değişti). Son güncelleme: **28 Kasım 2026**.
+> Her büyük adımdan sonra bu dosyayı güncelle (tarih + ne değişti). Son güncelleme: **28 Kasım 2026** (1.2.4 kod tarafı bitti).
 
 ## 1. Özet
 
@@ -62,13 +62,17 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 ## 5. Sıradaki işler (sırayla)
 
 - [ ] **İlk hafta takibi** (24 Kas – 1 Ara): yükleme, çökme/ANR, reklam geliri, yorumlar. Sahip "rapor" der.
-- [ ] **1.2.4** (küçük-orta) — **1.2.4 Claude Code'da yapılıyor** (sahip kararı, 28 Kasım 2026; sohbet tarafı bu işe başlamaz):
-  - CI: `release.yml`'de flutter-action önbelleği kapat (`cache: false`), Flutter sürümünü sabitle; Dependabot'a 7 gün bekleme (`cooldown`).
-  - Satın alma: iptalde 90 sn kilidi kaldır (ürün adı boş "canceled" olayını işle); iade sonrası reklamsızlığı **art arda iki boş sorgu + 24 saat** sonra kaldır.
-  - Yedekleme yalnızca oyun kaydı dosyasıyla sınırlı (`dataExtractionRules`/`fullBackupContent`); uygulama içi onay cümlesi düzeltmesi.
-  - Native debug sembolleri (Play'deki uyarı) yüklensin.
-  - Dependabot PR #4–#8'i değerlendir (major sürümler — testle).
-  - Sürüm 1.2.4+16, %20 kademeli üretim.
+- [ ] **1.2.4** (küçük-orta) — Claude Code'da, dal `claude/upbeat-turing-najevq`. **Kod tarafı bitti (28 Kasım 2026), ana dala birleştirme sahip onayını bekliyor.** CI 13/13 yeşil.
+  - [x] CI: Flutter **3.50.1**'e sabit (ci + release, `FLUTTER_VERSION`), release'te önbellek kapalı; Dependabot `cooldown` 7 gün.
+  - [x] Satın alma: iptalde 90 sn kilit kalktı (eklentinin ürün adı boş `canceled`/`error` öğesi işleniyor); iade: reklamsızlık art arda ≥2 "yok" yanıtı + ilk yanıttan 24 saat sonra kalkar (`ads.refundMiss/refundMissAt`, yalnızca sayaç varken kayda yazılır; 1.2.3 kaydı geçiş testi var). Testler: `billing_cancel_test`, `refund_revoke_test`. **Telefonda denenmeli** (lisans testçisiyle vazgeç / satın al / iade + 24 sa; adımlar Code oturumunda verildi).
+  - [x] Yedekleme yalnızca `FlutterSharedPreferences.xml` (eskiden admob/UMP/Firebase dahil 8 dosya). Emülatörde yedek→sil→geri yükle testi CI'da (`.github/scripts/smoke-backup.sh`).
+  - [ ] **Uygulama içi onay cümlesi → Sohbet'te.** `privacy.p_analytics`: "Analytics ve reklamlar … yalnızca onay verirsen başlar" yanlış (reklamlar formda seçim yapılınca başlar; "Rıza verme"de sınırlı/kişiselleştirilmemiş reklam). Sohbet 4 dilde metni yazacak + stüdyo sitesi; Code oyuna koyacak.
+  - [x] Native debug sembolleri: AAB'de libflutter/libapp/libdartjni/libdatastore için `.sym` zaten var (Flutter 3.50 kendiliğinden). Ayar değişmedi; CI + release'e denetim eklendi (`tools/check-aab-symbols.py`). Play uyarısının tam metni sahipten bekleniyor; 1.2.4'te uyarı sürerse yeniden bakılacak.
+  - [x] Dependabot #4–#8 (setup-java 6.3.0, setup-node 7.1.0, download-artifact 8.0.2, checkout 7.0.1, upload-artifact 7.0.2) uygulandı: SHA'lar etiketlerle doğrulandı, girdiler uyumlu, CI yeşil. `release.yml` bunlarla ilk kez gerçek yayında çalışacak. Sonraki sürüme ertelenen güncelleme yok.
+  - [x] Sürüm 1.2.4+16.
+  - [ ] **Sürüm notları (tr/en/de/ar) → Sohbet'te**; Code `release-notes/*.txt`'ye koyacak.
+  - [ ] Web önizleme (`game/js/ads.js`, `tools/test-ads.js` 8b) iade kuralı eşitlemesi → Sohbet (acil değil).
+  - Sonra: sahip onayı → main → `release.yml` (internal+alpha) → %20 kademeli üretim → v1.2.4 etiketi (kural 14).
 - [ ] Code: yayındaki 1.2.3 (versionCode 15) için geriye dönük v1.2.3 etiketi atılacak (1.2.4 bittikten sonra).
 - [ ] 1.2.4 bittikten sonra Code: güvenlik denetimi (belgedeki standart görevle). Belge: "Geliştirme ve Güvenlik Kuralları" https://claude.ai/artifact/R1aCgNoiSAruVZ8dug9CSY ("Güvenlik denetimi" bölümü; önce yalnızca inceleme ve rapor, düzeltmeler onaydan sonra).
 - [ ] **Yükleme anahtarı sıfırlama** (1.2.4 yayınlandıktan sonra): yeni keystore üret → sahibe zip (iki yere yedek) → Play Console "Sıfırlama talep edin" + PEM → GitHub secret'larını güncelle. ~2 gün güncelleme yüklenemez.
@@ -90,3 +94,4 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 - **28 Kasım 2026:** Kök dizine `CLAUDE.md` eklendi (sahibin yazdığı Claude çalışma kuralları: her oturumda önce CLAUDE.md ve bu dosya okunur, her iş ayrı dalda yapılır, onaysız ana dala birleştirme yok, raporlarda "test edildi / derlendi, test edilemedi / telefonda denenmeli" işaretleri). Yalnızca belge; oyun kodu değişmedi.
 - **28 Kasım 2026:** 1.2.4 işi Claude Code tarafına verildi (sahip kararı). Sohbet tarafı 1.2.4'e dokunmaz.
 - **28 Kasım 2026:** `CLAUDE.md`'ye iki ekleme (sahip onaylı): 7. maddeye "yalnızca 00-DURUM.md güncellemeleri onaysız ana dala gidebilir" istisnası; yeni "İş bölümü: Sohbet ve Code" bölümü (Code: kod/derleme/test/sürüm; Sohbet: karar, araştırma, mağaza, gizlilik, web önizleme, Code'u kontrol). Code'un 1.2.4 dalı bunları ana dalı aldığında görür.
+- **28 Kasım 2026:** 1.2.4 kod tarafı bitti (Code, dal `claude/upbeat-turing-najevq`, CI 13/13): Flutter 3.50.1 sabit, satın alma iptal/iade düzeltmeleri, yedek yalnızca kayıt dosyası, AAB sembol denetimi, 5 GitHub Actions güncellemesi, sürüm 1.2.4+16. Bekleyen: Sohbet'ten onay cümlesi + sürüm notları, sahip onayıyla birleştirme ve yayın.
