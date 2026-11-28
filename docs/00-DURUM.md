@@ -62,7 +62,7 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 ## 5. Sıradaki işler (sırayla)
 
 - [ ] **İlk hafta takibi** (24 Kas – 1 Ara): yükleme, çökme/ANR, reklam geliri, yorumlar. Sahip "rapor" der.
-- [ ] **1.2.4** (küçük-orta) — Claude Code'da, dal `claude/upbeat-turing-najevq`. **Kod + metinler bitti (28 Kasım 2026), ana dala birleştirme sahip onayını bekliyor.** CI 13/13 yeşil (son: d0cd928).
+- [ ] **1.2.4** (küçük-orta) — Claude Code'da, dal `claude/upbeat-turing-najevq`. **Kod + metinler bitti; sahip onayıyla main'e birleştirildi (28 Kasım 2026, e23c34e, main CI 13/13, Deneme APK güncel).** Sırada: sahip onayıyla `release.yml`.
   - [x] CI: Flutter **3.50.1**'e sabit (ci + release, `FLUTTER_VERSION`), release'te önbellek kapalı; Dependabot `cooldown` 7 gün.
   - [x] Satın alma: iptalde 90 sn kilit kalktı (eklentinin ürün adı boş `canceled`/`error` öğesi işleniyor); iade: reklamsızlık art arda ≥2 "yok" yanıtı + ilk yanıttan 24 saat sonra kalkar (`ads.refundMiss/refundMissAt`, yalnızca sayaç varken kayda yazılır; 1.2.3 kaydı geçiş testi var). Testler: `billing_cancel_test`, `refund_revoke_test`. **Telefonda denenmeli** (lisans testçisiyle vazgeç / satın al / iade + 24 sa; adımlar Code oturumunda verildi).
   - [x] Yedekleme yalnızca `FlutterSharedPreferences.xml` (eskiden admob/UMP/Firebase dahil 8 dosya). Emülatörde yedek→sil→geri yükle testi CI'da (`.github/scripts/smoke-backup.sh`).
@@ -97,3 +97,4 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 - **28 Kasım 2026:** `CLAUDE.md`'ye iki ekleme (sahip onaylı): 7. maddeye "yalnızca 00-DURUM.md güncellemeleri onaysız ana dala gidebilir" istisnası; yeni "İş bölümü: Sohbet ve Code" bölümü (Code: kod/derleme/test/sürüm; Sohbet: karar, araştırma, mağaza, gizlilik, web önizleme, Code'u kontrol). Code'un 1.2.4 dalı bunları ana dalı aldığında görür.
 - **28 Kasım 2026:** 1.2.4 kod tarafı bitti (Code, dal `claude/upbeat-turing-najevq`, CI 13/13): Flutter 3.50.1 sabit, satın alma iptal/iade düzeltmeleri, yedek yalnızca kayıt dosyası, AAB sembol denetimi, 5 GitHub Actions güncellemesi, sürüm 1.2.4+16. Bekleyen: Sohbet'ten onay cümlesi + sürüm notları, sahip onayıyla birleştirme ve yayın.
 - **28 Kasım 2026:** 1.2.4 metinleri (Sohbet) oyuna kondu: onay cümlesi 4 dil + gizlilik tarihi 2026-11-28 + sürüm notları; taşma testi eklendi; CI 13/13. Bekleyen: sahip onayıyla main'e birleştirme ve yayın.
+- **28 Kasım 2026:** 1.2.4 sahip onayıyla main'e birleştirildi (ileri sarma, e23c34e); main CI 13/13. Sırada: sahip onayıyla yayın (`release.yml` internal+alpha → %20 üretim) ve v1.2.4 etiketi.
