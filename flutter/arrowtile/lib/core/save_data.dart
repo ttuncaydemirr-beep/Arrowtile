@@ -20,7 +20,19 @@ class AdsState {
   bool test;
   String? coinDate; // v1.4: reklam izleyerek jeton — son kullanım günü (yerel yyyy-aa-gg)
   int coinCount; // o gün kullanılan hak sayısı (günde en çok kMaxCoinAdsPerDay)
-  AdsState({this.since = 0, this.lastAt = 0, this.adFree = false, this.test = false, this.coinDate, this.coinCount = 0});
+  // 1.2.4: iade kuralı — reklamsızken Play'in art arda "ürün yok" dediği sorgu sayısı ve ilk "yok" yanıtının zamanı (ms).
+  // Reklamsızlık ancak en az 2 sorgu + ilk yanıttan bu yana 24 saat sonra kaldırılır (Monetization.applyOwnership).
+  int refundMiss;
+  int refundMissAt;
+  AdsState(
+      {this.since = 0,
+      this.lastAt = 0,
+      this.adFree = false,
+      this.test = false,
+      this.coinDate,
+      this.coinCount = 0,
+      this.refundMiss = 0,
+      this.refundMissAt = 0});
   Map<String, dynamic> toJson() => <String, dynamic>{
         'since': since,
         'lastAt': lastAt,
@@ -28,6 +40,9 @@ class AdsState {
         'test': test,
         'coinDate': coinDate,
         'coinCount': coinCount,
+        // 1.2.4: yalnızca bekleyen bir iade şüphesi varsa yazılır (normal kayıt biçimi değişmez)
+        if (refundMiss > 0) 'refundMiss': refundMiss,
+        if (refundMissAt > 0) 'refundMissAt': refundMissAt,
       };
 }
 
@@ -248,6 +263,8 @@ SaveData sanitize(dynamic raw, String defaultLang) {
     final dynamic cd = a['coinDate'];
     s.ads.coinDate = (cd is String && _ymdRe.hasMatch(cd)) ? cd : null;
     s.ads.coinCount = jsInt(_field(a, 'coinCount'), 0, 0, 1000);
+    s.ads.refundMiss = jsInt(_field(a, 'refundMiss'), 0, 0, 1000);
+    s.ads.refundMissAt = jsInt(_field(a, 'refundMissAt'), 0, 0, 8640000000000000);
   }
   if (r['appearance'] is String && <String>['auto', 'light', 'dark'].contains(r['appearance'])) {
     s.appearance = r['appearance'] as String;

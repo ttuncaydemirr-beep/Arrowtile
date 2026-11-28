@@ -187,6 +187,8 @@ SaveData resetProgress(SaveData old) {
   n.ads.test = old.ads.test;
   n.ads.coinDate = old.ads.coinDate; // günlük reklam-jeton hakkı sıfırlamayla yenilenmez
   n.ads.coinCount = old.ads.coinCount;
+  n.ads.refundMiss = old.ads.refundMiss; // 1.2.4: iade sayacı satın alma durumunun parçası
+  n.ads.refundMissAt = old.ads.refundMissAt;
   return n;
 }
 
@@ -230,6 +232,8 @@ SaveData? importCode(SaveData current, String code) {
       adFree: current.ads.adFree,
       test: current.ads.test,
       coinDate: current.ads.coinDate,
-      coinCount: current.ads.coinCount);
+      coinCount: current.ads.coinCount,
+      refundMiss: current.ads.refundMiss,
+      refundMissAt: current.ads.refundMissAt);
   return o;
 }

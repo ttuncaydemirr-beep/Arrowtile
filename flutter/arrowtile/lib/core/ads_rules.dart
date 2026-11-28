@@ -38,6 +38,9 @@ typedef Unsubscribe = void Function();
 const int kFreeUntilLevel = 12;
 const int kEveryLevels = 3;
 const int kMinGapMs = 3 * 60 * 1000;
+/// 1.2.4: iade sonrası reklamsızlık en az bu kadar art arda "ürün yok" sorgusu ve ilk yanıttan bu yana [kRefundGrace] sonra kalkar.
+const int kRefundMinMisses = 2;
+const Duration kRefundGrace = Duration(hours: 24);
 const Duration kNativeTimeout = Duration(seconds: 90); // satın alma / gizlilik formu yanıt sınırı; reklam GÖSTERİMİNDE kullanılmaz (1.1.4)
 /// 1.1.4 (docs/21): show() çağrıldıktan sonra bu süre içinde SDK'dan haber yoksa "reklam gecikiyor" uyarısı gösterilir ve telemetriye
 /// `stuck` yazılır. Bekleme SÜRER: geç gelen reklam sonraki seviyenin ortasına düşmesin diye sonraki seviye yine başlatılmaz.
@@ -236,19 +239,41 @@ class Monetization {
   bool get isTestMode => !_bridge;
 
   /// 1.2.3 (docs/29 §3): Play'in BAŞARIYLA tamamlanan sahiplik sorgusunun sonucunu kayda işler.
-  /// owned=true → hak verilir. owned=false → iade/geri ödeme: kayıttaki reklamsızlık kaldırılır ve kaydedilir.
-  /// Sorgu başarısızsa (null/çevrimdışı/zaman aşımı) bu yöntem ÇAĞRILMAZ; kayıttaki değer korunur.
+  /// owned=true → hak verilir, iade sayacı sıfırlanır.
+  /// owned=false → iade/geri ödeme şüphesi. 1.2.4: reklamsızlık HEMEN kaldırılmaz; Play'in geçici hatalı "boş" yanıtı parası
+  /// ödenmiş hakkı silmesin diye ancak art arda en az [kRefundMinMisses] "yok" yanıtı geldiğinde VE ilk "yok" yanıtından bu yana
+  /// [kRefundGrace] geçtiğinde kaldırılır. Arada gelen bir "var" yanıtı sayacı sıfırlar.
+  /// Sorgu başarısızsa (null/çevrimdışı/zaman aşımı) bu yöntem ÇAĞRILMAZ; kayıttaki değer ve sayaç korunur.
   /// Test modu reklamsızlığı (a.test) iade kuralına girmez: o, gerçek platform varken zaten geçersizdir.
   void applyOwnership(bool owned) {
     final AdsState a = getAds();
     if (owned) {
+      final bool changed = !a.adFree || a.test || a.refundMiss != 0 || a.refundMissAt != 0;
       a.adFree = true;
       a.test = false;
-      persist();
-    } else if (a.adFree && !a.test) {
-      a.adFree = false;
-      persist();
+      a.refundMiss = 0;
+      a.refundMissAt = 0;
+      if (changed) persist();
+      return;
     }
+    if (!a.adFree || a.test) {
+      // reklamsız değil (ya da test modu reklamsızlığı): iade kuralı uygulanmaz; eski sayaç varsa temizlenir
+      if (a.refundMiss != 0 || a.refundMissAt != 0) {
+        a.refundMiss = 0;
+        a.refundMissAt = 0;
+        persist();
+      }
+      return;
+    }
+    final int t = now();
+    if (a.refundMiss == 0 || a.refundMissAt <= 0 || a.refundMissAt > t) a.refundMissAt = t; // saat geri alındıysa yeniden başlar
+    a.refundMiss += 1;
+    if (a.refundMiss >= kRefundMinMisses && t - a.refundMissAt >= kRefundGrace.inMilliseconds) {
+      a.adFree = false;
+      a.refundMiss = 0;
+      a.refundMissAt = 0;
+    }
+    persist();
   }
 
   // ---- banner (docs/15 §3) ----

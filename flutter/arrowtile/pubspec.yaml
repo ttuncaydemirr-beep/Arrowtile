@@ -36,6 +36,8 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # 1.2.4: yalnızca testte sahte Play Billing platformu için (zaten in_app_purchase'ın bağımlılığı; sürüm kilitte aynı)
+  in_app_purchase_platform_interface: ^1.4.1
 
 flutter:
   generate: true # lib/l10n/*.arb → flutter gen-l10n (l10n.yaml)

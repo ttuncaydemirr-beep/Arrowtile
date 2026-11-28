@@ -29,7 +29,7 @@ class BillingService {
   /// Play'den doğrulanmış sahiplik (başlangıç değeri: kayıttaki bayrak; çevrimdışı açılışta da doğru yanıt verir).
   bool owned;
 
-  /// Sahiplik değişince (ör. bekleyen satın alma tamamlandı) çağrılır.
+  /// Sahiplik değişince (ör. bekleyen satın alma tamamlandı) ve 1.2.4'ten beri her başarılı sahiplik sorgusunda çağrılır.
   void Function(bool owned)? onOwnedChanged;
 
   BillingService({this.owned = false});
@@ -143,6 +143,17 @@ class BillingService {
     bool sawCancelled = false;
     bool sawRestored = false;
     for (final PurchaseDetails p in list) {
+      // 1.2.4: Android eklentisi, kullanıcı ödeme ekranını kapattığında (USER_CANCELED) ya da satın alma hata verdiğinde Play'den
+      // ürün listesi gelmediği için ürün adı BOŞ ('') bir öğe yayınlar. Eskiden bu öğe "başka ürün" sayılıp atlanıyordu; satın alma
+      // akışı yanıtsız kalıyor ve düğme 90 sn (kNativeTimeout) kilitli duruyordu. Boş adlı iptal/hata öğesi bekleyen akışa aittir.
+      if (p.productID.isEmpty && (p.status == PurchaseStatus.canceled || p.status == PurchaseStatus.error)) {
+        if (p.status == PurchaseStatus.canceled) {
+          sawCancelled = true;
+        } else {
+          sawFailed = true;
+        }
+        continue;
+      }
       if (p.productID != AdsConfig.removeAdsProductId) {
         if (p.pendingCompletePurchase) {
           try {
@@ -200,7 +211,10 @@ class BillingService {
     final Completer<bool?>? rc = _restore;
     if (rc != null && !rc.isCompleted && (list.isEmpty || sawRestored)) {
       _restore = null;
-      _setOwned(sawPurchased); // iade edilmişse sahiplik kalkar
+      // 1.2.4: her BAŞARILI sorgunun sonucu bildirilir (yalnızca değişince değil): iade kuralı art arda gelen "ürün yok"
+      // yanıtlarını sayar ve reklamsızlığı ancak 2 yanıt + 24 saat sonra kaldırır (Monetization.applyOwnership).
+      owned = sawPurchased;
+      onOwnedChanged?.call(sawPurchased);
       rc.complete(sawPurchased);
     }
   }
