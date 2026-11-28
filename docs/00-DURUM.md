@@ -85,6 +85,7 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 ## 6. Bilinen notlar
 
 - Play Console uyarıları: Flutter motoru/eklentilerden gelen eski edge-to-edge API çağrıları (bizim kodda yok) — kütüphane güncellemeleriyle kalkar.
+  28 Kasım 2026 kontrolü (sahibin ekran görüntüsü, 1.2.3): (1) "Uçtan uca ekran tüm kullanıcılara gösterilmeyebilir" — `enableEdgeToEdge()` 1.2.2'den beri MainActivity'de var, iş yok. (2) "Desteği sonlandırılmış API" = `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`, kaynak `k1.t` (küçültülmüş androidx.activity sınıfı; `enableEdgeToEdge()` bunu yalnızca Android 9–10'da ayarlar). Bizim kodda yok; bilinen kütüphane uyarısı, iş yok. Sembol uyarısı bu sayfada görünmedi → 1.2.4 yüklenince yeniden bakılacak.
 - Harita başlığı tr/ar'da dar ekranda iki satıra bölünüyor (kesilmiyor).
 - Güvenlik raporları: ilk denetim (19 Kas) bulguları 1.2.3'te kapandı; ikinci denetim (22 Kas) kalanları yukarıdaki 1.2.4 listesinde. "Secret'ları ortama taşı" ve "servis hesabını yalnız test kanalına sınırla" önerileri bilinçli olarak uygulanmadı (onay kapısı korumayı sağlıyor).
 - Sürüm geçmişi ayrıntıları: docs/17 (changelog) ve docs/27–29.
