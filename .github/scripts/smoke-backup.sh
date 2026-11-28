@@ -41,10 +41,11 @@ adb shell bmgr backupnow "$PKG" | tee "$OUT/backupnow.txt"
 grep -q "Success" "$OUT/backupnow.txt" || fail "bmgr backupnow başarısız"
 
 # LocalTransport tam yedeği <kök>/<set>/_full/<paket> olarak yazar; kök sürüme göre /data/cache/backup ya da /cache/backup.
-F=$(adb shell "find /data/cache /cache /data/system/backup /data/local -path '*_full*' -name $PKG 2>/dev/null" | tr -d '\r' | grep -v '^$' | head -1)
+# (Android 9+ LocalTransport ayrı bir uygulamadır ve yedeği kendi veri klasörüne yazar.)
+F=$(adb shell "find /data/data/com.android.localtransport /data/user/0/com.android.localtransport /data/user_de/0/com.android.localtransport /data/cache /cache -path '*_full*' -name $PKG 2>/dev/null" | tr -d '\r' | grep -v '^$' | head -1)
 if [ -z "$F" ]; then
   log "aday yedek dosyaları:"
-  adb shell "find / -xdev -name $PKG -path '*backup*' 2>/dev/null" | head -20
+  adb shell "find /data -name $PKG -path '*_full*' 2>/dev/null" | head -20
   adb shell "ls -laR /data/cache 2>/dev/null" | head -40
   fail "tam yedek dosyası bulunamadı (*/_full/$PKG)"
 fi
