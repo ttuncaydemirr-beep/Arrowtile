@@ -14,6 +14,7 @@ Tüm açıklamalar sade Türkçe olmalıdır.
 5. Değişiklikten sonra mümkün olan testleri çalıştır ve derleme hatalarını kontrol et.
 6. Gereksiz dosya veya kod değişikliği yapma.
 7. Tuncay onay vermeden ana dala birleştirme.
+   Yalnızca docs/00-DURUM.md güncellemeleri onay beklemeden ana dala gidebilir. Oyun kodu, CLAUDE.md ve diğer tüm dosyalar için onay şart.
 
 ## Raporlama
 8. Değişiklikleri sade Türkçeyle açıkla.
