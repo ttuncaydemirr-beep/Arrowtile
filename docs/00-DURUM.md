@@ -87,3 +87,4 @@ Zarfla (`zarfla-37da9`) ve Tidy Nook (`demir-games-play`) ayrı projeler; LiD Ko
 
 - **28 Kasım 2026:** Kök dizine `CLAUDE.md` eklendi (sahibin yazdığı Claude çalışma kuralları: her oturumda önce CLAUDE.md ve bu dosya okunur, her iş ayrı dalda yapılır, onaysız ana dala birleştirme yok, raporlarda "test edildi / derlendi, test edilemedi / telefonda denenmeli" işaretleri). Yalnızca belge; oyun kodu değişmedi.
 - **28 Kasım 2026:** 1.2.4 işi Claude Code tarafına verildi (sahip kararı). Sohbet tarafı 1.2.4'e dokunmaz.
+- **28 Kasım 2026:** `CLAUDE.md`'ye iki ekleme (sahip onaylı): 7. maddeye "yalnızca 00-DURUM.md güncellemeleri onaysız ana dala gidebilir" istisnası; yeni "İş bölümü: Sohbet ve Code" bölümü (Code: kod/derleme/test/sürüm; Sohbet: karar, araştırma, mağaza, gizlilik, web önizleme, Code'u kontrol). Code'un 1.2.4 dalı bunları ana dalı aldığında görür.
