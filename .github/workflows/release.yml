@@ -298,7 +298,7 @@ jobs:
         run: rm -f "$RUNNER_TEMP/upload-keystore.jks" flutter/arrowtile/android/key.properties flutter/arrowtile/android/app/google-services.json
 
       # Play'e doğrudan yükleme açıksa artifact kotası dolu olsa bile (Artifact storage quota) yükleme sürsün.
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         continue-on-error: ${{ steps.play.outputs.upload == 'true' }}
         with:
           name: arrowtile-release-aab
