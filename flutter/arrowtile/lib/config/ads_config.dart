@@ -70,7 +70,7 @@ class AdsConfig {
 
 class AppInfo {
   AppInfo._();
-  static const String version = '1.2.3'; // pubspec.yaml version: 1.2.3 (+15) ile aynı
+  static const String version = '1.2.4'; // pubspec.yaml version: 1.2.4 (+16) ile aynı
   static const String supportEmail = 'nilkaren.tuncay.demir@gmail.com';
   static const String privacyUpdated = '2026-11-19'; // game/js/privacy.js UPDATED ile aynı
   /// 1.2.1: geliştirici / stüdyo adı (Play Console geliştirici adı, gizlilik politikası, lisans sayfası). "Demir Games" Play'de alınmış.
